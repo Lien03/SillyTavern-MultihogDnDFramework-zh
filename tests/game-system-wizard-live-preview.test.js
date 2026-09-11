@@ -42,7 +42,7 @@ Status: ((PILLS)) Adequate
         const source = readFileSync(new URL('../game-systems.js', import.meta.url), 'utf8');
         expect(source).toContain('id="rt-gs-ui-live-preview"');
         expect(source).not.toContain('id="rt-gs-ui-live-preview" class="rpg-tracker-render-view" contenteditable="true"');
-        expect(source).toContain('update this read-only preview');
+        expect(source).toContain('编辑该源块即可更新此只读预览');
         expect(source).toContain("$id('rt-gs-trkcontent')?.addEventListener('input'");
         expect(source).toContain('preview.innerHTML = renderMemoAsCards(previewMemo, trackerTag, previewSectionPages, {');
         expect(source).toContain("preview.querySelector('.rt-fullview-btn')?.addEventListener('click'");

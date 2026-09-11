@@ -165,7 +165,7 @@ describe('connection setup apply-to-all', () => {
         expect(connectionsMarkup).toContain('id="rpg_connection_apply_all_box"');
         expect(connectionsMarkup).toContain('id="rpg_connection_apply_all_source"');
         expect(connectionsMarkup).toContain('id="rpg_connection_apply_all_btn"');
-        expect(connectionsMarkup).toContain('Apply Connection Setup to All');
+        expect(connectionsMarkup).toContain('将连接设置应用到全部');
         expect(connectionsMarkup.indexOf('rpg_connection_slot_portraits'))
             .toBeLessThan(connectionsMarkup.indexOf('rpg_connection_apply_all_box'));
         expect(indexSource).toContain('bindConnectionApplyAllControls()');

@@ -70,7 +70,7 @@ function spawnRelationshipFloat({ npc, field, delta }) {
     const polarity = delta > 0 ? 'positive' : 'negative';
     const sign = delta > 0 ? '+' : '';
     const icon = isFriendship ? '🤝' : '💗';
-    const label = isFriendship ? 'Friendship' : 'Affection';
+    const label = isFriendship ? '友谊' : '好感';
 
     let layer = document.getElementById('rt-rel-float-layer');
     if (!layer) {

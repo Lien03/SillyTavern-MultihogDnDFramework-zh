@@ -83,7 +83,7 @@ describe('Instant Action instructions', () => {
         expect(quickStartSource).toContain('onboardingInstantActionRandomLevel === true');
         expect(quickStartSource).not.toMatch(/onboardingLevel \|\| 1\)/);
         expect(rendererSource).toContain('id="rt-quickstart-random-level"');
-        expect(rendererSource).toContain('Random Level?');
+        expect(rendererSource).toContain('随机等级？');
         expect(rendererSource).toContain("obSettings.onboardingInstantActionRandomLevel === true ? 'checked' : ''");
         expect(quickStartSource).toMatch(/randomLevelCheckbox\?\.addEventListener\('change', persistQuickStartOptions\)/);
     });
@@ -97,11 +97,11 @@ describe('Instant Action instructions', () => {
     it('makes the Instant Action starter message optional and on by default', () => {
         expect(buildDefaultSettings().onboardingSendStarterMessage).toBe(true);
         expect(rendererSource).toContain('id="rt-quickstart-send-starter"');
-        expect(rendererSource).toContain('Send Starter Message?');
-        expect(rendererSource).toContain('If this is checked, the AI automatically starts the campaign as soon as the rolled character is ready.');
+        expect(rendererSource).toContain('发送开场消息？');
+        expect(rendererSource).toContain('勾选后，AI 会在掷出的角色就绪后自动开始战役。');
         expect(rendererSource).toContain("obSettings.onboardingSendStarterMessage !== false ? 'checked' : ''");
         expect(quickStartSource).toMatch(/if \(s\.onboardingSendStarterMessage !== false\)/);
         expect(quickStartSource).toMatch(/sendStarterCheckbox\?\.addEventListener\('change', persistQuickStartOptions\)/);
-        expect(quickStartSource).toContain('Type your first action.');
+        expect(quickStartSource).toContain('输入你的第一个行动。');
     });
 });

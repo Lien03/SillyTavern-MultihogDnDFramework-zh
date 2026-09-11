@@ -195,7 +195,7 @@ describe('Adventure Companion settings', () => {
         const { readFileSync } = await import('node:fs');
         const source = readFileSync(new URL('../adventure-companion.js', import.meta.url), 'utf8');
         expect(source).toContain("id=\"rt-chat-inject-map\"");
-        expect(source).toContain('Inject current site map');
+        expect(source).toContain('注入当前地点地图');
         expect(source).toContain('formatDungeonMapForPlayer');
         expect(source).toContain('stripDungeonMapSection');
         expect(source).toContain("await import('./router.js')");

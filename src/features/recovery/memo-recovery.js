@@ -129,24 +129,24 @@ export function createMemoRecoveryManager({
             recoveryPromptActive = true;
             const localWhen = formatRecoveryTimestamp(entry.ts);
             const diskWhen = formatRecoveryTimestamp(diskStamp);
-            const diskLabel = diskStamp > 0 ? 'Disk version (this chat)' : 'Disk version (this chat; no saved timestamp)';
+            const diskLabel = diskStamp > 0 ? '磁盘版本（此聊天）' : '磁盘版本（此聊天；无保存时间戳）';
             const content = `<div style="text-align:left; line-height:1.45;">
-                <p><b>Possible unsaved tracker data found.</b></p>
-                <p>This browser has a local copy of the STATE MEMO for this chat that differs from what's currently on disk. This can happen after a cancelled save or when another browser wrote a newer copy. Choose which version to keep.</p>
+                <p><b>发现可能未保存的追踪器数据。</b></p>
+                <p>此浏览器中有该聊天「状态备忘」的本地副本，与磁盘上的当前内容不一致。这可能发生在保存被取消或另一个浏览器写入了更新副本时。请选择要保留的版本。</p>
                 <p style="margin:10px 0; padding:8px 10px; background:rgba(255,255,255,0.05); border-radius:6px; font-size:0.95em;">
-                    <b>Local backup</b> (this browser)<br>
-                    ${entry.currentMemo.length.toLocaleString()} chars · ${escapeHtml(localWhen)}<br><br>
+                    <b>本地备份</b>（此浏览器）<br>
+                    ${entry.currentMemo.length.toLocaleString()} 字符 · ${escapeHtml(localWhen)}<br><br>
                     <b>${diskLabel}</b><br>
-                    ${diskMemo.length.toLocaleString()} chars · ${escapeHtml(diskWhen)}
+                    ${diskMemo.length.toLocaleString()} 字符 · ${escapeHtml(diskWhen)}
                 </p>
-                <p style="margin-top:10px; padding:8px 10px; border-left:3px solid #f0ad4e; background:rgba(240,173,78,0.12); border-radius:4px;"><b>Look behind this dialog</b> (background is left unblurred on purpose). If the tracker / chat UI looks outdated or stale compared to what you just had — click <b>Restore</b>.</p>
-                <p>Restore the local backup?</p>
+                <p style="margin-top:10px; padding:8px 10px; border-left:3px solid #f0ad4e; background:rgba(240,173,78,0.12); border-radius:4px;"><b>请查看此对话框后方</b>（背景特意保持未模糊）。如果追踪器/聊天界面与你刚才看到的不一致或显得过时——请点击 <b>恢复</b>。</p>
+                <p>恢复本地备份？</p>
             </div>`;
             const { Popup, POPUP_TYPE } = ctx;
             let result = false;
             if (typeof Popup === 'function') {
                 const popup = new Popup(content, POPUP_TYPE?.CONFIRM ?? 1, '', {
-                    okButton: 'Restore',
+                    okButton: '恢复',
                     cancelButton: 'Keep disk version (keep what\'s visible right now)',
                     leftAlign: true,
                     animation: 'none',
@@ -155,7 +155,7 @@ export function createMemoRecoveryManager({
                 result = await popup.show();
             } else {
                 result = await ctx.callGenericPopup(content, ctx.POPUP_TYPE?.CONFIRM ?? 1, '', {
-                    okButton: 'Restore',
+                    okButton: '恢复',
                     cancelButton: 'Keep disk version (keep what\'s visible right now)',
                     leftAlign: true,
                     animation: 'none',
@@ -169,7 +169,7 @@ export function createMemoRecoveryManager({
                 if (typeof updateUIMemo === 'function') updateUIMemo(settings.currentMemo);
                 if (typeof refreshRenderedView === 'function') refreshRenderedView();
                 if (typeof syncMemoView === 'function') syncMemoView();
-                toastr.success('Local backup restored.', 'RPG Tracker');
+                toastr.success('已恢复本地备份。', 'RPG Tracker');
                 restored = true;
             }
         } catch (err) {
@@ -193,17 +193,17 @@ export function createMemoRecoveryManager({
         const ctx = SillyTavern.getContext();
         const localWhen = formatRecoveryTimestamp(backup?.ts);
         const content = `<div style="text-align:left;line-height:1.45;">
-            <p><b>Browser configuration differs from settings.json.</b></p>
-            <p>This browser has a saved local configuration snapshot from ${escapeHtml(localWhen)} that does not match the disk version. It may be a save that was interrupted—or an older cache from another browser session.</p>
-            <p style="margin:10px 0;padding:8px 10px;border-left:3px solid #f0ad4e;background:rgba(240,173,78,0.12);border-radius:4px;">This includes tracker fields, narrator settings, stock prompts, and <b>CYOA settings and presets</b>. Nothing will be restored automatically.</p>
-            <p style="margin:10px 0;padding:8px 10px;border-left:3px solid #f0ad4e;background:rgba(240,173,78,0.12);border-radius:4px;"><b>Look behind this dialog</b> (background is left unblurred on purpose). Use the tracker / chat UI you can see to judge whether local looks newer or staler than disk, then choose.</p>
-            <p>Restore this browser's local configuration?</p>
+            <p><b>浏览器配置与 settings.json 不一致。</b></p>
+            <p>此浏览器保存了来自 ${escapeHtml(localWhen)} 的本地配置快照，与磁盘版本不一致。可能是被中断的保存，或来自另一个浏览器会话的旧缓存。</p>
+            <p style="margin:10px 0;padding:8px 10px;border-left:3px solid #f0ad4e;background:rgba(240,173,78,0.12);border-radius:4px;">这包括追踪器字段、叙述者设置、内置提示词，以及 <b>CYOA 设置与预设</b>。不会自动恢复任何内容。</p>
+            <p style="margin:10px 0;padding:8px 10px;border-left:3px solid #f0ad4e;background:rgba(240,173,78,0.12);border-radius:4px;"><b>请查看此对话框后方</b>（背景特意保持未模糊）。用你能看到的追踪器/聊天界面来判断本地版本比磁盘更新还是更旧，然后做出选择。</p>
+            <p>恢复此浏览器的本地配置？</p>
         </div>`;
         try {
             const { Popup, POPUP_TYPE } = ctx;
             if (typeof Popup === 'function') {
                 const popup = new Popup(content, POPUP_TYPE?.CONFIRM ?? 1, '', {
-                    okButton: 'Restore local configuration',
+                    okButton: '恢复本地配置',
                     cancelButton: 'Keep disk configuration (keep what\'s visible right now)',
                     leftAlign: true,
                     animation: 'none',
@@ -212,7 +212,7 @@ export function createMemoRecoveryManager({
                 return !!await popup.show();
             }
             return !!await ctx.callGenericPopup?.(content, ctx.POPUP_TYPE?.CONFIRM ?? 1, '', {
-                okButton: 'Restore local configuration',
+                okButton: '恢复本地配置',
                 cancelButton: 'Keep disk configuration (keep what\'s visible right now)',
                 leftAlign: true,
                 animation: 'none',

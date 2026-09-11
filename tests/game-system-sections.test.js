@@ -59,7 +59,7 @@ describe('effective system-prompt section state', () => {
         const editorSource = readFileSync(new URL('../ui-editors.js', import.meta.url), 'utf8');
 
         expect(editorSource).toContain("scopeControl.className = 'rt-module-wizard-scope'");
-        expect(editorSource).toContain('Open Manage Game Systems to make the bundle GLOBAL or CHAT-BOUND.');
+        expect(editorSource).toContain('打开“管理游戏系统”可将该包设为全局或对话绑定。');
         expect(editorSource).toContain('scopeControl.onclick = showWizardScopeRedirect');
         expect(editorSource).toMatch(/event\.key !== 'Enter' && event\.key !== ' '/);
     });
@@ -127,8 +127,8 @@ describe('effective system-prompt section state', () => {
         const settingsMarkup = readFileSync(new URL('../settings.html', import.meta.url), 'utf8');
         const onboarding = readFileSync(new URL('../renderer.js', import.meta.url), 'utf8');
 
-        expect(settingsMarkup).toContain('Persistent Maps');
-        expect(settingsMarkup).toContain('Text command — no function calling');
+        expect(settingsMarkup).toContain('🗺️ 持久地图');
+        expect(settingsMarkup).toContain('文本命令 — 无需函数调用');
         expect(settingsMarkup).toContain('rpg_map_architect_opener');
         expect(settingsMarkup).toContain('rpg_map_architect_opener_components');
         expect(settingsMarkup).toContain('id="rpg_map_architect_opener_components"');

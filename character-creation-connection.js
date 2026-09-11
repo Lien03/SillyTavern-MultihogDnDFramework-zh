@@ -103,7 +103,7 @@ export function bindCharacterCreationConnectionSettings(rootEl) {
     persistInput(openaiManual, 'characterCreationOpenaiModel');
 
     if (ollamaModel instanceof HTMLSelectElement) {
-        setOptions(ollamaModel, s.characterCreationOllamaModel ? [s.characterCreationOllamaModel] : [], '-- Select Model --', s.characterCreationOllamaModel);
+        setOptions(ollamaModel, s.characterCreationOllamaModel ? [s.characterCreationOllamaModel] : [], '-- 选择模型 --', s.characterCreationOllamaModel);
         ollamaModel.addEventListener('change', () => {
             getSettings().characterCreationOllamaModel = ollamaModel.value;
             saveSettings();
@@ -112,19 +112,19 @@ export function bindCharacterCreationConnectionSettings(rootEl) {
     ollamaRefresh?.addEventListener('click', async (event) => {
         event.preventDefault();
         const url = ollamaUrl instanceof HTMLInputElement ? ollamaUrl.value.trim() : '';
-        if (!url) return toastr['info']('Please enter an Ollama URL first.');
+        if (!url) return toastr['info']('请先输入 Ollama URL。');
         try {
             const models = await fetchOllamaModels(url);
             const names = models.map(model => typeof model === 'string' ? model : model.name).filter(Boolean);
-            setOptions(ollamaModel, names, '-- Select Model --', getSettings().characterCreationOllamaModel);
-            toastr['success']('Ollama models updated.');
+            setOptions(ollamaModel, names, '-- 选择模型 --', getSettings().characterCreationOllamaModel);
+            toastr['success']('Ollama 模型已更新。');
         } catch (_) {
-            toastr['error']('Failed to fetch Ollama models.');
+            toastr['error']('获取 Ollama 模型失败。');
         }
     });
 
     if (openaiModel instanceof HTMLSelectElement) {
-        setOptions(openaiModel, [], '-- Select Model --', '');
+        setOptions(openaiModel, [], '-- 选择模型 --', '');
         openaiModel.addEventListener('change', () => {
             if (!openaiModel.value) return;
             if (openaiManual instanceof HTMLInputElement) openaiManual.value = '';
@@ -136,14 +136,14 @@ export function bindCharacterCreationConnectionSettings(rootEl) {
         event.preventDefault();
         const url = openaiUrl instanceof HTMLInputElement ? openaiUrl.value.trim() : '';
         const key = openaiKey instanceof HTMLInputElement ? openaiKey.value : '';
-        if (!url) return toastr['info']('Please enter an Endpoint URL first.');
+        if (!url) return toastr['info']('请先输入端点 URL。');
         try {
             const models = await fetchOpenAIModels(url, key);
             const names = models.map(model => typeof model === 'string' ? model : (model.id || model.name)).filter(Boolean);
-            setOptions(openaiModel, names, '-- Select Model --', getSettings().characterCreationOpenaiModel);
-            toastr['success']('Models updated.');
+            setOptions(openaiModel, names, '-- 选择模型 --', getSettings().characterCreationOpenaiModel);
+            toastr['success']('模型已更新。');
         } catch (_) {
-            toastr['warning']('Cannot auto-detect models. Type the model name manually.');
+            toastr['warning']('无法自动检测模型，请手动输入模型名称。');
         }
     });
 
@@ -174,7 +174,7 @@ export function bindCharacterCreationConnectionSettings(rootEl) {
         }
     }
     if (profile instanceof HTMLSelectElement && !profileDropdownBound) {
-        profile.innerHTML = '<option value="">-- No Profile Selected --</option>';
+        profile.innerHTML = '<option value="">-- 未选择配置 --</option>';
         const supportedProfiles = connectionProfiles.filter(candidate => {
             try {
                 return typeof service?.isProfileSupported !== 'function' || service.isProfileSupported(candidate);
@@ -198,7 +198,7 @@ export function bindCharacterCreationConnectionSettings(rootEl) {
     if (preset instanceof HTMLSelectElement) {
         const manager = SillyTavern.getContext().getPresetManager?.();
         const presets = manager?.getAllPresets?.() || [];
-        setOptions(preset, presets, '-- Use Current Settings --', s.characterCreationCompletionPresetId);
+        setOptions(preset, presets, '-- 使用当前设置 --', s.characterCreationCompletionPresetId);
         preset.addEventListener('change', () => {
             getSettings().characterCreationCompletionPresetId = preset.value;
             saveSettings();

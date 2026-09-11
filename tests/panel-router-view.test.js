@@ -54,11 +54,11 @@ describe('panel router view', () => {
 
         await render();
 
-        expect(keys.innerHTML).toContain('None');
-        expect(log.innerHTML).toContain('No logs yet');
+        expect(keys.innerHTML).toContain('无');
+        expect(log.innerHTML).toContain('暂无日志');
         expect(tokens.textContent).toBe('(0t)');
-        expect(lastFired.textContent).toBe('Never');
-        expect(enabledBadge.textContent).toBe('ON');
+        expect(lastFired.textContent).toBe('从未');
+        expect(enabledBadge.textContent).toBe('开');
         expect(refreshImmersionView).toHaveBeenCalledOnce();
     });
 

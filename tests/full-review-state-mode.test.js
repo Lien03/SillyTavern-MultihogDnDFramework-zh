@@ -59,14 +59,14 @@ describe('Full Review State Mode', () => {
         const fullReviewAt = settingsHtml.indexOf('id="rpg_tracker_full_review_mode"');
         const connectionAt = settingsHtml.indexOf('id="rpg_tracker_connection_source"');
         const inventoryAt = settingsHtml.indexOf('id="rpg_inventory_config_block"');
-        const corePromptAt = settingsHtml.indexOf('<b>Core Prompt</b>');
+        const corePromptAt = settingsHtml.indexOf('<b>核心提示词</b>');
 
         expect(enableAt).toBeGreaterThanOrEqual(0);
         expect(fullReviewAt).toBeGreaterThan(enableAt);
         expect(connectionAt).toBeGreaterThan(fullReviewAt);
         expect(inventoryAt).toBeGreaterThan(connectionAt);
         expect(corePromptAt).toBeGreaterThan(inventoryAt);
-        expect(settingsHtml).toContain('(recommended for weaker/local models)');
+        expect(settingsHtml).toContain('（推荐用于较弱的/本地模型）');
         expect(settingsHtml).toContain('id="rpg_tracker_full_review_note"');
         // Full Review toggle must not live inside the Core Prompt drawer anymore.
         expect(settingsHtml.slice(corePromptAt, corePromptAt + 800)).not.toContain('id="rpg_tracker_full_review_mode"');

@@ -16,13 +16,13 @@ export function scalePanelBackgroundImage(dataUrl, maxDim = 1280) {
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             if (!ctx) {
-                reject(new Error('Canvas unsupported'));
+                reject(new Error('不支持 Canvas 图像处理'));
                 return;
             }
             ctx.drawImage(img, 0, 0, width, height);
             resolve(canvas.toDataURL('image/jpeg', 0.78));
         };
-        img.onerror = () => reject(new Error('Could not load image'));
+        img.onerror = () => reject(new Error('无法加载图片'));
         img.src = dataUrl;
     });
 }

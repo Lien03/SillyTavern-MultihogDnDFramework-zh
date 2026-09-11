@@ -15,12 +15,18 @@ describe('Narrator Configuration pacing', () => {
             expect(normalAt).toBeGreaterThan(-1);
             expect(shorterAt).toBeGreaterThan(normalAt);
             expect(highAgencyAt).toBeGreaterThan(shorterAt);
-            expect(source).toContain('Normal (no length instructions)');
-            expect(source).toContain('Shorter Outputs');
+            // Settings html uses the translated labels; the renderer onboarding is still English.
+            if (source === settingsMarkup) {
+                expect(source).toContain('正常（无长度指令）');
+                expect(source).toContain('较短输出');
+            } else {
+                expect(source).toContain('Normal (no length instructions)');
+                expect(source).toContain('Shorter Outputs');
+            }
         }
 
         const indexSource = readFileSync(new URL('../index.js', import.meta.url), 'utf8');
-        expect(indexSource).toContain('Keeps outputs short to moderate in length. Also does not have the instruction of lightly expanding on your actions, likely leaving more room for you to respond and direct the scene.');
+        expect(indexSource).toContain('让输出保持短到中等长度。同时没有轻微扩展你行动的指令，为你回应并主导场景留出更多空间。');
         expect(readFileSync(new URL('../src/state/defaults.js', import.meta.url), 'utf8')).toContain("narrativePacing: 'normal'");
     });
 

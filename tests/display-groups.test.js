@@ -172,19 +172,20 @@ describe('Display Group rendering', () => {
         expect(html).toContain('rt-display-group-card');
         expect(html).toContain('data-member-tag="ALPHA_STANDING"');
         expect(html).not.toContain('data-member-tag="VEHICLE_FUEL"');
-        expect(html).toContain('VEHICLE_FUEL is detached');
+        expect(html).toContain('已分离');
+        expect(html).toContain('VEHICLE_FUEL 已分离');
     });
 
     it('keeps Display Groups in settings and the manager separate from Modules & Order', () => {
         const settingsHtml = readFileSync(new URL('../settings.html', import.meta.url), 'utf8');
         const managerSource = readFileSync(new URL('../display-groups.js', import.meta.url), 'utf8');
         const editorSource = readFileSync(new URL('../ui-editors.js', import.meta.url), 'utf8');
-        expect(settingsHtml).toContain('Display Groups');
+        expect(settingsHtml).toContain('显示分组');
         expect(settingsHtml).not.toContain('BETA');
         expect(settingsHtml).not.toContain('rpg_tracker_display_groups_enabled');
         expect(settingsHtml).toContain('rpg_tracker_manage_display_groups');
-        expect(settingsHtml.indexOf('rpg_tracker_manage_display_groups')).toBeGreaterThan(settingsHtml.indexOf('<b>Modules &amp; Order</b>'));
-        expect(settingsHtml.indexOf('rpg_tracker_manage_display_groups')).toBeLessThan(settingsHtml.indexOf('<b>Scenario Profiles</b>'));
+        expect(settingsHtml.indexOf('rpg_tracker_manage_display_groups')).toBeGreaterThan(settingsHtml.indexOf('<b>模块与顺序</b>'));
+        expect(settingsHtml.indexOf('rpg_tracker_manage_display_groups')).toBeLessThan(settingsHtml.indexOf('<b>场景配置</b>'));
         expect(settingsHtml).toContain('rt-tag-library-button');
         expect(readFileSync(new URL('../style.css', import.meta.url), 'utf8')).toContain('.rt-tag-library-button {');
         expect(readFileSync(new URL('../style.css', import.meta.url), 'utf8')).toContain('width: 100%;');
@@ -193,7 +194,7 @@ describe('Display Group rendering', () => {
         expect(managerSource).toContain('Especially useful in tab mode');
         expect(managerSource).toContain('rt-display-groups-enabled');
         expect(managerSource).toContain('rt-display-groups-show-gaps');
-        expect(managerSource).toContain('Show gaps between grouped modules');
+        expect(managerSource).toContain('显示分组模块之间的间距');
         expect(managerSource).toContain('MODULE ORDER IN THIS GROUP');
         expect(managerSource).toContain('rt-dg-member-order');
         expect(managerSource).toContain('width:100%;min-width:0;max-height:72vh');
@@ -201,7 +202,7 @@ describe('Display Group rendering', () => {
         expect(managerSource).toContain('allowVerticalScrolling: true');
         expect(managerSource).toContain('wider: true');
         expect(managerSource).not.toContain('large: true');
-        expect(managerSource).toContain("cancelButton: 'Cancel'");
+        expect(managerSource).toContain("cancelButton: '取消'");
         expect(managerSource).toContain('popup.result !== POPUP_RESULT.AFFIRMATIVE');
         expect(managerSource).toContain('saveOpenEditor ? saveOpenEditor() : true');
         expect(managerSource).not.toContain('rt-dg-editor-cancel');

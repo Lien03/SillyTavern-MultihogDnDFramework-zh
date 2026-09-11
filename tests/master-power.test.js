@@ -28,7 +28,7 @@ describe('master framework power button', () => {
         });
 
         expect(markup).toContain('id="rpg-tracker-enable-btn"');
-        expect(markup).toContain('Disable Multihog Framework');
+        expect(markup).toContain('禁用 Multihog 框架');
         expect(markup).not.toContain('id="rt-agent-router-enable-btn"');
         expect(markup).not.toContain('Enable Lorebook Agent');
         expect(markup).not.toContain('Disable Lorebook Agent');

@@ -25,8 +25,8 @@ describe('Adventure Companion layout', () => {
         expect(source).not.toContain(['Tutorial', 'Bot'].join(' '));
         expect(source).not.toContain("mode === 'companion'");
         expect(markup).toContain('id="rt-adventure-companion-header"');
-        expect(markup).toContain('<span>Adventure Companion</span>');
-        expect(source).toContain("const COMPANION_HEADER_TITLE = 'Adventure Companion'");
+        expect(markup).toContain('<span>冒险伙伴</span>');
+        expect(source).toContain("const COMPANION_HEADER_TITLE = '冒险伙伴'");
         expect(css).toMatch(/\.rt-adventure-companion-header\s*\{[^}]*font-size:\s*0\.9em;[^}]*text-transform:\s*none;/s);
         expect(source).toContain("trackerTab.style.display = 'none'");
         expect(source).toContain("companionHeader.style.display = 'flex'");

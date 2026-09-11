@@ -22,14 +22,14 @@ import {
 
 /** @type {{ id: string, icon: string, label: string, match: RegExp }[]} */
 const TAB_DEFS = [
-    { id: 'general', icon: 'fa-gears', label: 'General & Visuals', match: /General\s*&\s*Visuals/i },
-    { id: 'connections', icon: 'fa-plug', label: 'Connections', match: /Connections/i },
-    { id: 'gamesystems', icon: 'fa-dice-d20', label: 'Game Systems', match: /Game Systems/i },
-    { id: 'statetracker', icon: 'fa-brain', label: 'State Tracker', match: /State Tracker/i },
-    { id: 'agent', icon: 'fa-route', label: 'Lorebook Agent', match: /Lorebook Agent/i },
-    { id: 'maparchitect', icon: 'fa-map', label: 'Persistent Maps', match: /Persistent Maps/i },
-    { id: 'worldprog', icon: 'fa-globe', label: 'World Progression', match: /World Progression/i },
-    { id: 'companion', icon: 'fa-comments', label: 'Adventure Companion', match: /Adventure Companion/i },
+    { id: 'general', icon: 'fa-gears', label: '通用与视觉', match: /General\s*&\s*Visuals/i },
+    { id: 'connections', icon: 'fa-plug', label: '连接', match: /Connections/i },
+    { id: 'gamesystems', icon: 'fa-dice-d20', label: '游戏系统', match: /Game Systems/i },
+    { id: 'statetracker', icon: 'fa-brain', label: '状态追踪器', match: /State Tracker/i },
+    { id: 'agent', icon: 'fa-route', label: '世界书代理', match: /Lorebook Agent/i },
+    { id: 'maparchitect', icon: 'fa-map', label: '持久地图', match: /Persistent Maps/i },
+    { id: 'worldprog', icon: 'fa-globe', label: '世界进展', match: /World Progression/i },
+    { id: 'companion', icon: 'fa-comments', label: '冒险伙伴', match: /Adventure Companion/i },
 ];
 
 let _lastTab = 'general';
@@ -83,12 +83,12 @@ function installAppearanceToggle(tabsHost) {
     bar.className = 'rt-so-appearance-bar';
     bar.innerHTML = `
         <div class="rt-so-appearance-label">
-            <span>Settings window appearance</span>
-            <i class="fa-solid fa-circle-question" title="Locked Dark / Light chrome for this settings window only. Prevents SillyTavern / tracker theme colors from making the menu unreadable."></i>
+            <span>设置窗口外观</span>
+            <i class="fa-solid fa-circle-question" title="仅为该设置窗口锁定深色/浅色外观，防止 SillyTavern / 追踪器主题色让菜单无法阅读。"></i>
         </div>
-        <div class="rt-so-appearance-seg" role="group" aria-label="Settings window appearance">
-            <button type="button" class="rt-so-appearance-btn" data-mode="dark"><i class="fa-solid fa-moon"></i> Dark</button>
-            <button type="button" class="rt-so-appearance-btn" data-mode="light"><i class="fa-solid fa-sun"></i> Light</button>
+        <div class="rt-so-appearance-seg" role="group" aria-label="设置窗口外观">
+            <button type="button" class="rt-so-appearance-btn" data-mode="dark"><i class="fa-solid fa-moon"></i> 深色</button>
+            <button type="button" class="rt-so-appearance-btn" data-mode="light"><i class="fa-solid fa-sun"></i> 浅色</button>
         </div>`;
     general.insertBefore(bar, general.firstChild);
 
@@ -220,19 +220,19 @@ export function initSettingsOverlay(settingsHtml, opts = {}) {
     overlay.setAttribute('aria-hidden', 'true');
     overlay.innerHTML = `
         <div class="rt-so-dim" data-rt-so-close="1"></div>
-        <div class="rt-so-panel" role="dialog" aria-modal="true" aria-label="Multihog D&D Framework Settings">
+        <div class="rt-so-panel" role="dialog" aria-modal="true" aria-label="Multihog D&D 框架设置">
             <div class="rt-so-bg">${backgroundSvg()}</div>
             <div class="rt-so-header">
-                <div class="rt-so-title"><i class="fa-solid fa-dungeon"></i> Multihog D&amp;D Framework — Settings</div>
+                <div class="rt-so-title"><i class="fa-solid fa-dungeon"></i> Multihog D&amp;D 框架 — 设置</div>
                 <div class="rt-so-search">
                     <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                    <input type="search" id="rt-so-search-input" placeholder="Search settings…" autocomplete="off" spellcheck="false" aria-label="Search settings" />
-                    <button type="button" id="rt-so-search-clear" class="rt-so-search-clear" hidden title="Clear search" aria-label="Clear search">&times;</button>
+                    <input type="search" id="rt-so-search-input" placeholder="搜索设置…" autocomplete="off" spellcheck="false" aria-label="搜索设置" />
+                    <button type="button" id="rt-so-search-clear" class="rt-so-search-clear" hidden title="清除搜索" aria-label="清除搜索">&times;</button>
                 </div>
-                <button type="button" id="rt-so-close" class="menu_button interactable" title="Close (Esc)">✕</button>
+                <button type="button" id="rt-so-close" class="menu_button interactable" title="关闭 (Esc)">✕</button>
             </div>
             <div class="rt-so-body">
-                <nav class="rt-so-tabs" aria-label="Settings sections"></nav>
+                <nav class="rt-so-tabs" aria-label="设置分区"></nav>
                 <div class="rt-so-content">
                     <div class="rt-so-search-empty" hidden role="status" aria-live="polite"></div>
                 </div>

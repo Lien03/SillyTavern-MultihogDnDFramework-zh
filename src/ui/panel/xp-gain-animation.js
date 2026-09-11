@@ -115,9 +115,9 @@ export function playXpGainAnimation(container, captured, contextKey) {
     const floater = document.createElement('span');
     floater.className = 'rt-xp-gain-floater';
     floater.setAttribute('role', 'status');
-    floater.setAttribute('aria-label', `Gained ${gained} experience points`);
+    floater.setAttribute('aria-label', `获得 ${gained} 点经验值`);
     floater.style.setProperty('--rt-xp-trickle-duration', `${trickleMs}ms`);
-    floater.textContent = `+${gained.toLocaleString('en-US')} XP`;
+    floater.textContent = `+${gained.toLocaleString('en-US')} 经验值`;
     row.classList.add('rt-xp-gain-active');
     row.appendChild(floater);
 
@@ -126,7 +126,7 @@ export function playXpGainAnimation(container, captured, contextKey) {
         bar.style.transition = '';
         currentLabel.textContent = formatAnimatedXpValue(next.current, next.max, next.showAsPercentage);
         row.dataset.xpVisibleCurrent = String(next.current);
-        floater.textContent = '+0 XP';
+        floater.textContent = '+0 经验值';
         floater.classList.add('rt-xp-gain-complete');
         globalThis.setTimeout(() => {
             floater.remove();
@@ -146,7 +146,7 @@ export function playXpGainAnimation(container, captured, contextKey) {
             const visibleCurrent = oldCurrent + transferred;
             const visiblePct = transition.fromPct + ((transition.toPct - transition.fromPct) * progress);
 
-            floater.textContent = `+${remaining.toLocaleString('en-US')} XP`;
+            floater.textContent = `+${remaining.toLocaleString('en-US')} 经验值`;
             bar.style.width = `${visiblePct.toFixed(2)}%`;
             currentLabel.textContent = formatAnimatedXpValue(visibleCurrent, next.max, next.showAsPercentage);
             row.dataset.xpVisibleCurrent = String(visibleCurrent);

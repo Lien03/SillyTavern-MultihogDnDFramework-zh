@@ -22,15 +22,15 @@ describe('portrait story lookback', () => {
 
     it('exposes portrait story lookback controls in the Portraits drawer', () => {
         const settingsMarkup = readFileSync(new URL('../settings.html', import.meta.url), 'utf8');
-        const portraitsStart = settingsMarkup.indexOf('<b>Portraits and Location Images</b>');
-        const developerStart = settingsMarkup.indexOf('Developer &amp; Reset');
+        const portraitsStart = settingsMarkup.indexOf('<b>肖像与地点图片</b>');
+        const developerStart = settingsMarkup.indexOf('调试与出厂重置');
         const portraitsMarkup = settingsMarkup.slice(portraitsStart, developerStart);
 
         expect(portraitsMarkup).toContain('id="rpg_tracker_portrait_use_story_lookback"');
-        expect(portraitsMarkup).toContain('Use Story Lookback When Generating Portraits');
+        expect(portraitsMarkup).toContain('生成肖像时使用剧情回顾');
         expect(portraitsMarkup).toContain('id="rpg_tracker_portrait_story_lookback"');
         expect(portraitsMarkup).toContain('id="rpg_tracker_portrait_story_lookback_row"');
-        expect(portraitsMarkup).toContain('Location images always include recent story context');
+        expect(portraitsMarkup).toContain('地点图片始终包含最近的剧情上下文');
     });
 
     it('keeps location image prompts on story lookback regardless of the portrait toggle', () => {

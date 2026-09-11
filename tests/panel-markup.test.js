@@ -15,7 +15,7 @@ describe('panel markup', () => {
         });
 
         expect(markup).toContain('id="rpg-tracker-enable-btn"');
-        expect(markup).toContain('Disable Multihog Framework');
+        expect(markup).toContain('禁用 Multihog 框架');
         expect(markup).not.toContain('id="rt-agent-router-enable-btn"');
         expect(markup).toContain('id="rpg-tracker-memo"');
         expect(markup).toContain('id="rt-bottom-xp-bar"');
@@ -29,15 +29,15 @@ describe('panel markup', () => {
         expect(markup).toContain('id="rt-research-lorebook"');
         expect(markup).toContain('id="rt-research-map-updater"');
         expect(markup).toContain('id="rt-research-map-evolution"');
-        expect(markup).toContain('<b>Map Updater</b>');
-        expect(markup).toContain('<b>Map Evolution</b>');
+        expect(markup).toContain('<b>地图更新器</b>');
+        expect(markup).toContain('<b>地图演化</b>');
         expect(markup).toContain('id="rt-agent-map-evo-header"');
         expect(markup).toContain('id="rt-agent-map-evo-testing-ground"');
         expect(markup).toContain('id="rt-agent-map-evo-drawer"');
         expect(markup).toContain('id="rt-agent-map-evo-tick-scope"');
         expect(markup).toContain('id="rt-agent-world-locations"');
         expect(markup.indexOf('rt-agent-map-evo-header')).toBeLessThan(markup.indexOf('rt-agent-world-header'));
-        expect(markup).toContain('Visuals/Map');
+        expect(markup).toContain('视觉/地图');
         expect(markup).not.toContain('>Visualization Mode<');
         expect(markup).toContain('id="rt-agent-terminal-tabs"');
         expect(markup).toContain('id="rt-agent-terminal-lorebook_agent"');
@@ -96,7 +96,7 @@ describe('panel markup', () => {
         expect(index).toContain('initializeDebugViewer()');
         expect(index).toContain('toggleDebugViewer()');
         expect(index.indexOf('toggle_rpg_tracker_wand_button')).toBeLessThan(index.indexOf('rpg_tracker_debug_wand_button'));
-        expect(settingsMarkup).toContain('Multihog Context Debugger');
+        expect(settingsMarkup).toContain('Multihog 上下文调试器');
         const style = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
         const contentRule = style.slice(style.indexOf('.rpg-debug-content {'), style.indexOf('.rpg-debug-empty'));
         expect(contentRule).toContain('min-height: 0');

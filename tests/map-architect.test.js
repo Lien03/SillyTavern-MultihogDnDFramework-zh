@@ -153,7 +153,7 @@ describe('Map Architect component', () => {
         expect(index).toContain('Math.min(32000, parseInt(String($(this).val()), 10) || 25000)');
         expect(profiles).toContain('mapArchitectMaxTokens: s.mapArchitectMaxTokens ?? 25000');
         expect(settingsMarkup).toMatch(/id="rpg_map_architect_max_tokens"[^>]*max="32000"/);
-        expect(settingsMarkup).toContain('<b>Persistent Maps</b>');
+        expect(settingsMarkup).toContain('<b>持久地图</b>');
         expect(settingsMarkup).toContain('<b>Map Architect</b>');
         expect(settingsMarkup).not.toContain('<b>Architect Prompt</b>');
         expect(defaults).not.toContain('mapArchitectMaxTokens: 6000');
@@ -169,8 +169,8 @@ describe('Map Architect component', () => {
     it('broadcasts Map Architect lifecycle steps to the Agent Console', () => {
         const architect = readFileSync(new URL('../map-architect.js', import.meta.url), 'utf8');
         expect(architect).toContain("metadata: { source: 'map_architect', ...metadata }");
-        expect(architect).toContain("broadcastStep('start', `Initializing Map Architect for ${args.site}...`)");
-        expect(architect).toContain("broadcastStep('finish', `Map Architect finished for ${args.site}.`)");
+        expect(architect).toContain("broadcastStep('start', `正在为 ${args.site} 初始化 Map Architect...`)");
+        expect(architect).toContain("broadcastStep('finish', `Map Architect 已完成 ${args.site} 的地图生成。`)");
         expect(architect).toContain("broadcastStep('error', describeFailure(error))");
     });
 
@@ -240,7 +240,7 @@ describe('Map Architect component', () => {
         expect(architect).not.toContain('mapRuntimeConnectionSource');
         expect(architect).toContain("{ jsonSchema: MAP_ARCHITECT_TOPOLOGY_JSON_SCHEMA, stream: true, debugSource: 'Map Architect: Topology' }");
         expect(architect).toContain("{ jsonSchema: MAP_ARCHITECT_ASSETS_JSON_SCHEMA, stream: true, debugSource: 'Map Architect: Assets' }");
-        expect(architect).toContain('Topology locked with ${topology.areas.length} areas');
+        expect(architect).toContain('已为 ${args.site} 锁定拓扑，共 ${topology.areas.length} 个区域。');
         expect(architect).toContain('persistArchitectDungeonMap(args.site, completedMap');
         expect(architect).toContain('locationCore: rawArgs?.locationCore || args.briefDescription');
         expect(hooks).toContain('Stored as the Location CORE General field');
@@ -249,9 +249,9 @@ describe('Map Architect component', () => {
         expect(architect).toContain('Current in-world time (authoritative): ${currentTime');
         expect(architect).toContain('extractCurrentTimeStr');
         expect(architect).not.toContain('CreateDungeonMap');
-        expect(architect).toContain('Generating a location map for');
-        expect(architect).toContain('Location map ready for');
-        expect(architect).toContain('Location map generation failed for');
+        expect(architect).toContain('正在为 ${siteToastLabel(site)} 生成地点地图...');
+        expect(architect).toContain('已为 ${siteToastLabel(site)} 生成地点地图。');
+        expect(architect).toContain('为 ${siteToastLabel(site)} 生成地点地图失败');
         expect(architect).toContain('startMapArchitectToast');
     });
 

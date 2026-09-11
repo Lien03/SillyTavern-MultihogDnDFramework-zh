@@ -157,8 +157,8 @@ export async function cloneCampaignStackToPrefix(currentPrefix, newPrefix) {
             createdBookNames,
             collisions,
             errors: [
-                `Aborted: destination lorebook(s) already exist — cloning would overwrite them: ${collisions.join(', ')}. `
-                + 'Choose a different prefix (or delete/rename the conflicting books first).',
+                `已中止：目标设定集已存在，克隆会覆盖它们：${collisions.join(', ')}. `
+                + '请选择其他前缀（或先删除/重命名冲突的设定）。',
             ],
         };
     }
@@ -170,11 +170,11 @@ export async function cloneCampaignStackToPrefix(currentPrefix, newPrefix) {
         try {
             bookData = await ctx.loadWorldInfo(bookName);
         } catch (e) {
-            errors.push(`Failed to load "${bookName}": ${e?.message || e}`);
+            errors.push(`无法加载 "${bookName}"：${e?.message || e}`);
             continue;
         }
         if (!bookData) {
-            errors.push(`Could not read "${bookName}" — skipping.`);
+            errors.push(`无法读取 "${bookName}"，已跳过。`);
             continue;
         }
 
@@ -188,7 +188,7 @@ export async function cloneCampaignStackToPrefix(currentPrefix, newPrefix) {
                 body: JSON.stringify({ name: newBookName, data: cloneData }),
             });
             if (!res.ok) {
-                errors.push(`HTTP ${res.status} saving "${newBookName}"`);
+                errors.push(`保存 "${newBookName}" 时 HTTP ${res.status}`);
                 continue;
             }
             if (typeof ctx.saveWorldInfo === 'function') {
@@ -198,7 +198,7 @@ export async function cloneCampaignStackToPrefix(currentPrefix, newPrefix) {
             createdBookNames.push(newBookName);
             cloned++;
         } catch (e) {
-            errors.push(`Failed to write "${newBookName}": ${e?.message || e}`);
+            errors.push(`无法写入 "${newBookName}"：${e?.message || e}`);
         }
     }
 

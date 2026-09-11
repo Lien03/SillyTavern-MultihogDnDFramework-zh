@@ -196,7 +196,7 @@ function renderSchedulerPanel() {
                 Object.fromEntries(Object.entries(e).filter(([k]) => !['ts', 't', 'type'].includes(k)))
             )}`;
             return `<div class="rpg-scheduler-log-line">${line.replace(/</g, '&lt;')}</div>`;
-        }).join('') || '<div class="rpg-scheduler-log-empty">No events yet.</div>';
+        }).join('') || '<div class="rpg-scheduler-log-empty">暂无事件。</div>';
     }
 }
 
@@ -216,21 +216,21 @@ function ensureSchedulerPanel() {
 
     panel.innerHTML = `
         <div class="rpg-scheduler-header" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:move;user-select:none;">
-            <span>⏱️ Swipe / Run-Every Scheduler</span>
+            <span>⏱️ 滑动 / 定时运行调度器</span>
             <span>
-                <button type="button" class="rpg-scheduler-refresh" title="Refresh" style="margin-right:6px;">↻</button>
-                <button type="button" class="rpg-scheduler-clear" title="Clear log" style="margin-right:6px;">🧹</button>
-                <button type="button" class="rpg-scheduler-close" title="Close">✕</button>
+                <button type="button" class="rpg-scheduler-refresh" title="刷新" style="margin-right:6px;">↻</button>
+                <button type="button" class="rpg-scheduler-clear" title="清空日志" style="margin-right:6px;">🧹</button>
+                <button type="button" class="rpg-scheduler-close" title="关闭">✕</button>
             </span>
         </div>
         <div style="padding:8px 10px;overflow:auto;flex:1 1 auto;">
-            <div style="opacity:0.7;margin-bottom:4px;">Snapshot (live)</div>
+            <div style="opacity:0.7;margin-bottom:4px;">快照（实时）</div>
             <pre class="rpg-scheduler-pre" style="margin:0 0 10px;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto;background:rgba(0,0,0,0.35);padding:8px;border-radius:4px;"></pre>
-            <div style="opacity:0.7;margin-bottom:4px;">Event log (newest first)</div>
+            <div style="opacity:0.7;margin-bottom:4px;">事件日志（最新在前）</div>
             <div class="rpg-scheduler-log" style="max-height:200px;overflow:auto;background:rgba(0,0,0,0.25);padding:6px;border-radius:4px;"></div>
         </div>
         <div style="padding:6px 10px;border-top:1px solid rgba(255,255,255,0.08);opacity:0.65;font-size:11px;">
-            Console: <code>_rpgSwipeSchedulerDebug.dump()</code>
+            控制台：<code>_rpgSwipeSchedulerDebug.dump()</code>
         </div>
     `;
 

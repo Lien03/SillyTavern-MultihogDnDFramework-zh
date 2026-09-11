@@ -463,7 +463,7 @@ export async function doDiceRoll(customDiceFormula, quiet = false) {
 
     if (value === 'custom') {
         const { Popup } = SillyTavern.getContext();
-        value = await Popup.show.input('Enter the dice formula:<br><i>(for example, <tt>2d6</tt>)</i>', '', 'Roll', { cancelButton: 'Cancel' });
+        value = await Popup.show.input('输入骰子公式：<br><i>（例如 <tt>2d6</tt>）</i>', '', '掷骰', { cancelButton: '取消' });
     }
 
     if (!value) return nullValue;
@@ -495,11 +495,11 @@ export async function doDiceRoll(customDiceFormula, quiet = false) {
             }
         }
     } else {
-        toastr['error']('Dice library (droll) not found.');
+        toastr['error']('未找到骰子库（droll）。');
     }
 
     // Failsafe: never return empty/zero — that would auto-fail any DC check.
-    toastr['warning'](`Invalid dice formula "${value}" — defaulting to ${defaultFormula}.`);
+    toastr['warning'](`无效的骰子公式 "${value}" — 已回退为 ${defaultFormula}。`);
     const fallbackRoll = rollDie(d100Mode ? 100 : 20);
     if (!quiet) {
         const context = SillyTavern.getContext();
@@ -767,14 +767,14 @@ export function registerDiceSlashCommand() {
             if (lower.startsWith('save')) {
                 const hint = raw.slice(4).trim();
                 await saveSceneToLorebook(hint);
-                return 'Scene save requested.';
+                return '已请求场景保存。';
             }
 
             if (!isLorebookAgentRuntimeActive(settings)) {
-                return 'Lorebook Agent is disabled.';
+                return '世界书代理已禁用。';
             }
             if (isRouterRunning()) {
-                return 'Lorebook Agent is already running.';
+                return '世界书代理已在运行。';
             }
 
             /** @type {string|null} */
@@ -801,12 +801,12 @@ export function registerDiceSlashCommand() {
             const combinedNarrative = getNarrativeBlocks(chat, -1, !!settings.routerIncludeHidden);
             if (!quiet && typeof toastr !== 'undefined') {
                 toastr.info(
-                    manualPrompt ? 'Running Lorebook Agent with specific command...' : 'Starting Lorebook Agent pass...',
-                    'Lorebook Agent',
+                    manualPrompt ? '正在以特定命令运行世界书代理…' : '正在开始世界书代理流程…',
+                    '世界书代理',
                 );
             }
             await runRouterPass(combinedNarrative, manualPrompt, lookback, true);
-            return manualPrompt ? 'Lorebook Agent command started.' : 'Lorebook Agent pass started.';
+            return manualPrompt ? '世界书代理命令已启动。' : '世界书代理流程已启动。';
         },
         helpString: 'Run the Lorebook Agent (useful after /sendas, which does not auto-trigger it). '
             + 'Aliases: /la, /lbagent, /router. '
@@ -846,13 +846,13 @@ export function registerDiceSlashCommand() {
             const lower = raw.toLowerCase();
 
             if (!settings.enabled) {
-                return 'State Tracker is disabled.';
+                return '状态追踪器已禁用。';
             }
             if (typeof globalThis._rpgStateModelRunning === 'function' && globalThis._rpgStateModelRunning()) {
-                return 'State Tracker is already running.';
+                return '状态追踪器已在运行。';
             }
             if (typeof globalThis._rpgRunStateModelPass !== 'function') {
-                return 'State Tracker is not ready yet.';
+                return '状态追踪器尚未就绪。';
             }
 
             /** @type {boolean} */
@@ -875,11 +875,11 @@ export function registerDiceSlashCommand() {
             } else if (lower.startsWith('lookback')) {
                 const n = parseInt(lower.replace(/^lookback\s*/i, ''), 10);
                 if (!Number.isFinite(n) || n < 1) {
-                    return 'Usage: /statetracker lookback=N  or  /statetracker lookback N';
+                    return '用法：/statetracker lookback=N 或 /statetracker lookback N';
                 }
                 customLookbackN = n;
             } else {
-                return 'Usage: /statetracker | /statetracker run | /statetracker full | /statetracker lookback=N';
+                return '用法：/statetracker | /statetracker run | /statetracker full | /statetracker lookback=N';
             }
 
             const { chat } = SillyTavern.getContext();
@@ -893,17 +893,17 @@ export function registerDiceSlashCommand() {
             }
 
             if (!isFullAudit && !narrative) {
-                return 'No assistant message to parse.';
+                return '没有可解析的助手消息。';
             }
 
             if (!quiet && typeof toastr !== 'undefined') {
                 toastr.info(
-                    isFullAudit ? 'Triggering Full Context Audit...' : 'Triggering manual State Update...',
-                    'RPG Tracker',
+                    isFullAudit ? '正在触发完整上下文审计…' : '正在触发手动状态更新…',
+                    'RPG 追踪器',
                 );
             }
             await globalThis._rpgRunStateModelPass(narrative, isFullAudit, customLookbackN);
-            return isFullAudit ? 'State Tracker full audit started.' : 'State Tracker update started.';
+            return isFullAudit ? '状态追踪器完整审计已开始。' : '状态追踪器更新已开始。';
         },
         helpString: 'Run the State Tracker update (useful after /sendas, which does not auto-trigger it). '
             + 'Alias: /st. '
@@ -939,7 +939,7 @@ export function registerDiceSlashCommand() {
         callback: async (args) => {
             const quiet = String(args.quiet) === 'true';
             if (typeof globalThis._rpgResetTrackerUi !== 'function') {
-                return 'UI reset is not ready yet.';
+                return 'UI 重置尚未就绪。';
             }
             return globalThis._rpgResetTrackerUi({ quiet });
         },
@@ -2112,9 +2112,9 @@ export async function handleRelationshipSwipeChange() {
 
         const sign = m.delta > 0 ? '+' : '';
         const icon = m.field === 'friendship' ? '🤝' : '💗';
-        const label = m.field === 'friendship' ? 'Friendship' : 'Affection';
+        const label = m.field === 'friendship' ? '友谊' : '好感';
         // @ts-ignore
-        if (typeof toastr !== 'undefined' && settings.npcRelationshipToast !== false) toastr.info(`${icon} ${m.name}: ${sign}${m.delta} ${label}`, 'Relationship', { timeOut: 3500, positionClass: 'toast-bottom-right' });
+        if (typeof toastr !== 'undefined' && settings.npcRelationshipToast !== false) toastr.info(`${icon} ${m.name}: ${sign}${m.delta} ${label}`, '关系', { timeOut: 3500, positionClass: 'toast-bottom-right' });
         
         console.log(`[RPG Tracker] Narrative rel applied: ${m.name} → ${resolvedId} | ${m.field} ${sign}${m.delta} → ${newVal} (Actual applied: ${actualAppliedDelta})`);
 
@@ -2418,7 +2418,7 @@ function refreshRelationshipBarsDOM(settings) {
                     const badgeColor = log.source === 'manual' ? 'rgba(180,180,180,0.7)' : (log.delta > 0 ? '#4ade80' : '#ef4444');
                     const sign = log.delta > 0 ? '+' : '';
                     const label = log.source === 'manual' ? '✋' : '🤖';
-                    badgeHtml = `<span style="font-size:9px;font-weight:bold;color:${badgeColor};margin-left:4px;opacity:0.85;" title="${label} last change: ${sign}${log.delta}">${sign}${log.delta}</span>`;
+                    badgeHtml = `<span style="font-size:9px;font-weight:bold;color:${badgeColor};margin-left:4px;opacity:0.85;" title="${label} 上次变化：${sign}${log.delta}">${sign}${log.delta}</span>`;
                 } */
 
                 valSpan.className = `rt-npc-bar-value ${valClass}`;
@@ -2581,8 +2581,8 @@ async function maybeRunMapArchitectTextOpener({ chat, settings, currentType, sou
         if (!createAreaMapCommandIsComplete(args)) {
             logMapArchitectTextOpener('skip', { reason: 'incomplete_command', source, generationType: type, args });
             globalThis.toastr?.error?.(
-                'Map Architect text command is missing site, entrance, kind, prompt, or brief_description. Stay outside and try again next turn.',
-                'Map Architect',
+                '地图建筑师文本命令缺少 site、entrance、kind、prompt 或 brief_description。请留在原地，下回合再试。',
+                '地图建筑师',
                 { timeOut: 10000 },
             );
             return true;

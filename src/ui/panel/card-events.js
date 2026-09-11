@@ -100,7 +100,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
     const clearOnboardingName = () => {
         selectedOnboardingName = '';
         if (onboardingRolledName) onboardingRolledName.value = '';
-        if (onboardingNameHint) onboardingNameHint.textContent = 'Roll a genre-matched name before using Custom.';
+        if (onboardingNameHint) onboardingNameHint.textContent = '使用 Custom 前，先掷一个符合流派的名称。';
         setNameRequiredButtonsEnabled(false);
     };
 
@@ -121,15 +121,15 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
         const genre = genreSelect?.value || getSettings().onboardingGenre || 'fantasy';
         selectedOnboardingName = pickGenreCharacterName(genre);
         if (onboardingRolledName) onboardingRolledName.value = selectedOnboardingName;
-        if (onboardingNameHint) onboardingNameHint.textContent = 'Name ready — reroll or choose Custom.';
+        if (onboardingNameHint) onboardingNameHint.textContent = '名称已就绪 —— 可重掷或改用 Custom。';
         setNameRequiredButtonsEnabled(true);
     });
     onboardingRolledName?.addEventListener('input', () => {
         selectedOnboardingName = onboardingRolledName.value.trim();
         if (onboardingNameHint) {
             onboardingNameHint.textContent = selectedOnboardingName
-                ? 'Name ready — edit, reroll, or choose Custom.'
-                : 'Roll a genre-matched name before using Custom.';
+                ? '名称已就绪 —— 可编辑、重掷或改用 Custom。'
+                : '使用 Custom 前，先掷一个符合流派的名称。';
         }
         setNameRequiredButtonsEnabled(!!selectedOnboardingName);
     });
@@ -280,7 +280,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
     el.querySelectorAll('.rt-cr-help-icon[title]').forEach(icon => {
         icon.setAttribute('role', 'button');
         icon.setAttribute('tabindex', '0');
-        icon.setAttribute('aria-label', 'Show help');
+        icon.setAttribute('aria-label', '显示帮助');
     });
 
     // Character Creator Generate — delegated so clicks survive refreshRenderedView innerHTML swaps
@@ -322,7 +322,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
             // requires the separate rolled-name field.
             const requiresRolledName = archetype !== 'persona';
             if (requiresRolledName && !selectedOnboardingName) {
-                toastr['info']('Roll a character name before generating.', 'RPG Tracker');
+                toastr['info']('生成角色前请先掷一个角色名称。', 'RPG Tracker');
                 return;
             }
 
@@ -428,7 +428,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
             // ── Custom archetype: freeform character based entirely on custom instructions ──
             if (archetype === 'custom') {
                 if (!customInstructions) {
-                    toastr['warning']('Please enter custom setting/character instructions first.', 'RPG Tracker');
+                    toastr['warning']('请先输入自定义设定/角色指令。', 'RPG Tracker');
                     return;
                 }
                 el.querySelectorAll('.rt-random-char-btn').forEach(b => b.disabled = true);
@@ -459,7 +459,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
                 const persona = await resolveActivePersonaDescription();
                 if (!persona) {
                     toastr['warning'](
-                        'No persona is set. Set a persona in SillyTavern (User Settings → Personas) and try again.',
+                        '未设置人设。请在 SillyTavern（用户设置 → 人设）中设置人设后重试。',
                         'RPG Tracker'
                     );
                     return;
@@ -751,7 +751,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
     if (onboardingBtnApply) {
         onboardingBtnApply.addEventListener('click', async () => {
             await autoApplySysprompt(true);
-            toastr['success']('System prompt applied! \u2705', 'RPG Tracker');
+            toastr['success']('系统提示词已应用！\u2705', 'RPG Tracker');
         });
     }
 
@@ -835,7 +835,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
             const s = getSettings();
             const memo = s.currentMemo || '';
             if (!/\[CHARACTER\]/i.test(memo)) {
-                toastr['warning']('No [CHARACTER] block found in the state memo.', 'RPG Tracker');
+                toastr['warning']('状态备忘中未找到 [CHARACTER] 块。', 'RPG Tracker');
                 return;
             }
             const charName = extractCharNameFromMemo(memo) || 'My Character';
@@ -848,14 +848,14 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
             const prev = btn.dataset.idleLabel || btn.textContent.trim() || 'Create PC Card';
             btn.dataset.idleLabel = prev;
             btn.disabled = true;
-            btn.textContent = 'Creating…';
+            btn.textContent = '创建中…';
             try {
-                toastr['info'](`Generating Lorebook Agent persona for "${charName}"…`, 'RPG Tracker');
+                toastr['info'](`正在为 "${charName}" 生成 Lorebook Agent 人设……`, 'RPG Tracker');
                 const bio = await generatePersonaBio(charName, wordCount, extraHints, personaOpts);
                 if (bio) {
                     showPersonaConfirmOverlay(bio, charName, wordCount, extraHints, personaOpts);
                 } else {
-                    toastr['warning']('Player Card generation failed.', 'RPG Tracker');
+                    toastr['warning']('玩家卡生成失败。', 'RPG Tracker');
                 }
             } finally {
                 btn.disabled = false;
@@ -1039,7 +1039,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
                     }
                 } catch (err) {
                     console.error(err);
-                    toastr['warning']('Could not read or crop image file.', 'RPG Tracker');
+                    toastr['warning']('无法读取或裁剪图片文件。', 'RPG Tracker');
                 }
                 return;
             }
@@ -1047,7 +1047,7 @@ export function bindRenderedCardEvents(el, memo, isDetachedContext = false, onRe
             if (url && /^https?:\/\//i.test(url)) {
                 localApply(url);
             } else {
-                toastr['warning']('Drop an image file or drag an image URL from a browser.', 'RPG Tracker');
+                toastr['warning']('请拖入图片文件，或从浏览器拖入图片 URL。', 'RPG Tracker');
             }
         });
 

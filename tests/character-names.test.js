@@ -50,7 +50,7 @@ describe('genre character-name pools', () => {
         const creatorSource = readFileSync(new URL('../character-creator.js', import.meta.url), 'utf8');
         const rendererSource = readFileSync(new URL('../renderer.js', import.meta.url), 'utf8');
 
-        expect(rendererSource).toContain('id="rt-quickstart-name" placeholder="Optional — enter, roll, or let AI choose"');
+        expect(rendererSource).toContain('id="rt-quickstart-name" placeholder="可选——输入、掷骰或让 AI 选择"');
         expect(rendererSource).toContain('id="rt-quickstart-roll-name"');
         expect(rendererSource).toContain('id="rt-quickstart-begin"');
         expect(quickStartSource).toMatch(/selectedName = pickGenreCharacterName\(selectedGenre\)/);
@@ -71,6 +71,6 @@ describe('genre character-name pools', () => {
         expect(cardEventsSource).toMatch(/selectedOnboardingName = onboardingRolledName\.value\.trim\(\)/);
         expect(cardEventsSource).toMatch(/const selectedName = selectedOnboardingName/);
         expect(cardEventsSource).toMatch(/clearOnboardingName\(\)/);
-        expect(cardEventsSource).toContain('Roll a character name before generating.');
+        expect(cardEventsSource).toContain('生成角色前请先掷一个角色名称。');
     });
 });

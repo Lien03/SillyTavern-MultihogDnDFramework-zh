@@ -40,9 +40,9 @@ describe('World Progression panel controls', () => {
 
         controls.updateStatus();
 
-        expect(last.textContent).toBe('Never');
+        expect(last.textContent).toBe('从未');
         expect(next.textContent).toBe('—');
-        expect(badge.textContent).toBe('ON');
+        expect(badge.textContent).toBe('开');
         expect(badge.style.cssText).toContain('#34a853');
     });
 });

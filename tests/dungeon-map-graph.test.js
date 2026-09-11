@@ -266,7 +266,7 @@ describe('dungeon map graph', () => {
         expect(byId['lantern-gate'].current).toBe(false);
         expect(graph.currentInteriorName).toBe('Chapel of the Drowned Stone');
         const svg = renderDungeonMapGraphSvg(graph, { compact: true, siteRoot: 'Morrowfen' });
-        expect(svg).toContain('aria-label="Shrine Quarter (in Chapel of the Drowned Stone)"');
+        expect(svg).toContain('aria-label="Shrine Quarter (位于Chapel of the Drowned Stone)"');
     });
 
     it('still highlights the parent district when the interior is not yet an asset', () => {
@@ -292,10 +292,10 @@ describe('dungeon map graph', () => {
     it('renders a pop-out placeholder instead of the compact graph when detached', () => {
         const graph = buildDungeonMapGraph(midExplorationMap, { playerFacing: true });
         const html = renderDungeonMapEmbedHtml(graph, { detached: true });
-        expect(html).toContain('separate window');
+        expect(html).toContain('已在独立窗口中打开。');
         expect(html).toContain('rt-dungeon-map-reattach');
         expect(html).toContain('rt-dungeon-map-details');
-        expect(html).toContain('Map Details');
+        expect(html).toContain('地图详情');
         expect(html).not.toContain('rt-dungeon-alpha-tag');
         expect(html).not.toContain('rt-dungeon-graph-svg');
     });
@@ -304,7 +304,7 @@ describe('dungeon map graph', () => {
         const graph = buildDungeonMapGraph(midExplorationMap, { playerFacing: true });
         const html = renderDungeonMapEmbedHtml(graph, { detached: false });
         expect(html).toContain('rt-dungeon-map-details');
-        expect(html).toContain('Map Details');
+        expect(html).toContain('地图详情');
         expect(html).toContain('rt-map-updater-direct-panel');
         expect(html).toContain('rt-map-updater-direct-bar');
         expect(html).toContain('rt-map-updater-direct-run');
@@ -318,9 +318,9 @@ describe('dungeon map graph', () => {
         expect(html).toContain('Cellar Landing');
         expect(html).toContain('Flooded Vault');
         expect(html).toContain('Rusted lantern');
-        expect(html).toContain('Unexplored');
+        expect(html).toContain('未探索');
         expect(html).toContain('Rotten tapestry');
-        expect(html).toContain('Not yet entered.');
+        expect(html).toContain('尚未进入。');
         expect(html).not.toContain('Ossuary');
         expect(html).not.toContain('Reliquary');
         expect(html).not.toContain('Inner Sanctum');

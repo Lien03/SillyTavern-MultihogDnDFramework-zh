@@ -200,11 +200,11 @@ export function wireAgentMapEvolution({
             const { isMapUpdaterRunning } = await import('../../../map-updater.js');
             const { isRouterRunning } = await import('../../../router.js');
             if (isRouterRunning() || isMapUpdaterRunning() || isMapEvolutionRunning()) {
-                toastr.warning('An agent is already running.', 'Map Evolution');
+                toastr.warning('已有代理在运行。', '地图演化');
                 return;
             }
             /** @type {HTMLButtonElement} */ (fireNowBtn).disabled = true;
-            fireNowBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Evolving…';
+            fireNowBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 演化中…';
             try {
                 const result = typeof runtimeState.runMapEvolutionPassRef === 'function'
                     ? await runtimeState.runMapEvolutionPassRef({ trigger: 'manual', isManual: true })
@@ -215,13 +215,13 @@ export function wireAgentMapEvolution({
                 }
                 const skipped = result?.skipped;
                 if (skipped === 'location_mapping_off' || skipped === 'dungeon_reality_off') {
-                    toastr.warning('Persistent Maps is off.', 'Map Evolution');
+                    toastr.warning('持久地图已关闭。', 'Map Evolution');
                 } else if (skipped === 'no_maps' || skipped === 'no_active_map' || skipped === 'no_matching_sites' || skipped === 'no_selection') {
-                    toastr.warning('No mapped site to evolve.', 'Map Evolution');
+                    toastr.warning('没有可演化的已映射地点。', 'Map Evolution');
                 } else if (skipped === 'disabled') {
-                    toastr.warning('Map Evolution is disabled.', 'Map Evolution');
+                    toastr.warning('地图演化已被禁用。', 'Map Evolution');
                 } else if (skipped === 'busy') {
-                    toastr.warning('An agent is already running.', 'Map Evolution');
+                    toastr.warning('已有代理在运行。', '地图演化');
                 } else if (skipped === 'stopped') {
                     toastr['info']('Stopped.', 'Map Evolution');
                 } else if (result?.baseline) {
@@ -231,13 +231,13 @@ export function wireAgentMapEvolution({
                 } else if (result?.ok) {
                     toastr['success']('Map Evolution applied.', 'Map Evolution');
                 } else {
-                    toastr.error('Could not apply a valid evolution update.', 'Map Evolution');
+                    toastr.error('无法应用有效的演化更新。', 'Map Evolution');
                 }
             } catch (e) {
                 toastr.error(`Map Evolution error: ${e.message}`, 'Map Evolution');
             } finally {
                 /** @type {HTMLButtonElement} */ (fireNowBtn).disabled = false;
-                fireNowBtn.innerHTML = '<i class="fa-solid fa-map-location-dot"></i> Evolve Now';
+                fireNowBtn.innerHTML = '<i class="fa-solid fa-map-location-dot"></i> 立即演化';
             }
         });
     }

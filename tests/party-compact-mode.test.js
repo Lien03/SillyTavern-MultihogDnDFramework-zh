@@ -33,10 +33,10 @@ describe('PARTY compact mode', () => {
     it('puts a Compact Mode toggle on the PARTY module header', () => {
         const html = renderMemoAsCards(PARTY_MEMO, null, {});
         expect(html).toContain('class="rt-party-compact-btn"');
-        expect(html).toContain('Compact Mode</button>');
+        expect(html).toContain('紧凑模式</button>');
         expect(html).toContain('data-tag="PARTY"');
         expect(html).toContain('aria-pressed="false"');
-        expect(html).toContain('Compact mode: portrait, name, and HP only');
+        expect(html).toContain('紧凑模式：仅头像、名字与生命值');
         expect(html).not.toContain('rt-section-card rt-party-compact');
         expect(html).toContain('rt-entity-name');
         expect(html).toContain('rt-hp-bar');
@@ -52,7 +52,7 @@ describe('PARTY compact mode', () => {
         expect(html).toContain('rt-section-card rt-party-compact');
         expect(html).toContain('class="rt-party-compact-btn active"');
         expect(html).toContain('aria-pressed="true"');
-        expect(html).toContain('Show full party details');
+        expect(html).toContain('显示完整队伍详情');
         expect(html).toContain('Elara (Ranger)');
         expect(html).toContain('Kael');
         expect(html).toContain('rt-hp-bar');

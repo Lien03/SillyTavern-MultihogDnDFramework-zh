@@ -92,7 +92,7 @@ function sendOutgoingChatMessage(text) {
     const textarea = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('send_textarea'));
     const sendBtn = /** @type {HTMLButtonElement|null} */ (document.getElementById('send_but'));
     if (!textarea || !sendBtn) {
-        throw new Error('Chat input is not available.');
+        throw new Error('聊天输入不可用。');
     }
     textarea.value = text;
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -108,7 +108,7 @@ function sendOutgoingChatMessage(text) {
  */
 export async function runQuickStart(genre, rootEl = null, selectedName = '', instructionText = '') {
     if (_quickStartRunning) {
-        toastr['info']('Quick Start is already running. Please wait.', 'Quick Start');
+        toastr['info']('快速开始正在运行,请稍候。', '快速开始');
         return;
     }
 
@@ -121,7 +121,7 @@ export async function runQuickStart(genre, rootEl = null, selectedName = '', ins
     setQuickStartBusy(root, true);
 
     try {
-        setQuickStartStatus(root, 'Enabling systems…');
+        setQuickStartStatus(root, '正在启用系统…');
         await applyQuickStartConfiguration();
 
         const s = getSettings();
@@ -145,16 +145,16 @@ export async function runQuickStart(genre, rootEl = null, selectedName = '', ins
         const genreLabel = GENRE_LABELS[validGenre] || validGenre;
         const setupLevel = extractInstantActionLevel(instantActionInstructions);
         const levelDetail = setupLevel != null
-            ? `Lv ${setupLevel} (Initial Setup)`
-            : (noLevel ? 'no levels' : `Lv ${level}`);
+            ? `Lv ${setupLevel} (初始设定)`
+            : (noLevel ? '无等级' : `Lv ${level}`);
         const creationDetails = [
             genreLabel,
-            instantActionInstructions ? 'custom setup' : className,
-            nameVal || 'AI-chosen name',
+            instantActionInstructions ? '自定义设定' : className,
+            nameVal || 'AI 生成的名字',
             levelDetail,
         ].join(' · ');
 
-        setQuickStartStatus(root, `Creating character (${creationDetails})…`);
+        setQuickStartStatus(root, `正在创建角色(${creationDetails})…`);
         const { charName } = await generateQuickStartCharacter({
             genre: validGenre,
             className,
@@ -164,7 +164,7 @@ export async function runQuickStart(genre, rootEl = null, selectedName = '', ins
             instantActionInstructions,
         });
 
-        setQuickStartStatus(root, 'Creating Lorebook Agent Player Card…');
+        setQuickStartStatus(root, '正在创建 Lorebook Agent 玩家卡…');
         const bio = await generatePersonaBio(
             charName,
             wordCount,
@@ -178,23 +178,23 @@ export async function runQuickStart(genre, rootEl = null, selectedName = '', ins
             throw new Error('Could not add Player Card — no active chat.');
         }
 
-        setQuickStartStatus(root, 'Creating name-only chat persona…');
+        setQuickStartStatus(root, '正在创建仅名字聊天人设…');
         await activateSillyTavernPersona(charName);
 
-        const readyDetail = instantActionInstructions ? 'custom instructions' : className;
+        const readyDetail = instantActionInstructions ? '自定义指示' : className;
         if (s.onboardingSendStarterMessage !== false) {
-            setQuickStartStatus(root, 'Starting adventure…');
+            setQuickStartStatus(root, '正在开始冒险…');
             sendOutgoingChatMessage(buildInstantActionOpeningMessage(instantActionInstructions));
-            setQuickStartStatus(root, `Ready — ${charName} (${readyDetail})`);
+            setQuickStartStatus(root, `就绪 — ${charName} (${readyDetail})`);
         } else {
-            setQuickStartStatus(root, `Ready — ${charName} (${readyDetail}). Type your first action.`);
+            setQuickStartStatus(root, `就绪 — ${charName} (${readyDetail})。输入你的第一个行动。`);
         }
-        toastr['success'](`Quick Start ready: ${charName} · ${readyDetail}`, 'Quick Start');
+        toastr['success'](`快速开始就绪: ${charName} · ${readyDetail}`, '快速开始');
     } catch (err) {
         const msg = err?.message || String(err);
         console.error('[Quick Start]', err);
-        setQuickStartStatus(root, 'Ready');
-        toastr['error'](`Quick Start failed: ${msg}`, 'Quick Start', { timeOut: 8000 });
+        setQuickStartStatus(root, '就绪');
+        toastr['error'](`快速开始失败: ${msg}`, '快速开始', { timeOut: 8000 });
     } finally {
         _quickStartRunning = false;
         setQuickStartBusy(root, false);
@@ -245,7 +245,7 @@ export function bindQuickStartEvents(rootEl) {
             });
             if (rollButton) rollButton.disabled = false;
             if (startButton) startButton.disabled = false;
-            setQuickStartStatus(rootEl, `${GENRE_LABELS[selectedGenre] || selectedGenre} selected — name optional`);
+            setQuickStartStatus(rootEl, `${GENRE_LABELS[selectedGenre] || selectedGenre} 已选择 — 名称可选`);
         });
     });
 
@@ -256,15 +256,15 @@ export function bindQuickStartEvents(rootEl) {
         selectedName = pickGenreCharacterName(selectedGenre);
         if (nameInput) nameInput.value = selectedName;
         if (startButton) startButton.disabled = false;
-        setQuickStartStatus(rootEl, 'Name ready — reroll or begin');
+        setQuickStartStatus(rootEl, '名称就绪 — 重掷或开始');
     });
 
     nameInput?.addEventListener('input', () => {
         selectedName = nameInput.value.trim();
         if (selectedName) {
-            setQuickStartStatus(rootEl, 'Name ready — edit, reroll, or begin');
+            setQuickStartStatus(rootEl, '名称就绪 — 编辑、重掷或开始');
         } else if (selectedGenre) {
-            setQuickStartStatus(rootEl, 'Name blank — the AI will choose');
+            setQuickStartStatus(rootEl, '名称为空 — 将由 AI 选择');
         }
     });
 

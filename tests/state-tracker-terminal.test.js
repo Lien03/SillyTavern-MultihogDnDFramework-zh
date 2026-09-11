@@ -5,8 +5,8 @@ describe('State Tracker Agent Console wiring', () => {
     it('broadcasts State Tracker lifecycle steps from index.js', () => {
         const index = readFileSync(new URL('../index.js', import.meta.url), 'utf8');
         expect(index).toContain("import { broadcastStateTrackerStep } from './src/ui/panel/agent-terminal.js'");
-        expect(index).toContain("broadcastStateTrackerStep('start', isFullContext ? 'Initializing State Tracker full audit...' : 'Initializing State Tracker pass...')");
-        expect(index).toContain("broadcastStateTrackerStep('finish', isFullContext ? 'State Tracker full audit complete.' : 'State Tracker pass complete.')");
+        expect(index).toContain("broadcastStateTrackerStep('start', isFullContext ? '正在初始化 State Tracker 完整审计…' : '正在初始化 State Tracker 扫描…')");
+        expect(index).toContain("broadcastStateTrackerStep('finish', isFullContext ? 'State Tracker 完整审计完成。' : 'State Tracker 扫描完成。')");
         expect(index).toContain("broadcastStateTrackerStep('start', 'Processing direct State Tracker instruction...')");
     });
 

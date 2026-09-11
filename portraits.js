@@ -834,11 +834,11 @@ export async function showPortraitPromptPopup(prompt, entityName, localApply, re
     </div>`;
 
     const popupOpts = {
-        okButton: isNative ? '🎨 Generate with ST Image Gen' : isHorde ? '🎨 Generate with AI Horde' : '🎨 Generate with Pollinations',
-        cancelButton: 'Cancel',
+        okButton: isNative ? '🎨 使用 ST 图像生成' : isHorde ? '🎨 使用 AI Horde 生成' : '🎨 使用 Pollinations 生成',
+        cancelButton: '取消',
         wide: false,
         customButtons: [
-            { text: '📋 Copy Prompt', result: 3, classes: ['menu_button'] },
+            { text: '📋 复制提示词', result: 3, classes: ['menu_button'] },
         ],
     };
 
@@ -863,9 +863,9 @@ export async function showPortraitPromptPopup(prompt, entityName, localApply, re
         // Copy to clipboard
         try {
             await navigator.clipboard.writeText(finalPrompt);
-            toastr['success']('Portrait prompt copied to clipboard.', 'RPG Tracker');
+            toastr['success']('肖像提示词已复制到剪贴板。', 'RPG Tracker');
         } catch {
-            toastr['warning']('Could not copy to clipboard.', 'RPG Tracker');
+            toastr['warning']('无法复制到剪贴板。', 'RPG Tracker');
         }
     } else if (result) {
         if (skipChecked) {
@@ -967,7 +967,7 @@ export async function generatePortraitDirect(prompt, entityName, opts = {}) {
             }
 
             if (!resp.ok) {
-                const errText = await resp.text().catch(() => 'Unknown error');
+                const errText = await resp.text().catch(() => '未知错误');
                 throw new Error(`Pollinations ${resp.status}: ${errText.substring(0, 300)}`);
             }
             
@@ -1040,7 +1040,7 @@ export async function ensurePollinationsKey() {
             Get your key at:<br>
             <a href="https://enter.pollinations.ai/#keys" target="_blank" style="color:#7ec8e3;font-weight:bold;">🔗 enter.pollinations.ai/#keys</a>
         </div>
-        <input id="${inputId}" type="password" class="text_pole" placeholder="Paste your API key here (sk_… or pk_…)" style="width:100%;box-sizing:border-box;"/>
+        <input id="${inputId}" type="password" class="text_pole" placeholder="在此粘贴你的 API 密钥（sk_… 或 pk_…）" style="width:100%;box-sizing:border-box;"/>
     </div>`;
 
     let keyValue = '';
@@ -1053,8 +1053,8 @@ export async function ensurePollinationsKey() {
     }, 0);
 
     const result = await ctx.callGenericPopup(popupContent, ctx.POPUP_TYPE?.CONFIRM ?? 1, '', {
-        okButton: 'Save & Continue',
-        cancelButton: 'Cancel',
+        okButton: '保存并继续',
+        cancelButton: '取消',
         wide: false,
     });
 
@@ -1124,10 +1124,10 @@ export async function generateWithPollinations(prompt, entityName, localApply, r
         </div>`;
 
         const popupOpts = {
-            okButton: '✅ Apply Portrait', cancelButton: 'Cancel', wide: false,
+            okButton: '✅ 应用肖像', cancelButton: '取消', wide: false,
             customButtons: [
-                { text: '🔄 Regenerate', result: 3, classes: ['menu_button'] },
-                { text: '✂️ Crop', result: 4, classes: ['menu_button'] }
+                { text: '🔄 重新生成', result: 3, classes: ['menu_button'] },
+                { text: '✂️ 裁剪', result: 4, classes: ['menu_button'] }
             ],
         };
 
@@ -1145,7 +1145,7 @@ export async function generateWithPollinations(prompt, entityName, localApply, r
             try {
                 const dataUrl = await genPromise;
                 const cropped = await ctx.callGenericPopup(
-                    'Set the crop position of the portrait',
+                    '设置肖像的裁剪位置',
                     ctx.POPUP_TYPE?.CROP ?? 4,
                     '',
                     { cropImage: dataUrl, cropAspect: 1 }
@@ -1156,7 +1156,7 @@ export async function generateWithPollinations(prompt, entityName, localApply, r
                     await showPreview(dataUrl);
                 }
             } catch (err) {
-                toastr['error']('Cannot crop — generation failed: ' + err.message, 'RPG Tracker');
+                toastr['error']('无法裁剪 — 生成失败：' + err.message, 'RPG Tracker');
                 await showPreview();
             }
         } else if (result) {
@@ -1166,9 +1166,9 @@ export async function generateWithPollinations(prompt, entityName, localApply, r
                 const finalUrl = dataUrl.startsWith('data:') ? await scaleImageTo512Square(dataUrl) : dataUrl;
                 await localApply(finalUrl);
                 if (typeof refresh === 'function') refresh();
-                imageGenToast('success', `Portrait applied for ${entityName}!`, 'RPG Tracker');
+                imageGenToast('success', `已为 ${entityName} 应用肖像！`, 'RPG Tracker');
             } catch (err) {
-                toastr['error']('Cannot apply — generation failed: ' + err.message, 'RPG Tracker');
+                toastr['error']('无法应用 — 生成失败：' + err.message, 'RPG Tracker');
             }
         }
     };
@@ -1219,10 +1219,10 @@ export async function generateWithNativeExtension(prompt, entityName, localApply
         </div>`;
 
         const popupOpts = {
-            okButton: '✅ Apply Portrait', cancelButton: 'Cancel', wide: false,
+            okButton: '✅ 应用肖像', cancelButton: '取消', wide: false,
             customButtons: [
-                { text: '🔄 Regenerate', result: 3, classes: ['menu_button'] },
-                { text: '✂️ Crop', result: 4, classes: ['menu_button'] }
+                { text: '🔄 重新生成', result: 3, classes: ['menu_button'] },
+                { text: '✂️ 裁剪', result: 4, classes: ['menu_button'] }
             ],
         };
 
@@ -1235,7 +1235,7 @@ export async function generateWithNativeExtension(prompt, entityName, localApply
             try {
                 const imageUrl = await genPromise;
                 const cropped = await ctx.callGenericPopup(
-                    'Set the crop position of the portrait',
+                    '设置肖像的裁剪位置',
                     ctx.POPUP_TYPE?.CROP ?? 4,
                     '',
                     { cropImage: imageUrl, cropAspect: 1 }
@@ -1246,7 +1246,7 @@ export async function generateWithNativeExtension(prompt, entityName, localApply
                     await showPreview(imageUrl);
                 }
             } catch (err) {
-                toastr['error']('Cannot crop — generation failed: ' + err.message, 'RPG Tracker');
+                toastr['error']('无法裁剪 — 生成失败：' + err.message, 'RPG Tracker');
                 await showPreview();
             }
         } else if (result) {
@@ -1256,9 +1256,9 @@ export async function generateWithNativeExtension(prompt, entityName, localApply
                 const finalUrl = imageUrl.startsWith('data:') ? await scaleImageTo512Square(imageUrl) : imageUrl;
                 await localApply(finalUrl);
                 if (typeof refresh === 'function') refresh();
-                imageGenToast('success', `Portrait applied for ${entityName}!`, 'RPG Tracker');
+                imageGenToast('success', `已为 ${entityName} 应用肖像！`, 'RPG Tracker');
             } catch (err) {
-                toastr['error']('Cannot apply — generation failed: ' + err.message, 'RPG Tracker');
+                toastr['error']('无法应用 — 生成失败：' + err.message, 'RPG Tracker');
             }
         }
     };
@@ -1314,10 +1314,10 @@ export async function generateWithHorde(prompt, entityName, localApply, refresh)
         </div>`;
 
         const popupOpts = {
-            okButton: '✅ Apply Portrait', cancelButton: 'Cancel', wide: false,
+            okButton: '✅ 应用肖像', cancelButton: '取消', wide: false,
             customButtons: [
-                { text: '🔄 Regenerate', result: 3, classes: ['menu_button'] },
-                { text: '✂️ Crop', result: 4, classes: ['menu_button'] }
+                { text: '🔄 重新生成', result: 3, classes: ['menu_button'] },
+                { text: '✂️ 裁剪', result: 4, classes: ['menu_button'] }
             ],
         };
 
@@ -1330,7 +1330,7 @@ export async function generateWithHorde(prompt, entityName, localApply, refresh)
             try {
                 const dataUrl = await genPromise;
                 const cropped = await ctx.callGenericPopup(
-                    'Set the crop position of the portrait',
+                    '设置肖像的裁剪位置',
                     ctx.POPUP_TYPE?.CROP ?? 4,
                     '',
                     { cropImage: dataUrl, cropAspect: 1 }
@@ -1341,7 +1341,7 @@ export async function generateWithHorde(prompt, entityName, localApply, refresh)
                     await showPreview(dataUrl);
                 }
             } catch (err) {
-                toastr['error']('Cannot crop — generation failed: ' + err.message, 'RPG Tracker');
+                toastr['error']('无法裁剪 — 生成失败：' + err.message, 'RPG Tracker');
                 await showPreview();
             }
         } else if (result) {
@@ -1351,9 +1351,9 @@ export async function generateWithHorde(prompt, entityName, localApply, refresh)
                 const finalUrl = dataUrl.startsWith('data:') ? await scaleImageTo512Square(dataUrl) : dataUrl;
                 await localApply(finalUrl);
                 if (typeof refresh === 'function') refresh();
-                imageGenToast('success', `Portrait applied for ${entityName}!`, 'RPG Tracker');
+                imageGenToast('success', `已为 ${entityName} 应用肖像！`, 'RPG Tracker');
             } catch (err) {
-                toastr['error']('Cannot apply — generation failed: ' + err.message, 'RPG Tracker');
+                toastr['error']('无法应用 — 生成失败：' + err.message, 'RPG Tracker');
             }
         }
     };
@@ -1484,7 +1484,7 @@ function triggerPlayerPortraitAutoGenIfNeeded(settings, refresh, opts = {}) {
 export async function autoGeneratePartyPortraits(refresh) {
     const s = getSettings();
     if (!s.currentMemo) {
-        toastr['warning']('No live state memo found.', 'RPG Tracker');
+        toastr['warning']('未找到实时状态备忘。', 'RPG Tracker');
         return;
     }
 
@@ -1509,25 +1509,25 @@ export async function autoGeneratePartyPortraits(refresh) {
 
     const partyMembers = Array.from(namesSet);
     if (partyMembers.length === 0) {
-        toastr['warning']('No party members or characters found in the current state memo.', 'RPG Tracker');
+        toastr['warning']('当前状态备忘中未找到队伍成员或角色。', 'RPG Tracker');
         return;
     }
 
     // Filter out those who already have a portrait
     const toGenerate = partyMembers.filter(name => !hasPortrait(name));
     if (toGenerate.length === 0) {
-        imageGenToast('info', 'All party members and characters already have portraits.', 'RPG Tracker');
+        imageGenToast('info', '所有队伍成员和角色都已拥有肖像。', 'RPG Tracker');
         return;
     }
 
-    imageGenToast('info', `Starting auto-generation for ${toGenerate.length} party members...`, 'RPG Tracker');
+    imageGenToast('info', `开始为 ${toGenerate.length} 名队伍成员自动生成…`, 'RPG Tracker');
     let successCount = 0;
     // AI Horde can take minutes; pin so a mid-flight chat switch cannot land
     // these portraits in the arriving chat's map.
     const passChatId = getActiveChatId();
 
     for (const name of toGenerate) {
-        imageGenToast('info', `Generating for ${name}...`, 'RPG Tracker');
+        imageGenToast('info', `正在为 ${name} 生成…`, 'RPG Tracker');
         try {
             const prompt = await generatePortraitPrompt(name);
             const dataUrl = await generatePortraitDirect(prompt, name);
@@ -1536,12 +1536,12 @@ export async function autoGeneratePartyPortraits(refresh) {
             successCount++;
             if (typeof refresh === 'function') refresh();
         } catch (err) {
-            toastr['error'](`Failed for ${name}: ${err.message}`, 'RPG Tracker');
+            toastr['error'](`「${name}」处理失败：${err.message}`, 'RPG Tracker');
         }
     }
 
     if (successCount > 0) {
-        imageGenToast('success', `Finished! Applied ${successCount} party portraits.`, 'RPG Tracker');
+        imageGenToast('success', `完成！已应用 ${successCount} 张队伍肖像。`, 'RPG Tracker');
     }
 }
 
@@ -1553,23 +1553,23 @@ export async function autoGeneratePartyPortraits(refresh) {
 export async function autoGenerateEnemyPortraits(refresh) {
     const enemies = getEnemyEntities();
     if (enemies.length === 0) {
-        toastr['warning']('No enemies found in the current COMBAT block.', 'RPG Tracker');
+        toastr['warning']('当前 COMBAT 块中未找到敌人。', 'RPG Tracker');
         return;
     }
 
     // Filter out those who already have a portrait
     const toGenerate = enemies.filter(name => !hasPortrait(name));
     if (toGenerate.length === 0) {
-        imageGenToast('info', 'All enemies already have portraits.', 'RPG Tracker');
+        imageGenToast('info', '所有敌人均已拥有肖像。', 'RPG Tracker');
         return;
     }
 
-    imageGenToast('info', `Starting auto-generation for ${toGenerate.length} enemies...`, 'RPG Tracker');
+    imageGenToast('info', `开始为 ${toGenerate.length} 名敌人自动生成…`, 'RPG Tracker');
     let successCount = 0;
     const passChatId = getActiveChatId();
 
     for (const name of toGenerate) {
-        imageGenToast('info', `Generating for enemy ${name}...`, 'RPG Tracker');
+        imageGenToast('info', `正在为敌人 ${name} 生成…`, 'RPG Tracker');
         try {
             const prompt = await generatePortraitPrompt(name);
             const dataUrl = await generatePortraitDirect(prompt, name);
@@ -1578,12 +1578,12 @@ export async function autoGenerateEnemyPortraits(refresh) {
             successCount++;
             if (typeof refresh === 'function') refresh();
         } catch (err) {
-            toastr['error'](`Failed for enemy ${name}: ${err.message}`, 'RPG Tracker');
+            toastr['error'](`敌人「${name}」处理失败：${err.message}`, 'RPG Tracker');
         }
     }
 
     if (successCount > 0) {
-        imageGenToast('success', `Finished! Applied ${successCount} enemy portraits.`, 'RPG Tracker');
+        imageGenToast('success', `完成！已应用 ${successCount} 张敌人肖像。`, 'RPG Tracker');
     }
 }
 
@@ -1595,7 +1595,7 @@ export async function removeAllPortraits(refresh) {
     const s = getSettings();
     await purgeAllPortraitData(s);
     await saveSettings(true);
-    toastr['success']('All custom portraits removed (including saved chat copies).', 'RPG Tracker');
+    toastr['success']('已移除所有自定义肖像（包括已保存的聊天副本）。', 'RPG Tracker');
     if (typeof refresh === 'function') refresh();
 }
 
@@ -1711,9 +1711,9 @@ export function triggerBackgroundPortraitGeneration(name, refresh, npcContent = 
     activeGenerations.add(name);
     const queuePos = _imageGenQueue.length + (_imageGenQueueRunning ? 1 : 0);
     if (queuePos <= 0) {
-        imageGenToast('info', `Auto-generating portrait for ${name}...`, 'RPG Tracker');
+        imageGenToast('info', `正在为 ${name} 自动生成肖像…`, 'RPG Tracker');
     } else {
-        imageGenToast('info', `Queued portrait for ${name} (${queuePos} ahead)...`, 'RPG Tracker');
+        imageGenToast('info', `已为 ${name} 排队肖像（前方还有 ${queuePos} 个）…`, 'RPG Tracker');
     }
 
     enqueueImageGen(async () => {
@@ -1735,7 +1735,7 @@ export function triggerBackgroundPortraitGeneration(name, refresh, npcContent = 
             const scaled = await scaleImageTo512Square(dataUrl);
             console.log(`[RPG Tracker] Applying portrait data for "${name}"...`);
             await applyPortraitData(name, scaled, { chatId: passChatId });
-            imageGenToast('success', `Portrait auto-generated and applied for ${name}!`, 'RPG Tracker');
+            imageGenToast('success', `已为 ${name} 自动生成并应用肖像！`, 'RPG Tracker');
             if (canCommitPassForChat(passChatId, getActiveChatId()) && typeof refresh === 'function') {
                 console.log(`[RPG Tracker] Triggering UI refresh callback...`);
                 refresh();
@@ -1747,12 +1747,12 @@ export function triggerBackgroundPortraitGeneration(name, refresh, npcContent = 
             const is524 = errMsg.includes('524') || errMsg.includes('timeout') || errMsg.includes('Upstream');
             if (is524) {
                 toastr['warning'](
-                    `Portrait generation for "${name}" failed: LLM connection timed out (524). The portrait prompt is written by your main LLM model — check your State Tracker connection settings and ensure it is online.`,
+                    `「${name}」的肖像生成失败：LLM 连接超时（524）。肖像提示词由你的主 LLM 模型编写 — 请检查 State Tracker 连接设置，确保其在线。`,
                     'RPG Tracker',
                     { timeOut: 8000 }
                 );
             } else {
-                toastr['error'](`Portrait generation failed for "${name}": ${errMsg.substring(0, 120)}`, 'RPG Tracker');
+                toastr['error'](`「${name}」的肖像生成失败：${errMsg.substring(0, 120)}`, 'RPG Tracker');
             }
         } finally {
             activeGenerations.delete(name);
@@ -2376,7 +2376,7 @@ async function disableRealtimeLocationGenerationAfterFailure(err) {
     s.portraitRegenerateVisitedLocations = false;
     globalThis._rpgSyncLocationImageDependentUi?.();
     const detail = String(err?.message || err || 'Unknown image generation failure').substring(0, 140);
-    imageGenToast('error', `Real-Time Visualization was disabled after one failed image request: ${detail}`, 'RPG Tracker');
+    imageGenToast('error', `一次图像请求失败后，实时可视化已禁用：${detail}`, 'RPG Tracker');
     try {
         await saveSettings(true);
     } catch (saveErr) {
@@ -2420,9 +2420,9 @@ export function triggerBackgroundLocationGeneration(locationPath, refresh, locCo
     if (!isRealtimeArrival) {
         const queuePos = _imageGenQueue.length + (_imageGenQueueRunning ? 1 : 0);
         if (queuePos <= 0) {
-            imageGenToast('info', `${forceReplace ? 'Regenerating' : 'Auto-generating'} location image for ${leaf}...`, 'RPG Tracker');
+            imageGenToast('info', `${forceReplace ? '正在重新生成' : '正在自动生成'}「${leaf}」的场景图…`, 'RPG Tracker');
         } else {
-            imageGenToast('info', `Queued location image for ${leaf} (${queuePos} ahead)...`, 'RPG Tracker');
+            imageGenToast('info', `已为「${leaf}」排队场景图（前方还有 ${queuePos} 个）…`, 'RPG Tracker');
         }
     } else if (canCommitPassForChat(passChatId, getActiveChatId()) && typeof refresh === 'function') {
         refresh();
@@ -2456,7 +2456,7 @@ export function triggerBackgroundLocationGeneration(locationPath, refresh, locCo
             const scaled = await scaleImageToLandscape(dataUrl);
             await applyLocationImageData(normPath, scaled, { chatId: passChatId });
             if (!isRealtimeArrival) {
-                imageGenToast('success', `${forceReplace ? 'Location image regenerated' : 'Location image auto-generated'} for ${leaf}!`, 'RPG Tracker');
+                imageGenToast('success', `已为「${leaf}」${forceReplace ? '重新生成' : '自动生成'}场景图！`, 'RPG Tracker');
             }
             if (!isRealtimeArrival && canCommitPassForChat(passChatId, getActiveChatId()) && typeof refresh === 'function') refresh();
         } catch (err) {
@@ -2471,7 +2471,7 @@ export function triggerBackgroundLocationGeneration(locationPath, refresh, locCo
                     stopRealtimeLocationGeneration();
                 }
             } else {
-                toastr['error'](`Location image generation failed for "${leaf}": ${errMsg.substring(0, 120)}`, 'RPG Tracker');
+                toastr['error'](`「${leaf}」的场景图生成失败：${errMsg.substring(0, 120)}`, 'RPG Tracker');
             }
         } finally {
             if (activeRealtimeLocationAbortController === realtimeAbortController) {

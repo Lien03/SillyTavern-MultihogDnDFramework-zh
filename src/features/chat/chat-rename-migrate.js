@@ -222,13 +222,13 @@ export async function onChatRenamedMigrate(detail, deps) {
                 `[RPG Tracker] CHAT_RENAMED: both chatStates["${oldId}"] and chatStates["${newId}"] may contain real data; preserving both.`,
             );
             toastr['warning'](
-                `Chat renamed to "${newId}", but Multihog could not prove the existing destination was an empty rename shell. Both partitions were preserved; old key "${oldId}" was not deleted.`,
-                'Chat Rename',
+                `聊天已重命名为 "${newId}"，但 Multihog 无法证明现有目标为空的重命名壳。两个分区均被保留；旧 key "${oldId}" 未被删除。`,
+                '聊天重命名',
                 { timeOut: 10000 },
             );
         }
     } else if (!hasOld && hasNew) {
-        // Already under new key (e.g. Branch Campaign seeded then renamed).
+        // Already under new key (e.g. 分支战役 seeded then renamed).
     }
 
     if (migratedPartition) {
@@ -258,7 +258,7 @@ export async function onChatRenamedMigrate(detail, deps) {
         console.warn(`[RPG Tracker] CHAT_RENAMED: browser-local data exists for both "${oldId}" and "${newId}"; preserving both.`);
         toastr['warning'](
             `Browser-local Multihog data already existed for "${newId}". Both old and new copies were preserved.`,
-            'Chat Rename',
+            '聊天重命名',
             { timeOut: 10000 },
         );
     }
@@ -297,8 +297,8 @@ export async function onChatRenamedMigrate(detail, deps) {
 
     if (migratedPartition) {
         toastr['info'](
-            `Multihog campaign data followed the rename: "${oldId}" -> "${newId}".`,
-            'Chat Rename',
+            `Multihog 战役数据已随重命名迁移："${oldId}" -> "${newId}"。`,
+            '聊天重命名',
             { timeOut: 6000 },
         );
     }

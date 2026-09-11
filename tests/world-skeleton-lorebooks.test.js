@@ -63,8 +63,8 @@ describe('World Skeleton lorebook source context', () => {
     });
 
     it('wires a dedicated per-chat lorebook selector into skeleton generation', () => {
-        expect(settingsMarkup).toContain('>Skeleton Source');
-        expect(settingsMarkup).not.toContain('>Atmosphere Summary');
+        expect(settingsMarkup).toContain('>骨架源');
+        expect(settingsMarkup).not.toContain('>氛围栏');
         expect(settingsMarkup).toContain('id="rpg_world_progression_skeleton_use_lorebooks"');
         expect(settingsMarkup).toContain('id="rpg_world_progression_skeleton_lorebook_list"');
         expect(settingsMarkup).toContain('id="rpg_world_progression_skeleton_lorebook_only"');

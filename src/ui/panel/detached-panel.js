@@ -22,14 +22,14 @@ export function createDetachedPanel(tag) {
                     <span>${icon} ${displayName}</span>
                 </div>
                 <div class="rpg-tracker-header-right">
-                    <button class="rpg-tracker-icon-btn rt-reattach-btn" data-tag="${tag}" title="Re-attach">✕</button>
+                    <button class="rpg-tracker-icon-btn rt-reattach-btn" data-tag="${tag}" title="重新挂载">✕</button>
                 </div>
             </div>
             <div class="rpg-tracker-content rpg-tracker-detached-body">
                 <!-- Content injected here via refreshRenderedView() -->
             </div>
-            <div class="rt-resizer-br rt-detached-resizer-br" title="Resize"></div>
-            <div class="rt-resizer-bl rt-detached-resizer-bl" title="Resize"></div>
+            <div class="rt-resizer-br rt-detached-resizer-br" title="调整大小"></div>
+            <div class="rt-resizer-bl rt-detached-resizer-bl" title="调整大小"></div>
         `;
 
     document.body.appendChild(panel);

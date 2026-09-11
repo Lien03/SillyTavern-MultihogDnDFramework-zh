@@ -11,7 +11,7 @@ const defaultsSource = readFileSync(new URL('../src/state/defaults.js', import.m
 describe('settings overlay', () => {
     it('adds an opt-in location image chat background setting', () => {
         expect(settingsMarkup).toContain('id="rpg_tracker_portrait_auto_apply_location_background"');
-        expect(settingsMarkup).toContain('Use Location Images as Chat Background');
+        expect(settingsMarkup).toContain('将地点图片用作聊天背景');
         expect(defaultsSource).toContain('portraitAutoApplyLocationBackground: false');
         expect(indexSource).toContain('portraitAutoApplyLocationBackground');
     });
@@ -19,7 +19,7 @@ describe('settings overlay', () => {
     it('ships a stub entry point for the extensions drawer', () => {
         expect(stubMarkup).toContain('class="rpg-tracker-settings-stub"');
         expect(stubMarkup).toContain('id="rpg_tracker_open_settings"');
-        expect(stubMarkup).toContain('Open Settings');
+        expect(stubMarkup).toContain('打开设置');
     });
 
     it('implements a floating external window rather than a fullscreen takeover', () => {
@@ -73,8 +73,8 @@ describe('settings overlay', () => {
         expect(mapIdx).toBeGreaterThan(agentIdx);
         expect(worldIdx).toBeGreaterThan(mapIdx);
 
-        expect(overlaySource).toContain("label: 'General & Visuals'");
-        expect(overlaySource).toContain("label: 'Persistent Maps'");
+        expect(overlaySource).toContain("label: '通用与视觉'");
+        expect(overlaySource).toContain("label: '持久地图'");
         expect(overlaySource).toContain('match: /Persistent Maps/i');
         expect(indexSource).toContain('initSettingsOverlay(settingsHtml');
         expect(indexSource).toContain("settings-stub");
@@ -97,7 +97,7 @@ describe('settings overlay', () => {
         const searchSource = readFileSync(new URL('../src/ui/settings-search.js', import.meta.url), 'utf8');
         expect(overlaySource).toContain('installSettingsSearch');
         expect(overlaySource).toContain('id="rt-so-search-input"');
-        expect(overlaySource).toContain('placeholder="Search settings…');
+        expect(overlaySource).toContain('placeholder="搜索设置…');
         expect(overlaySource).toContain('handleSettingsSearchKeydown');
         expect(overlaySource).toContain('dataset.tabLabel');
         expect(overlaySource).toContain('rt-so-tab-count');

@@ -53,17 +53,17 @@ export async function openDisplayGroupsManager() {
                 Display Groups are global and display-only. They never merge memo blocks, prompts, module activation, scope, or Wizard Game Systems. Disable the master toggle to restore the existing renderer immediately.
             </div>
             <div class="rt-display-group-options">
-                <label class="rt-display-group-option" title="Turn this off to immediately restore the existing independent module rendering without deleting your groups.">
+                <label class="rt-display-group-option" title="关闭此项可立即恢复原有的独立模块渲染，且不会删除你的分组。">
                     <input id="rt-display-groups-enabled" type="checkbox" ${settings.displayGroupsEnabled ? 'checked' : ''}>
-                    <span class="rt-display-group-option-copy"><strong>Enable Display Groups</strong><small>Use your saved groups in the tracker display.</small></span>
+                    <span class="rt-display-group-option-copy"><strong>启用显示分组</strong><small>在追踪器显示中使用你保存的分组。</small></span>
                 </label>
-                <label class="rt-display-group-option" title="When disabled, grouped modules have no separator line or vertical gap between them.">
+                <label class="rt-display-group-option" title="禁用时，分组模块之间没有分隔线或垂直间距。">
                     <input id="rt-display-groups-show-gaps" type="checkbox" ${settings.displayGroupsShowGaps === true ? 'checked' : ''}>
-                    <span class="rt-display-group-option-copy"><strong>Show gaps between grouped modules</strong><small>Turn off for a completely seamless grouped display.</small></span>
+                    <span class="rt-display-group-option-copy"><strong>显示分组模块之间的间距</strong><small>关闭后可实现完全无缝的分组显示。</small></span>
                 </label>
             </div>
             <div id="rt-display-groups-list" style="display:flex;flex-direction:column;gap:7px;overflow-y:auto;overflow-x:hidden;min-height:70px;min-width:0;max-width:100%;"></div>
-            <button id="rt-display-group-add" class="menu_button interactable" style="width:100%;"><i class="fa-solid fa-plus"></i> Create Display Group</button>
+            <button id="rt-display-group-add" class="menu_button interactable" style="width:100%;"><i class="fa-solid fa-plus"></i> 创建显示分组</button>
             <div id="rt-display-group-editor" style="display:none;border:1px solid rgba(180,100,255,.35);border-radius:8px;padding:10px;background:rgba(0,0,0,.22);box-sizing:border-box;min-width:0;max-width:100%;overflow-x:hidden;"></div>
         </div>`;
 
@@ -79,8 +79,8 @@ export async function openDisplayGroupsManager() {
             refreshRenderedView();
             toastr['info'](
                 settings.displayGroupsEnabled
-                    ? 'Display Groups enabled.'
-                    : 'Display Groups disabled. Normal module cards restored.',
+                    ? '显示分组已启用。'
+                    : '显示分组已禁用，已恢复普通模块卡片。',
                 'Display Groups',
             );
         });
@@ -93,18 +93,18 @@ export async function openDisplayGroupsManager() {
         const renderList = () => {
             settings.displayGroups = normalizeDisplayGroups(settings.displayGroups);
             if (!settings.displayGroups.length) {
-                list.innerHTML = '<div style="padding:14px;text-align:center;opacity:.58;font-size:11px;border:1px dashed rgba(255,255,255,.16);border-radius:6px;">No Display Groups configured.</div>';
+                list.innerHTML = '<div style="padding:14px;text-align:center;opacity:.58;font-size:11px;border:1px dashed rgba(255,255,255,.16);border-radius:6px;">尚未配置任何显示分组。</div>';
             } else {
                 list.innerHTML = settings.displayGroups.map((group, index) => `
                     <div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:rgba(255,255,255,.025);box-sizing:border-box;min-width:0;max-width:100%;">
-                        <input class="rt-dg-enabled" data-index="${index}" type="checkbox" ${group.enabled ? 'checked' : ''} title="Enable this global Display Group">
+                        <input class="rt-dg-enabled" data-index="${index}" type="checkbox" ${group.enabled ? 'checked' : ''} title="启用此全局显示分组">
                         <span style="font-size:17px;">${escapeHtml(group.icon)}</span>
                         <div style="flex:1;min-width:0;">
                             <div style="font-size:12px;font-weight:bold;">${escapeHtml(group.name)}</div>
                             <div style="font:10px/1.35 monospace;opacity:.62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${group.members.map(escapeHtml).join(' · ')}</div>
                         </div>
-                        <button class="rt-dg-edit menu_button interactable" data-index="${index}" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button class="rt-dg-delete menu_button interactable" data-index="${index}" title="Delete" style="color:#ff7777;"><i class="fa-solid fa-trash"></i></button>
+                        <button class="rt-dg-edit menu_button interactable" data-index="${index}" title="编辑"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="rt-dg-delete menu_button interactable" data-index="${index}" title="删除" style="color:#ff7777;"><i class="fa-solid fa-trash"></i></button>
                     </div>`).join('');
             }
 
@@ -118,7 +118,7 @@ export async function openDisplayGroupsManager() {
             list.querySelectorAll('.rt-dg-delete').forEach(button => button.addEventListener('click', () => {
                 const index = Number(button.dataset.index);
                 const group = settings.displayGroups[index];
-                if (!group || !confirm(`Delete Display Group "${group.name}"?\n\nIts modules will not be deleted or disabled.`)) return;
+                if (!group || !confirm(`删除显示分组「${group.name}」？\n\n其模块不会被删除或禁用。`)) return;
                 settings.displayGroups.splice(index, 1);
                 persistDisplayGroups(settings);
                 renderList();
@@ -157,10 +157,10 @@ export async function openDisplayGroupsManager() {
 
             editor.style.display = 'block';
             editor.innerHTML = `
-                <div style="font-size:12px;font-weight:bold;margin-bottom:8px;">${existing ? 'Edit' : 'Create'} Display Group</div>
+                <div style="font-size:12px;font-weight:bold;margin-bottom:8px;">${existing ? '编辑' : '创建'}显示分组</div>
                 <div style="display:flex;gap:6px;margin-bottom:8px;min-width:0;max-width:100%;">
-                    <input id="rt-dg-editor-icon" class="text_pole" value="${escapeHtml(existing?.icon || '🗂️')}" style="width:52px;flex:0 0 52px;text-align:center;box-sizing:border-box;" maxlength="16" title="Group icon">
-                    <input id="rt-dg-editor-name" class="text_pole" value="${escapeHtml(existing?.name || '')}" style="flex:1;min-width:0;box-sizing:border-box;" maxlength="80" placeholder="Display Group name">
+                    <input id="rt-dg-editor-icon" class="text_pole" value="${escapeHtml(existing?.icon || '🗂️')}" style="width:52px;flex:0 0 52px;text-align:center;box-sizing:border-box;" maxlength="16" title="分组图标">
+                    <input id="rt-dg-editor-name" class="text_pole" value="${escapeHtml(existing?.name || '')}" style="flex:1;min-width:0;box-sizing:border-box;" maxlength="80" placeholder="显示分组名称">
                 </div>
                 <div style="font-size:10px;opacity:.62;margin-bottom:5px;overflow-wrap:anywhere;">Select modules to render under this shared header. Use the arrows below to choose their order inside the group. Combat, Quests, and Benched Party cannot be grouped.</div>
                 <div style="font-size:10px;font-weight:bold;opacity:.72;margin:8px 0 4px;">MODULE ORDER IN THIS GROUP</div>
@@ -174,7 +174,7 @@ export async function openDisplayGroupsManager() {
             const renderMemberOrder = () => {
                 if (!orderContainer) return;
                 if (!memberOrder.length) {
-                    orderContainer.innerHTML = '<div style="padding:6px 7px;border:1px dashed rgba(255,255,255,.14);border-radius:4px;font-size:10px;opacity:.55;">Select modules below, then arrange them here.</div>';
+                    orderContainer.innerHTML = '<div style="padding:6px 7px;border:1px dashed rgba(255,255,255,.14);border-radius:4px;font-size:10px;opacity:.55;">先在下方选择模块，再在这里调整顺序。</div>';
                     return;
                 }
                 orderContainer.innerHTML = memberOrder.map((tag, memberIndex) => {
@@ -183,8 +183,8 @@ export async function openDisplayGroupsManager() {
                     const icon = item?.icon || '⚠️';
                     return `<div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border:1px solid rgba(255,255,255,.12);border-radius:4px;background:rgba(255,255,255,.025);min-width:0;">
                         <span style="font-size:12px;">${escapeHtml(icon)}</span><span style="flex:1;min-width:0;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(label)} <code style="opacity:.55;">[${escapeHtml(tag)}]</code></span>
-                        <button class="rt-dg-member-up menu_button interactable" data-index="${memberIndex}" title="Move up" ${memberIndex === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
-                        <button class="rt-dg-member-down menu_button interactable" data-index="${memberIndex}" title="Move down" ${memberIndex === memberOrder.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
+                        <button class="rt-dg-member-up menu_button interactable" data-index="${memberIndex}" title="上移" ${memberIndex === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
+                        <button class="rt-dg-member-down menu_button interactable" data-index="${memberIndex}" title="下移" ${memberIndex === memberOrder.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
                     </div>`;
                 }).join('');
                 orderContainer.querySelectorAll('.rt-dg-member-up').forEach(button => button.addEventListener('click', () => {
@@ -213,11 +213,11 @@ export async function openDisplayGroupsManager() {
                 const selectedTags = new Set([...editor.querySelectorAll('.rt-dg-member:checked:not(:disabled)')].map(input => input.value));
                 const members = memberOrder.filter(tag => selectedTags.has(tag));
                 if (!name) {
-                    toastr['warning']('Give the Display Group a name.', 'Display Groups');
+                    toastr['warning']('请为显示分组命名。', 'Display Groups');
                     return false;
                 }
                 if (!members.length) {
-                    toastr['warning']('Select at least one module.', 'Display Groups');
+                    toastr['warning']('请至少选择一个模块。', 'Display Groups');
                     return false;
                 }
 
@@ -238,8 +238,8 @@ export async function openDisplayGroupsManager() {
     }, 100);
 
     await Popup.show.confirm('🗂️ Display Groups', html, {
-        okButton: 'Done',
-        cancelButton: 'Cancel',
+        okButton: '完成',
+        cancelButton: '取消',
         onClosing: (popup) => {
             if (popup.result !== POPUP_RESULT.AFFIRMATIVE) return true;
             return saveOpenEditor ? saveOpenEditor() : true;

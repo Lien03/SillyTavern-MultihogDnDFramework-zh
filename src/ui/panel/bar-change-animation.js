@@ -182,7 +182,7 @@ function animateBar(bar, transition, next) {
     const floater = document.createElement('span');
     floater.className = `rt-bar-change-floater ${isGain ? 'rt-bar-change-positive' : 'rt-bar-change-negative'}`;
     floater.setAttribute('role', 'status');
-    floater.setAttribute('aria-label', `${isGain ? 'Increased' : 'Decreased'} by ${Math.abs(transition.delta)}`);
+    floater.setAttribute('aria-label', `${isGain ? '增加' : '减少'} ${Math.abs(transition.delta)}`);
     floater.textContent = formatDelta(transition.delta);
     host.appendChild(floater);
 

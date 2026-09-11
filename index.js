@@ -189,7 +189,7 @@ function renderRelTierRow(friendshipVal, affectionVal, max) {
 /** Full "Friendship tier: FRIENDLY — genuine warmth..." block with visible hint text. Used in the NPC detail popup. */
 function renderRelTierDetailed(type, value, max) {
     const tier = type === 'friendship' ? getFriendshipTier(value, max) : getAffectionTier(value, max);
-    const axisLabel = type === 'friendship' ? 'Friendship' : 'Affection';
+    const axisLabel = type === 'friendship' ? '友谊' : '好感';
     return `<div class="rt-npc-tier-detailed ${type}" style="${getRelTierDetailedStyle(type, value, max)}">
         <span class="rt-npc-tier-detailed-label" style="${getRelTierDetailedLabelStyle(type, value, max)}">${axisLabel} tier: ${escapeHtml(tier.label)}</span>
         <span class="rt-npc-tier-detailed-hint">— ${escapeHtml(tier.hint)}</span>
@@ -226,15 +226,15 @@ export async function refreshAgentManifestNow() {
 
 function notifyMapEvolutionPassResult(result) {
     const skipped = result?.skipped;
-    if (skipped === 'location_mapping_off' || skipped === 'dungeon_reality_off') toastr.warning('Persistent Maps is off.', 'Map Evolution');
-    else if (skipped === 'no_maps' || skipped === 'no_active_map' || skipped === 'no_matching_sites' || skipped === 'no_selection') toastr.warning('No mapped site to evolve.', 'Map Evolution');
-    else if (skipped === 'disabled') toastr.warning('Map Evolution is disabled.', 'Map Evolution');
-    else if (skipped === 'busy') toastr.warning('An agent is already running.', 'Map Evolution');
-    else if (skipped === 'stopped') toastr['info']('Stopped.', 'Map Evolution');
-    else if (result?.baseline) toastr['info']('Interval baseline stamped. Evolution will fire after the interval elapses.', 'Map Evolution');
-    else if (result?.ok && result?.applied === 0) toastr['info']('Nothing durable changed.', 'Map Evolution');
-    else if (result?.ok) toastr['success']('Map Evolution applied.', 'Map Evolution');
-    else toastr.error('Could not apply a valid evolution update.', 'Map Evolution');
+    if (skipped === 'location_mapping_off' || skipped === 'dungeon_reality_off') toastr.warning('持久地图已关闭。', '地图演化');
+    else if (skipped === 'no_maps' || skipped === 'no_active_map' || skipped === 'no_matching_sites' || skipped === 'no_selection') toastr.warning('没有可演化的已映射地点。', '地图演化');
+    else if (skipped === 'disabled') toastr.warning('地图演化已禁用。', '地图演化');
+    else if (skipped === 'busy') toastr.warning('已有代理正在运行。', '地图演化');
+    else if (skipped === 'stopped') toastr['info']('已停止。', '地图演化');
+    else if (result?.baseline) toastr['info']('间隔基线已记录，间隔结束后将触发演化。', '地图演化');
+    else if (result?.ok && result?.applied === 0) toastr['info']('没有发生持久性变更。', '地图演化');
+    else if (result?.ok) toastr['success']('地图演化已应用。', '地图演化');
+    else toastr.error('无法应用有效的演化更新。', '地图演化');
 }
 
 function persistMapEvolutionSelectedRootsFromUi() {
@@ -271,7 +271,7 @@ function syncMapEvolutionTickRows(settings) {
 
 function formatMapEvolutionCadence(hours) {
     const totalMinutes = Math.max(0, Math.round(Number(hours) * 60));
-    if (!totalMinutes) return 'skip';
+    if (!totalMinutes) return '跳过';
     const wholeHours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return [wholeHours ? `${wholeHours}h` : '', minutes ? `${minutes}m` : ''].filter(Boolean).join(' ');
@@ -288,7 +288,7 @@ async function refreshMapEvolutionSelectedList() {
         console.warn('[RPG Tracker] Failed to list mapped sites for Map Evolution:', error);
     }
     if (!sites.length) {
-        $list.append($('<i>').css({ opacity: '0.6', fontSize: '0.85em' }).text('No mapped sites in this chat.'));
+        $list.append($('<i>').css({ opacity: '0.6', fontSize: '0.85em' }).text('此聊天中没有已映射的地点。'));
         $('#rpg_map_evolution_site_list_header').hide();
         updateMapEvolutionScheduleDisplay();
         return;
@@ -306,19 +306,19 @@ async function refreshMapEvolutionSelectedList() {
         const $input = $('<input type="checkbox">')
             .attr('data-site-root', site.siteRoot)
             .prop('checked', selected.has(String(site.siteRoot || '').trim().toLowerCase()));
-        const label = site.current ? `${site.siteRoot} (current)` : site.siteRoot;
+        const label = site.current ? `${site.siteRoot}（当前）` : site.siteRoot;
         const inherited = inheritedFor(site.siteRoot);
         const overrideHours = getSiteEvolutionIntervalOverride(overrides, site.siteRoot);
         const hasOverride = overrideHours != null;
         const inheritText = inherited === 0
-            ? (site.current ? 'Automatic: skip (current map)' : 'Automatic: skip (other maps)')
-            : (site.current ? `Automatic: ${formatMapEvolutionCadence(inherited)} (current map)` : `Automatic: ${formatMapEvolutionCadence(inherited)} (other maps)`);
+            ? (site.current ? '自动：跳过（当前地图）' : '自动：跳过（其他地图）')
+            : (site.current ? `自动：${formatMapEvolutionCadence(inherited)}（当前地图）` : `自动：${formatMapEvolutionCadence(inherited)}（其他地图）`);
         const $inherit = $('<div>').css({
             fontSize: '0.75em',
             opacity: hasOverride ? '0.45' : '0.65',
             lineHeight: '1.3',
             marginTop: '2px',
-        }).text(hasOverride ? `Override · was ${formatMapEvolutionCadence(inherited)}` : inheritText);
+        }).text(hasOverride ? `覆盖 · 原为 ${formatMapEvolutionCadence(inherited)}` : inheritText);
         const $hours = $('<input type="text" inputmode="numeric" pattern="[0-9]*" class="text_pole">')
             .attr({
                 'data-site-root': site.siteRoot,
@@ -326,8 +326,8 @@ async function refreshMapEvolutionSelectedList() {
                 max: '168',
                 placeholder: '—',
                 title: hasOverride
-                    ? 'Custom automatic interval for this map. Clear the box to inherit Other maps / Current map again. 0 skips automatic ticks.'
-                    : 'Leave blank to inherit Other maps / Current map. Fill only to override this map\'s automatic timer. 0 skips automatic ticks. Independent of the Run now checkbox.',
+                    ? '此地图的自定义自动间隔。清空输入框可重新继承“其他地图 / 当前地图”。0 表示跳过自动触发。'
+                    : '留空以继承“其他地图 / 当前地图”。仅在需要覆盖此地图的自动计时器时填写。0 表示跳过自动触发。与“立即运行”复选框无关。',
             })
             .css({ width: '56px', minWidth: '56px', fontSize: '0.85em', textAlign: 'center', boxSizing: 'border-box' })
             .val(hasOverride ? String(overrideHours) : '');
@@ -385,7 +385,7 @@ function updateMapEvolutionScheduleDisplay(currentRoot = '') {
         currentMinutes: currentMemoMinutes(),
         intervalHoursFor: evolutionIntervalHoursForSettings(s, root),
     });
-    const lastText = schedule.lastMins >= 0 ? formatInWorldTime(schedule.lastMins) : 'Never';
+    const lastText = schedule.lastMins >= 0 ? formatInWorldTime(schedule.lastMins) : '从未';
     $('#rpg_map_evolution_last_fired').text(lastText);
     $('#rpg_map_evolution_last_report_val').text(lastText);
     $('#rpg_map_evolution_next_report_val').text(schedule.nextMins >= 0 ? formatInWorldTime(schedule.nextMins) : '—');
@@ -533,14 +533,14 @@ function bindConnectionApplyAllControls() {
         const settings = getSettings();
         const result = applyConnectionSetupToAll(settings, sourceKey);
         if (!result) {
-            toastr['error']('Could not apply that connection setup.', 'Connections & Models');
+            toastr['error']('无法应用该连接配置。', '连接与模型');
             return;
         }
         saveSettings();
         syncAllAgentConnectionSetupsToUi(settings);
         toastr['success'](
-            `Applied ${result.sourceLabel} connection to ${result.appliedCount} other features.`,
-            'Connections & Models',
+            `已将 ${result.sourceLabel} 连接应用到 ${result.appliedCount} 个其他功能。`,
+            '连接与模型',
         );
     });
 }
@@ -555,16 +555,16 @@ async function confirmAndPurgeWorldHistory() {
     const { Popup } = SillyTavern.getContext();
     const body = `
         <div style="text-align:left; font-size:13px; line-height:1.5;">
-            <p>This permanently deletes World Progression data tied to the <b>current campaign prefix</b> (<code>${escapeHtml(prefix || 'none')}</code>):</p>
+            <p>这将永久删除与<b>当前战役前缀</b>（<code>${escapeHtml(prefix || '无')}</code>）关联的世界进程数据：</p>
             <ul style="margin:8px 0; padding-left:20px;">
-                <li>All reports in <code>${escapeHtml(worldBook)}</code></li>
-                <li>All skeleton entities in <code>${escapeHtml(skeletonBook)}</code> (removes stale DESIGNATED ENTITIES from prior stories)</li>
-                <li>Per-chat timer state and active world report keys for this chat</li>
-                <li>Saved Skeleton Source for this chat</li>
+                <li><code>${escapeHtml(worldBook)}</code> 中的全部报告</li>
+                <li><code>${escapeHtml(skeletonBook)}</code> 中的全部骨架实体（移除先前故事中过期的 DESIGNATED ENTITIES）</li>
+                <li>此聊天的按聊天计时器状态与活动世界报告键</li>
+                <li>此聊天已保存的骨架源</li>
             </ul>
-            <p style="opacity:0.85;"><b>Note:</b> Lorebooks are stored per campaign prefix, not per chat file. If another chat shares this prefix, it will also lose this World/Skeleton data.</p>
+            <p style="opacity:0.85;"><b>注意：</b>世界书按战役前缀存储，而非按聊天文件存储。如果其他聊天共享此前缀，也会一并丢失这些世界/骨架数据。</p>
         </div>`;
-    const choice = await Popup.show.confirm('Purge World History for this Chat?', body, { okButton: 'Purge', cancelButton: 'Cancel' });
+    const choice = await Popup.show.confirm('清除此聊天的世界历史？', body, { okButton: '清除', cancelButton: '取消' });
     if (choice !== 1) return;
     try {
         const result = await purgeWorldHistoryForChat({ includeSkeleton: true });
@@ -576,9 +576,9 @@ async function confirmAndPurgeWorldHistory() {
             await globalThis._rpgUpdateSkeletonStatus().catch(() => { });
         }
         scheduleAgentManifestRefresh(true);
-        toastr['success'](`Purged ${result.worldCleared} report(s) and ${result.skeletonCleared} skeleton entries.`, 'World Progression');
+        toastr['success'](`已清除 ${result.worldCleared} 条报告和 ${result.skeletonCleared} 条骨架条目。`, '世界进程');
     } catch (e) {
-        toastr['error'](`Purge failed: ${e.message}`, 'World Progression');
+        toastr['error'](`清除失败：${e.message}`, '世界进程');
     }
 }
 
@@ -592,7 +592,7 @@ function renderLoreActivationDebugPanel() {
     const pre = document.getElementById('rpg_tracker_lore_activation_debug_pre');
     if (!pre) return;
     if (!_loreActivationDebugLast) {
-        pre.textContent = '(no data yet — use Capture now in Extension Settings > Lorebook Agent, or switch chats / Activate Books.)';
+        pre.textContent = '（暂无数据——请在“扩展设置 > 世界书代理”中使用“立即捕获”，或切换聊天 / 激活世界书。）';
         return;
     }
     try {
@@ -1153,12 +1153,12 @@ function renderMapThemeColorControls() {
         }
         const label = document.createElement('label');
         label.className = 'rt-map-theme-color';
-        label.title = `Choose the ${field.label.toLowerCase()} color`;
+        label.title = `选择${field.label.toLowerCase()}颜色`;
 
         const picker = document.createElement('input');
         picker.type = 'color';
         picker.dataset.mapThemeKey = field.key;
-        picker.setAttribute('aria-label', `${field.label} color picker`);
+        picker.setAttribute('aria-label', `${field.label}颜色选择器`);
 
         const name = document.createElement('span');
         name.textContent = field.label;
@@ -1170,7 +1170,7 @@ function renderMapThemeColorControls() {
         hex.spellcheck = false;
         hex.dataset.mapThemeKey = field.key;
         hex.dataset.mapThemeHex = 'true';
-        hex.setAttribute('aria-label', `${field.label} hex color`);
+        hex.setAttribute('aria-label', `${field.label}十六进制颜色`);
 
         label.append(picker, name, hex);
         container.appendChild(label);
@@ -1185,11 +1185,11 @@ function syncMapThemePresetSelect(settings) {
 
     const custom = document.createElement('option');
     custom.value = '';
-    custom.textContent = 'Custom (unsaved)';
+    custom.textContent = '自定义（未保存）';
     select.appendChild(custom);
 
     const factoryGroup = document.createElement('optgroup');
-    factoryGroup.label = 'Factory themes';
+    factoryGroup.label = '内置主题';
     for (const preset of FACTORY_MAP_THEME_PRESETS) {
         const option = document.createElement('option');
         option.value = preset.id;
@@ -1201,7 +1201,7 @@ function syncMapThemePresetSelect(settings) {
     const savedEntries = Object.entries(settings.savedMapThemePresets || {});
     if (savedEntries.length) {
         const savedGroup = document.createElement('optgroup');
-        savedGroup.label = 'Your presets';
+        savedGroup.label = '你的预设';
         for (const [name] of savedEntries.sort(([a], [b]) => a.localeCompare(b))) {
             const option = document.createElement('option');
             option.value = `user:${name}`;
@@ -1290,31 +1290,31 @@ function bindMapThemeControls() {
         const id = String($('#rpg_map_theme_preset').val() || '');
         const theme = resolveMapThemePreset(id, settings.savedMapThemePresets);
         if (!theme) {
-            toastr['warning']('Choose a saved or factory theme first.', 'Map Themes');
+            toastr['warning']('请先选择已保存的主题或内置主题。', '地图主题');
             return;
         }
         applySelectedMapTheme(settings, theme, id);
         const name = id.startsWith('user:') ? id.slice(5) : FACTORY_MAP_THEME_PRESETS.find(preset => preset.id === id)?.name;
-        toastr['success'](`Loaded ${name || 'map theme'}.`, 'Map Themes');
+        toastr['success'](`已加载${name || '地图主题'}。`, '地图主题');
     });
     $('#rpg_map_theme_save').off('.rpgMapTheme').on('click.rpgMapTheme', async function () {
         const settings = getSettings();
         const { Popup, POPUP_RESULT } = SillyTavern.getContext();
         const requested = Popup?.show?.input
-            ? await Popup.show.input('Save Map Theme', 'Name this map theme preset:', 'My Map Theme')
-            : prompt('Name this map theme preset:', 'My Map Theme');
+            ? await Popup.show.input('保存地图主题', '为此地图主题预设命名：', '我的地图主题')
+            : prompt('为此地图主题预设命名：', '我的地图主题');
         const name = String(requested || '').trim().slice(0, 80);
         if (!name) return;
         if (['__proto__', 'constructor', 'prototype'].includes(name)) {
-            toastr['warning']('Please choose another preset name.', 'Map Themes');
+            toastr['warning']('请换一个预设名称。', '地图主题');
             return;
         }
         const existingName = Object.keys(settings.savedMapThemePresets || {})
             .find(savedName => savedName.toLowerCase() === name.toLowerCase());
         if (existingName) {
             const replace = Popup?.show?.confirm
-                ? await Popup.show.confirm('Replace Map Theme?', `Replace the saved map theme "${escapeHtml(existingName)}"?`)
-                : confirm(`Replace the saved map theme "${existingName}"?`);
+                ? await Popup.show.confirm('替换地图主题？', `替换已保存的地图主题“${escapeHtml(existingName)}”？`)
+                : confirm(`替换已保存的地图主题“${existingName}”？`);
             if (Popup?.show?.confirm ? replace !== (POPUP_RESULT?.AFFIRMATIVE ?? 1) : !replace) return;
         }
         if (existingName && existingName !== name) delete settings.savedMapThemePresets[existingName];
@@ -1322,7 +1322,7 @@ function bindMapThemeControls() {
         settings.activeMapThemePresetId = `user:${name}`;
         syncMapThemeUi(settings);
         scheduleMapThemeSave(true);
-        toastr['success'](`Saved ${name}.`, 'Map Themes');
+        toastr['success'](`已保存${name}。`, '地图主题');
     });
     $('#rpg_map_theme_delete').off('.rpgMapTheme').on('click.rpgMapTheme', async function () {
         const settings = getSettings();
@@ -1331,19 +1331,19 @@ function bindMapThemeControls() {
         const name = id.slice(5);
         const { Popup, POPUP_RESULT } = SillyTavern.getContext();
         const approved = Popup?.show?.confirm
-            ? await Popup.show.confirm('Delete Map Theme?', `Delete the saved map theme "${escapeHtml(name)}"?`)
-            : confirm(`Delete the saved map theme "${name}"?`);
+            ? await Popup.show.confirm('删除地图主题？', `删除已保存的地图主题“${escapeHtml(name)}”？`)
+            : confirm(`删除已保存的地图主题“${name}”？`);
         if (Popup?.show?.confirm ? approved !== (POPUP_RESULT?.AFFIRMATIVE ?? 1) : !approved) return;
         delete settings.savedMapThemePresets[name];
         if (settings.activeMapThemePresetId === id) settings.activeMapThemePresetId = '';
         syncMapThemeUi(settings);
         scheduleMapThemeSave(true);
-        toastr['info'](`Deleted ${name}.`, 'Map Themes');
+        toastr['info'](`已删除${name}。`, '地图主题');
     });
     $('#rpg_map_theme_reset').off('.rpgMapTheme').on('click.rpgMapTheme', function () {
         const settings = getSettings();
         applySelectedMapTheme(settings, DEFAULT_MAP_THEME, 'factory:ember');
-        toastr['success']('Map theme reset to Ember.', 'Map Themes');
+        toastr['success']('地图主题已重置为 Ember。', '地图主题');
     });
 
     const persistBackgroundImage = async (source) => {
@@ -1354,11 +1354,11 @@ function bindMapThemeControls() {
                 stored = await scalePanelBackgroundImage(stored);
             } catch (err) {
                 console.error(err);
-                toastr['warning']('Could not process that image.', 'Map Themes');
+                toastr['warning']('无法处理该图片。', '地图主题');
                 return false;
             }
         } else if (stored && !/^https?:\/\//i.test(stored)) {
-            toastr['warning']('Use an http(s) image URL or upload a file.', 'Map Themes');
+            toastr['warning']('请使用 http(s) 图片链接或上传文件。', '地图主题');
             return false;
         }
         settings.mapTheme = normalizeMapTheme({ ...settings.mapTheme, backgroundImage: stored });
@@ -1378,11 +1378,11 @@ function bindMapThemeControls() {
         if (!file) return;
         try {
             if (await persistBackgroundImage(String(await fileToDataUrl(file)))) {
-                toastr['success']('Map background image set.', 'Map Themes');
+                toastr['success']('地图背景图片已设置。', '地图主题');
             }
         } catch (err) {
             console.error(err);
-            toastr['warning']('Could not read that file.', 'Map Themes');
+            toastr['warning']('无法读取该文件。', '地图主题');
         }
     });
     $('#rpg_map_theme_bg_url').off('.rpgMapTheme').on('change.rpgMapTheme', async function () {
@@ -1554,9 +1554,9 @@ export function syncLocationImageDependentUi(settings) {
         realtimeNote.style.display = realTimeOn ? 'block' : 'none';
         if (realTimeOn) {
             const notes = {
-                location_enter: 'Generate once when entering a place that has no scene image yet. Open Visuals/Map in the Lorebook Agent to view scene art.',
-                location_change: 'Regenerate whenever the location changes (including revisits). Open Visuals/Map in the Lorebook Agent to view scene art.',
-                every_n_outputs: `Regenerate on location change, and also every ${everyN} chat output${everyN === 1 ? '' : 's'}. Open Visuals/Map in the Lorebook Agent to view scene art.`,
+                location_enter: '进入一个还没有场景图片的地点时生成一次。在 Lorebook Agent 中打开 Visuals/Map 以查看场景图。',
+                location_change: '位置变化时重新生成（包括再次到访）。在 Lorebook Agent 中打开 Visuals/Map 以查看场景图。',
+                every_n_outputs: `位置变化时重新生成，并且每 ${everyN} 条聊天输出也会重新生成。在 Lorebook Agent 中打开 Visuals/Map 以查看场景图。`,
             };
             realtimeNote.textContent = notes[triggerMode] || notes.location_change;
         }
@@ -2103,17 +2103,17 @@ async function cloneCampaignStack() {
         || ''
     ).trim();
     if (!currentPrefix) {
-        toastr['warning']('No campaign prefix is active. Activate the Lorebook Agent and load a chat first.', 'Clone Stack');
+        toastr['warning']('当前没有激活的战役前缀。请先激活 Lorebook Agent 并加载一个聊天。', '克隆堆栈');
         return;
     }
 
     let newPrefixRaw = '';
     try {
         newPrefixRaw = await ctx.Popup.show.input(
-            'Clone Lorebook Stack',
-            `<p>All lorebooks under prefix <strong>${currentPrefix}</strong> will be duplicated.</p>` +
-            `<p>Enter the new prefix for the cloned stack (e.g. <code>Eldoria_Branch1</code>).<br>` +
-            `<small>Tip: use <b>General &amp; Visuals → Core &amp; Branching → Branch Campaign</b> to create the ST branch and copy Multihog data in one step.</small></p>`,
+            '克隆知识库堆栈',
+            `<p>前缀 <strong>${currentPrefix}</strong> 下的所有知识库都将被复制。</p>` +
+            `<p>为克隆的堆栈输入新前缀（例如 <code>Eldoria_Branch1</code>）。<br>` +
+            `<small>提示：使用 <b>General &amp; Visuals → Core &amp; Branching → Branch Campaign</b> 可一步创建 ST 分支并复制 Multihog 数据。</small></p>`,
             ''
         );
     } catch (_) {
@@ -2123,27 +2123,27 @@ async function cloneCampaignStack() {
     if (!newPrefixRaw && newPrefixRaw !== 0) return;
     const newPrefix = sanitizeCampaignPrefixString(String(newPrefixRaw).trim());
     if (!newPrefix) {
-        toastr['warning']('New prefix cannot be empty or contain only special characters.', 'Clone Stack');
+        toastr['warning']('新前缀不能为空，也不能仅包含特殊字符。', '克隆堆栈');
         return;
     }
     if (newPrefix.toLowerCase() === currentPrefix.toLowerCase()) {
-        toastr['warning']('New prefix is the same as the current prefix. Please choose a different name.', 'Clone Stack');
+        toastr['warning']('新前缀与当前前缀相同，请选择其他名称。', '克隆堆栈');
         return;
     }
 
-    toastr['info'](`Cloning lorebooks to prefix "${newPrefix}"…`, 'Clone Stack');
+    toastr['info'](`正在将知识库克隆到前缀 "${newPrefix}"…`, '克隆堆栈');
     const result = await cloneCampaignStackToPrefix(currentPrefix, newPrefix);
 
     if (result.matchingCount === 0) {
-        toastr['warning'](`No lorebooks found for prefix "${currentPrefix}". Nothing to clone.`, 'Clone Stack');
+        toastr['warning'](`未找到前缀 "${currentPrefix}" 下的知识库，没有可克隆的内容。`, '克隆堆栈');
         return;
     }
 
     if (result.collisions?.length) {
         toastr['error'](
-            `Clone aborted to protect existing lorebooks:\n${result.collisions.join(', ')}\n`
-            + 'Choose a different prefix, or rename/delete the conflicting books first.',
-            'Clone Stack',
+            `克隆已中止，以保护现有知识库：\n${result.collisions.join(', ')}\n`
+            + '请选择其他前缀，或先重命名/删除冲突的知识库。',
+            '克隆堆栈',
             { timeOut: 12000 }
         );
         return;
@@ -2151,15 +2151,15 @@ async function cloneCampaignStack() {
 
     if (result.errors.length === 0) {
         toastr['success'](
-            `Cloned ${result.cloned} lorebook${result.cloned === 1 ? '' : 's'} → prefix "${newPrefix}".\n` +
-            `Use Branch Campaign, or create a branch chat whose sanitized name matches "${newPrefix}".`,
-            'Clone Stack',
+            `已克隆 ${result.cloned} 个知识库 → 前缀 "${newPrefix}"。\n` +
+            `请使用 Branch Campaign，或创建一个净化名称与 "${newPrefix}" 匹配的分支聊天。`,
+            '克隆堆栈',
             { timeOut: 8000 }
         );
     } else {
         toastr['warning'](
-            `Cloned ${result.cloned}/${result.matchingCount} books. Errors:\n${result.errors.join('\n')}`,
-            'Clone Stack',
+            `已克隆 ${result.cloned}/${result.matchingCount} 个知识库。错误：\n${result.errors.join('\n')}`,
+            '克隆堆栈',
             { timeOut: 10000 }
         );
     }
@@ -2272,7 +2272,7 @@ function resetUnseenChatState(s) {
     }
     scheduleAutoApply();
     const deltaPanel = document.getElementById('rpg-tracker-delta-content');
-    if (deltaPanel) deltaPanel.innerHTML = '<span class="delta-empty">No changes yet.</span>';
+    if (deltaPanel) deltaPanel.innerHTML = '<span class="delta-empty">暂无更改。</span>';
     updateUIMemo('');
     refreshRenderedView();
     if (typeof runtimeState.renderRouterUI === 'function') runtimeState.renderRouterUI();
@@ -2736,9 +2736,9 @@ async function applyChatLinkToggle(turningOn) {
                     </p>
                 </div>`;
 
-            const choice = await Popup.show.confirm('⚠️ Chat Link Conflict', body, {
-                okButton: 'RESTORE',
-                cancelButton: 'OVERWRITE',
+            const choice = await Popup.show.confirm('⚠️ 聊天链接冲突', body, {
+                okButton: '恢复',
+                cancelButton: '覆盖',
                 customButtons: [
                     {
                         text: 'CANCEL',
@@ -2760,26 +2760,26 @@ async function applyChatLinkToggle(turningOn) {
                     if (saved.memoHistory.length > 50) saved.memoHistory.length = 50;
                 }
                 loadChatState(runtimeState.currentChatId);
-                toastr['success']('Chat Link ON — restored saved state.', 'RPG Tracker');
+                toastr['success']('聊天链接已开启 — 已恢复保存的状态。', 'RPG Tracker');
             } else if (choice === POPUP_RESULT.NEGATIVE) {
                 if (saved.currentMemo) {
                     s.memoHistory.unshift(saved.currentMemo);
                     if (s.memoHistory.length > 50) s.memoHistory.length = 50;
                 }
                 saveChatState(runtimeState.currentChatId);
-                toastr['success']('Chat Link ON — current state saved to chat.', 'RPG Tracker');
+                toastr['success']('聊天链接已开启 — 当前状态已保存到聊天。', 'RPG Tracker');
             } else {
                 return false;
             }
         } else {
             const found = loadChatState(runtimeState.currentChatId);
             if (!found) saveChatState(runtimeState.currentChatId);
-            toastr['success']('Chat Link ON — state bound to this chat.', 'RPG Tracker');
+            toastr['success']('聊天链接已开启 — 状态已绑定到此聊天。', 'RPG Tracker');
         }
     } else if (turningOn) {
-        toastr['success']('Chat Link ON', 'RPG Tracker');
+        toastr['success']('聊天链接已开启', 'RPG Tracker');
     } else {
-        toastr['info']('Chat Link OFF — using global state.', 'RPG Tracker');
+        toastr['info']('聊天链接已关闭 — 正在使用全局状态。', 'RPG Tracker');
     }
 
     s.chatLinkEnabled = turningOn;
@@ -2804,7 +2804,7 @@ function updatePanelStatus() {
     // Keep in-panel power button in sync
     if (enableBtn) {
         enableBtn.style.opacity = settings.enabled ? '' : '0.35';
-        enableBtn.title = settings.enabled ? 'Disable Multihog Framework' : 'Enable Multihog Framework';
+        enableBtn.title = settings.enabled ? '禁用 Multihog 框架' : '启用 Multihog 框架';
     }
     // Keep settings sidebar checkbox in sync
     const sidebarEnableCheck = /** @type {HTMLInputElement|null} */ (document.getElementById('rpg_tracker_enabled'));
@@ -2830,7 +2830,7 @@ function updatePanelStatus() {
         const header = panel.querySelector('.rpg-tracker-header');
         if (header) /** @type {HTMLElement} */ (header).style.pointerEvents = 'auto';
         pauseBtn.textContent = '▶';
-        pauseBtn.title = 'Resume Tracker';
+        pauseBtn.title = '恢复追踪器';
         if (pauseBanner) pauseBanner.textContent = '';
     } else if (settings.paused) {
         // Paused — visible panel, pause banner shown
@@ -2838,15 +2838,15 @@ function updatePanelStatus() {
         panel.classList.add('is-paused');
         indicator.classList.add('active');
         pauseBtn.textContent = '▶';
-        pauseBtn.title = 'Resume Tracker';
-        if (pauseBanner) pauseBanner.textContent = 'TRACKER UPDATES PAUSED';
+        pauseBtn.title = '恢复追踪器';
+        if (pauseBanner) pauseBanner.textContent = '追踪器更新已暂停';
     } else {
         // Active
         panel.classList.remove('is-disabled');
         panel.classList.remove('is-paused');
         indicator.classList.add('active');
         pauseBtn.textContent = '⏸';
-        pauseBtn.title = 'Pause Tracker';
+        pauseBtn.title = '暂停追踪器';
         if (pauseBanner) pauseBanner.textContent = '';
     }
 
@@ -2875,14 +2875,14 @@ async function runStateModelPass(narrativeOutput, isFullContext = false, overrid
 
     if (!generateRaw) {
         console.error("[RPG Tracker] generateRaw not found in context.");
-        broadcastStateTrackerStep('error', 'State Tracker unavailable: text generation is not connected.');
+        broadcastStateTrackerStep('error', 'State Tracker 不可用：文本生成未连接。');
         return;
     }
 
     try {
         runtimeState.stateModelRunning = true;
         updateStatusIndicator('running');
-        broadcastStateTrackerStep('start', isFullContext ? 'Initializing State Tracker full audit...' : 'Initializing State Tracker pass...');
+        broadcastStateTrackerStep('start', isFullContext ? '正在初始化 State Tracker 完整审计…' : '正在初始化 State Tracker 扫描…');
 
         // Abort previous if any
         if (runtimeState.stateController) runtimeState.stateController.abort();
@@ -3061,13 +3061,13 @@ async function runStateModelPass(narrativeOutput, isFullContext = false, overrid
             const memoBeforeThisChunk = settings.currentMemo.replace(/<\/?memo>/gi, '').trim();
 
             if (isFullContext && chunks.length > 1) {
-                toastr.info(`Running Full Audit: Chunk ${i + 1} of ${chunks.length}...`, "RPG Tracker", { timeOut: 5000 });
-                updateStatusIndicator('running', `Chunk ${i + 1}/${chunks.length}`);
+                toastr.info(`正在运行完整审计：区块 ${i + 1} / ${chunks.length}...`, "RPG 追踪器", { timeOut: 5000 });
+                updateStatusIndicator('running', `区块 ${i + 1}/${chunks.length}`);
                 broadcastStateTrackerStep('thought', `Processing full-audit chunk ${i + 1} of ${chunks.length}...`);
             } else if (chunks.length > 1) {
                 broadcastStateTrackerStep('thought', `Processing chunk ${i + 1} of ${chunks.length}...`);
             } else {
-                broadcastStateTrackerStep('thought', isFullContext ? 'Analyzing narrative history...' : 'Analyzing recent narrative...');
+                broadcastStateTrackerStep('thought', isFullContext ? '正在分析叙事历史…' : '正在分析近期叙事…');
             }
 
             const chatLog = chunks[i].join('\n\n');
@@ -3175,11 +3175,11 @@ async function runStateModelPass(narrativeOutput, isFullContext = false, overrid
         }
 
         if (abandonedForChatSwitch) {
-            broadcastStateTrackerStep('error', 'Stopped because the active chat changed.');
+            broadcastStateTrackerStep('error', '已停止：当前对话已切换。');
         } else if (signal.aborted) {
-            broadcastStateTrackerStep('error', 'Stopped by user.');
+            broadcastStateTrackerStep('error', '已被用户停止。');
         } else {
-            broadcastStateTrackerStep('finish', isFullContext ? 'State Tracker full audit complete.' : 'State Tracker pass complete.');
+            broadcastStateTrackerStep('finish', isFullContext ? 'State Tracker 完整审计完成。' : 'State Tracker 扫描完成。');
         }
 
         if (settings.debugMode) console.log("[RPG Tracker] State Model pass complete.");
@@ -3187,7 +3187,7 @@ async function runStateModelPass(narrativeOutput, isFullContext = false, overrid
     } catch (error) {
         if (error.name === 'AbortError') {
             if (settings.debugMode) console.log("[RPG Tracker] State Model pass aborted by user.");
-            broadcastStateTrackerStep('error', 'Stopped by user.');
+            broadcastStateTrackerStep('error', '已被用户停止。');
             return;
         }
         console.error("[RPG Tracker] State Model pass failed:", error);
@@ -3233,7 +3233,7 @@ function resetTrackerUi(opts = {}) {
     if (typeof updatePanelStatus === 'function') updatePanelStatus();
     if (typeof applyPanelBackgroundToDom === 'function') applyPanelBackgroundToDom();
 
-    const msg = 'Multihog UI reset: panels rebuilt, detached/layout state cleared.';
+    const msg = 'Multihog 界面已重置：面板已重建，分离/布局状态已清除。';
     if (!quiet && typeof toastr !== 'undefined') {
         toastr['success'](msg, 'RPG Tracker');
     }
@@ -3258,7 +3258,7 @@ globalThis._rpgUpdateUIMemo = (text) => {
 
 function handleLevelUp() {
     const { sendSystemMessage } = SillyTavern.getContext();
-    toastr['success']("Level Up Detected! System prompt injected.", "RPG Tracker");
+    toastr['success']("检测到升级！已注入系统提示。", "RPG Tracker");
 
     if (sendSystemMessage) {
         sendSystemMessage('generic', "SYSTEM: Level Up Detected! The character has gained a level. Acknowledge this immediately and prompt the user to make their level-up choices or grant them their logical boons.");
@@ -3311,16 +3311,16 @@ async function syncActivePersonaDescriptionFromAvatar() {
  */
 export async function sendDirectPrompt(message, options = {}) {
     if (runtimeState.stateModelRunning) {
-        toastr['info']('State Model is already running. Please wait.', 'RPG Tracker');
-        return { success: false, status: 'busy', changed: false, message: 'State Tracker is already running.' };
+        toastr['info']('状态模型已在运行中，请稍候。', 'RPG Tracker');
+        return { success: false, status: 'busy', changed: false, message: '状态追踪器正在运行中。' };
     }
 
     const settings = getSettings();
     const passChatId = runtimeState.currentChatId;
     const { generateRaw } = SillyTavern.getContext();
     if (!generateRaw) {
-        toastr['warning']('Text generation is not available. Connect an API in SillyTavern settings.', 'RPG Tracker');
-        return { success: false, status: 'unavailable', changed: false, message: 'State Tracker connection is unavailable.' };
+        toastr['warning']('文本生成不可用。请在 SillyTavern 设置中连接 API。', 'RPG Tracker');
+        return { success: false, status: 'unavailable', changed: false, message: '状态追踪器连接不可用。' };
     }
 
     try {
@@ -3458,19 +3458,19 @@ export async function sendDirectPrompt(message, options = {}) {
                 refreshRenderedView();
                 saveSettings();
                 if (settings.chatLinkEnabled && passChatId) saveChatState(passChatId);
-                broadcastStateTrackerStep('result', 'Memo updated from direct instruction.');
-                broadcastStateTrackerStep('finish', 'Direct State Tracker instruction complete.');
-                toastr['success']('Tracker updated.', 'RPG Tracker');
-                return { success: true, status: 'changed', changed: true, message: 'State Tracker updated.' };
+                broadcastStateTrackerStep('result', '已根据直接指令更新备忘。');
+                broadcastStateTrackerStep('finish', '直接状态追踪指令已完成。');
+                toastr['success']('追踪器已更新。', 'RPG Tracker');
+                return { success: true, status: 'changed', changed: true, message: '状态追踪器已更新。' };
             } else {
-                broadcastStateTrackerStep('finish', 'No memo changes were needed.');
-                toastr['info']('No changes were made.', 'RPG Tracker');
-                return { success: true, status: 'unchanged', changed: false, message: 'State Tracker made no changes.' };
+                broadcastStateTrackerStep('finish', '备忘无需更改。');
+                toastr['info']('未进行任何更改。', 'RPG Tracker');
+                return { success: true, status: 'unchanged', changed: false, message: '状态追踪器未做出更改。' };
             }
         } else {
-            broadcastStateTrackerStep('error', 'State Tracker returned no output.');
-            toastr['warning']('State Model returned no output. Check your API connection and State Model settings.', 'RPG Tracker');
-            return { success: false, status: 'no_output', changed: false, message: 'State Tracker returned no output.' };
+            broadcastStateTrackerStep('error', '状态追踪器未返回输出。');
+            toastr['warning']('状态模型未返回输出。请检查 API 连接和状态模型设置。', 'RPG Tracker');
+            return { success: false, status: 'no_output', changed: false, message: '状态追踪器未返回输出。' };
         }
     } catch (err) {
         if (err.name === 'AbortError') {
@@ -3480,8 +3480,8 @@ export async function sendDirectPrompt(message, options = {}) {
         }
         console.error('[RPG Tracker] Direct prompt failed:', err);
         broadcastStateTrackerStep('error', String(err?.message || err));
-        toastr['error']('Direct prompt failed. Check console.', 'RPG Tracker');
-        return { success: false, status: 'failed', changed: false, message: err?.message || 'State Tracker command failed.' };
+        toastr['error']('直接指令执行失败。请查看控制台。', 'RPG Tracker');
+        return { success: false, status: 'failed', changed: false, message: err?.message || '状态追踪器指令执行失败。' };
     } finally {
         runtimeState.stateModelRunning = false;
         runtimeState.stateController = null;
@@ -3796,7 +3796,7 @@ function loadProfile(name) {
     refreshOrderList();
     // Refresh delta panel
     const dp = document.getElementById('rpg-tracker-delta-content');
-    if (dp) dp.innerHTML = s.lastDelta || '<span class="delta-empty">No changes yet.</span>';
+    if (dp) dp.innerHTML = s.lastDelta || '<span class="delta-empty">尚无更改。</span>';
     syncMemoView();
 }
 
@@ -3805,12 +3805,12 @@ function refreshProfileDropdown() {
     const sel = document.getElementById('rpg_tracker_profile_select');
     if (!sel) return;
     const names = Object.keys(s.profiles || {});
-    sel.innerHTML = '<option value="">-- No Profile --</option>' +
+    sel.innerHTML = '<option value="">-- 无档案 --</option>' +
         names.map(n => `<option value="${escapeHtml(n)}"${n === s.activeProfile ? ' selected' : ''}>${escapeHtml(n)}</option>`).join('');
 }
 
 /** Shared Popup options for long help/docs dialogs (scrollable on mobile). */
-const RT_HELP_POPUP_OPTS = { okButton: 'Got it', cancelButton: false, allowVerticalScrolling: true };
+const RT_HELP_POPUP_OPTS = { okButton: '明白了', cancelButton: false, allowVerticalScrolling: true };
 
 async function showRngExplanation() {
     const { Popup } = SillyTavern.getContext();
@@ -3823,44 +3823,44 @@ async function showRngExplanation() {
     const popupBody = `
             <div style="font-size: 0.9em; line-height: 1.5; max-width: 520px; text-align: left;">
                 ${card('🔧', 'RollTheDice',
-        `<p style="margin: 0 0 8px 0;"><b>RollTheDice</b> is called on-demand. It can inject into the context in the middle of an output. Well, not really — LLMs can't receive inputs mid-output. What happens is this:</p>
+        `<p style="margin: 0 0 8px 0;"><b>RollTheDice</b> 按需调用。它可以在生成中途向上下文注入内容。嗯，并非真的如此——LLM 无法在生成中途接收输入。实际发生的是这样的：</p>
                     ${ol([
-                        'LLM starts outputting its normal narrative message.',
-                        'It realizes it needs a roll.',
-                        'It calls the tool and <b>stops</b> outputting.',
-                        'RollTheDice runs its code and produces a result, nudging the LLM to retry if it messed up the tool-call JSON.',
-                        'LLM reads the result from the RollTheDice tool, sees a number and success or failure.',
-                        'LLM continues narrating now with the roll result in its context.',
+                        'LLM 开始输出其正常的叙事消息。',
+                        '它意识到自己需要一次掷骰。',
+                        '它调用该工具并<b>停止</b>输出。',
+                        'RollTheDice 运行其代码并产出结果；如果 LLM 弄错了工具调用的 JSON，就推动它重试。',
+                        'LLM 从 RollTheDice 工具读取结果，看到一个数字以及成功或失败。',
+                        'LLM 现在在上下文中携带掷骰结果继续叙事。',
                     ])}
-                    <p style="margin: 10px 0 0 0;"><b>Pros:</b> LLM can't know the numbers beforehand. Completely sycophancy-proof in every circumstance.</p>
-                    <p style="margin: 6px 0 0 0;"><b>Cons:</b> Breaks the output into chunks; costs more because every interrupt re-sends the whole context/story (input tokens); can cause latency.</p>`
+                    <p style="margin: 10px 0 0 0;"><b>优点：</b>LLM 无法提前知道数字，任何情况下都完全防谄媚。</p>
+                    <p style="margin: 6px 0 0 0;"><b>缺点：</b>会将输出打断成多个片段；每次中断都会重新发送整个上下文/故事（输入 tokens），因此成本更高；还可能造成延迟。</p>`
     )}
-                ${card('🎲', 'RNG Queue',
-        `<p style="margin: 0 0 8px 0;">How it works:</p>
+                ${card('🎲', 'RNG 队列',
+        `<p style="margin: 0 0 8px 0;">工作原理：</p>
                     ${ol([
-                        'Numbers are pre-rolled with JavaScript. The LLM always sees numbers in context, prepended to the last user input.',
-                        'The LLM only has to pick numbers from the queue in order and "slot them in."',
+                        '数字由 JavaScript 预先掷出。LLM 总能在上下文中看到数字，它们被前置到最近一条用户输入之前。',
+                        'LLM 只需按顺序从队列中取数，然后"插进去"。',
                     ])}
-                    <p style="margin: 10px 0 0 0;"><b>Pros:</b> Any number of rolls within a single output; no breaks in output necessary; costs less.</p>
-                    <p style="margin: 6px 0 0 0;"><b>Cons:</b> The LLM can <b>see</b> what number is coming up, potentially lowballing a skill-check DC so that you can pass — though this is in theory; it might not actually do that. It's just possible.</p>`
+                    <p style="margin: 10px 0 0 0;"><b>优点：</b>单次输出内可进行任意次数的掷骰；无需中断输出；成本更低。</p>
+                    <p style="margin: 6px 0 0 0;"><b>缺点：</b>LLM 可以<b>看到</b>接下来是什么数字，可能会压低技能检定 DC 好让你通过——不过这仅存在于理论中；它未必真的会这么做，只是存在这种可能。</p>`
     )}
-                ${card('🧭', 'CYOA Mode + combat fix the queue',
-        `<p style="margin: 0 0 8px 0;"><b>CYOA Mode</b> fixes the queue's foresight problem. It forces the LLM to commit to the numbers at the end of the <b>previous</b> output, in the choice — e.g. <code>Lockpicking DC 18</code>. That DC is locked in. When it sees the roll on the next turn, the DC is already decided.</p>
-                    <p style="margin: 0 0 8px 0;">Same goes for <b>combat</b>, which works on a deterministic initiative/turn grid. That also prevents sycophancy.</p>
-                    <p style="margin: 0;"><b>RNG Queue only fails</b> in freeform/narrative situations <b>without</b> CYOA Mode — which is why it isn't recommended for that specifically.</p>`
+                ${card('🧭', 'CYOA 模式 + 战斗修正队列',
+        `<p style="margin: 0 0 8px 0;"><b>CYOA 模式</b>修复了队列的预知问题。它强制 LLM 在上一条输出的末尾、在选项里敲定数字——例如 <code>开锁 DC 18</code>。该 DC 就此锁定。等它在下一回合看到掷骰结果时，DC 早已定下。</p>
+                    <p style="margin: 0 0 8px 0;"><b>战斗</b>也是如此，它基于确定性的先攻/回合网格工作，同样能防止谄媚。</p>
+                    <p style="margin: 0;"><b>RNG 队列仅</b>在没有 CYOA 模式的自由形式/叙事场景中<b>才会</b>失效——这正是它不推荐用于此类场景的原因。</p>`
     )}
                 <div style="background: rgba(255,200,50,0.08); border: 1px solid rgba(255,200,50,0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 0.88em; text-align: left;">
-                    <b style="color: #ffcc33;">⚠ Important:</b> RollTheDice requires <b>"Enable function calling"</b> in SillyTavern's AI Response Configuration.
+                    <b style="color: #ffcc33;">⚠ 重要：</b>RollTheDice 需要在 SillyTavern 的“AI 响应配置”中启用<b>“启用函数调用”</b>。
                 </div>
-                ${card('📋', 'Which system should I use?',
+                ${card('📋', '应该使用哪个系统？',
         `<ul style="margin: 4px 0 0 0; padding-left: 20px; text-align: left; list-style-position: outside;">
-                        <li style="margin-bottom: 4px;"><b>Pre-Seeded + Tool Calls (recommended without CYOA):</b> Outside combat the model sees only <b>RollTheDice</b>; during an active combat round it sees only the <b>RNG Queue</b>. Prompt and tool schema switch together.</li>
-                        <li style="margin-bottom: 4px;"><b>With CYOA Mode:</b> Prefer the <b>RNG Queue</b> — choice DCs are already committed, so foresight isn't a sycophancy risk.</li>
-                        <li><b>Pre-Seeded Only:</b> Queue-only. Use if your model doesn't support function/tool calling. Fine for combat and CYOA; weaker for freeform narrative without CYOA.</li>
+                        <li style="margin-bottom: 4px;"><b>预置种子 + 工具调用（无 CYOA 时推荐）：</b>战斗之外，模型只能看到 <b>RollTheDice</b>；在活跃的战斗回合中，它只能看到 <b>RNG 队列</b>。提示词与工具模式会一起切换。</li>
+                        <li style="margin-bottom: 4px;"><b>使用 CYOA 模式时：</b>优先选择 <b>RNG 队列</b>——选项中的 DC 已经敲定，预知不构成谄媚风险。</li>
+                        <li><b>仅预置种子：</b>只有队列。如果模型不支持函数/工具调用，请使用此选项。适合战斗和 CYOA；在没有 CYOA 的自由形式叙事中较弱。</li>
                     </ul>`
     )}
             </div>`;
-    await Popup.show.confirm('🎲 RNG Systems Explained', popupBody, RT_HELP_POPUP_OPTS);
+    await Popup.show.confirm('🎲 RNG 系统详解', popupBody, RT_HELP_POPUP_OPTS);
 }
 
 /**
@@ -3875,12 +3875,12 @@ async function showNarrativePacingExplanation() {
             </div>`;
     const popupBody = `
             <div style="font-size: 0.9em; line-height: 1.5; max-width: 480px; text-align: left;">
-                ${card('Normal (no length instructions)', 'Balanced narration. The narrator may lightly paraphrase or expand your dialogue and actions when it fits your character, without imposing an output-length instruction.')}
-                ${card('Shorter Outputs', 'Keeps the output length modest and discourages it from drifting out of control, while preserving the normal narration style.')}
-                ${card('High-Agency Mode', 'Keeps outputs short to moderate in length. Also does not have the instruction of lightly expanding on your actions, likely leaving more room for you to respond and direct the scene.')}
-                ${card('Downtime/Slice of Life Mode', 'Uses a relaxed pace and avoids forcing action-heavy or “save the world” plots. Best for everyday life, character moments, and low-stakes roleplay.')}
+                ${card('正常（无长度指令）', '平衡的叙事。符合角色设定时，叙述者可以轻微改写或扩展你的对话与行动，而不会强加输出长度指令。')}
+                ${card('更短的输出', '让输出长度保持在适度范围，避免其失控膨胀，同时保留正常的叙事风格。')}
+                ${card('高自主模式', '让输出保持短到中等长度。同时没有轻微扩展你行动的指令，为你回应并主导场景留出更多空间。')}
+                ${card('休闲/日常模式', '采用轻松舒缓的节奏，避免强行推动动作密集或“拯救世界”式的情节。最适合日常生活、角色时刻和低风险的扮演。')}
             </div>`;
-    await Popup.show.confirm('Narrative Pacing Explained', popupBody, RT_HELP_POPUP_OPTS);
+    await Popup.show.confirm('叙事节奏详解', popupBody, RT_HELP_POPUP_OPTS);
 }
 
 async function showQuestsHardcoreExplanation() {
@@ -3892,12 +3892,12 @@ async function showQuestsHardcoreExplanation() {
             </div>`;
     const popupBody = `
             <div style="font-size: 0.9em; line-height: 1.5; max-width: 480px; text-align: left;">
-                ${card('⏳', 'Deadlines',
-        `Adds time-sensitive constraints to quests. The system prompt instructs NPCs to attach deadlines to tasks they give you. If the deadline passes without turning in the quest, it auto-fails. Forces you to prioritise — you can't just accept every task and grind at your leisure.`
+                ${card('⏳', '截止期限',
+        `为任务增加时限约束。系统提示会指示 NPC 在交给你的任务上附上截止期限。若截止期限已过仍未提交任务，则任务自动失败。这迫使你分清主次——你不能照单全收所有任务然后悠闲地慢慢刷。`
     )}
-                ${card('🎭', 'Frustration', `Requires Deadlines. A sub-mode where quests <em>don't</em> auto-fail at the deadline. Instead, each quest giver has an NPC happiness level that starts high and quickly drops the longer you leave it past due. The rate of decline depends on the NPC's personality, which the model infers from their archetype and tone. You can still turn the quest in late — but the reception won't be warm.`, true)}
+                ${card('🎭', '挫折', `需要启用“截止期限”。这是一个子模式：任务在截止时<em>不会</em>自动失败。相反，每个任务发布者都有一个 NPC 好感度，初始很高，但逾期越久掉得越快。下降速率取决于 NPC 的性格，模型会根据其原型与语气进行推断。你仍然可以迟交任务——但迎接你的态度不会太温暖。`, true)}
             </div>`;
-    await Popup.show.confirm('📋 Quest Mechanics Explained', popupBody, RT_HELP_POPUP_OPTS);
+    await Popup.show.confirm('📋 任务机制详解', popupBody, RT_HELP_POPUP_OPTS);
 }
 
 async function showComponentsExplanation() {
@@ -3909,36 +3909,36 @@ async function showComponentsExplanation() {
             </div>`;
     const popupBody = `
             <div style="font-size: 0.9em; line-height: 1.5; max-width: 480px; text-align: left;">
-                ${card('🎲', 'Loot Rolls',
-        `When loot is received, dice rolls are made to determine its quality — whether something is a battered common item or a rare find. Adds meaningful variance to rewards.`
+                ${card('🎲', '战利品掷骰',
+        `获得战利品时，会掷骰决定其品质——是破旧的普通物品，还是稀有发现。为奖励增加了有意义的随机性。`
     )}
-                ${card('🌍', 'Random Event Rolls',
-        `Random events are rolled when time skips or travel occurs. A chance encounter, a weather shift, an ambush — things that happen without the player initiating them. Keeps the world feeling alive.`
+                ${card('🌍', '随机事件掷骰',
+        `时间跳转或旅行发生时，会进行随机事件掷骰。偶遇、天气变化、伏击——这些无需玩家主动触发也会发生的事情，让世界保持鲜活。`
     )}
-                ${card('💤', 'Resting Restrictions (=>9h between rests)',
-        `Resting is limited to once every 9 hours of in-game time. Prevents exploiting rest as a free heal between every fight, and reflects the reality that you can't just nap on demand.`
+                ${card('💤', '休息限制（两次休息之间 >=9 小时）',
+        `休息限制为每 9 小时游戏内时间一次。防止把休息当作每场战斗之间的免费治疗来利用，也反映了你不能随叫随睡的现实。`
     )}
-                ${card('⛺', 'Benched Party',
-        `Tracks party members who are temporarily away from you — hospitalized, scouting ahead, captured, sent on a side task, etc. — in a separate [BENCHED PARTY] roster while reunion remains plausible. The GM is told what this means so it won't narrate them back at your side until the story brings them back on-screen. Benched members become eligible for off-screen simulation updates via World Reports (🌍), allowing the simulator to advance their individual subplots in the background. Turn off if you don't want temporary separations tracked separately from your active party.`
+                ${card('⛺', '候补队伍',
+        `在单独的 [BENCHED PARTY] 名册中追踪暂时离开你的队伍成员——住院、先行侦察、被俘、被派去执行支线任务等——只要重逢仍有可能。GM 会被告知这意味着什么，因此在剧情把他们带回屏幕前，不会叙述他们回到你身边。候补成员有资格通过世界报告（🌍）获得屏幕外的模拟更新，让模拟器在后台推进他们的个人支线。如果你不想把临时离队与活跃队伍分开追踪，请关闭此选项。`
     )}
-                ${card('🗺️', 'Persistent Maps',
-        `When you enter a mapped site — dungeon, ruin, stronghold, lair, town, or city — a dedicated Map Architect builds a hidden objective map (room-scale for interiors, district-scale for settlements). The GM may invent shops and interiors against that skeleton. Function calling must be enabled.`
+                ${card('🗺️', '持久地图',
+        `当你进入已测绘的地点——地牢、废墟、要塞、巢穴、城镇或城市——专门的“地图建筑师”会构建一张隐藏的目标地图（室内为房间尺度，定居点为街区尺度）。GM 可以基于该骨架发明商店和室内布置。必须启用函数调用。`
     )}
-                ${card('🧭', 'CYOA Mode (action choices every turn)',
-        `Choose-your-own-adventure style: the narrator ends outputs with numbered courses of action and fitting emojis so you can pick what to do next.`
+                ${card('🧭', 'CYOA 模式（每回合行动选择）',
+        `选择你自己的冒险风格：叙述者在输出末尾列出带编号的行动路线和相应的表情符号，让你选择下一步做什么。`
     )}
-                ${card('💞', 'Relationship System (Friendship & Affection)',
-        `Tracks friendship, affection, or general reputation deltas between the user and NPCs. Automatically calculates shifts from the chat tone/actions, and visualizes them using custom tracking bars.`
+                ${card('💞', '关系系统（友谊与好感）',
+        `追踪用户与 NPC 之间的友谊、好感或总体声望变化。根据聊天语气/行动自动计算偏移，并使用自定义追踪条进行可视化。`
     )}
             </div>`;
-    await Popup.show.confirm('🧩 Components Explained', popupBody, RT_HELP_POPUP_OPTS);
+    await Popup.show.confirm('🧩 组件详解', popupBody, RT_HELP_POPUP_OPTS);
 }
 
 /**
  * Shows a settings help icon's title text in a popup (mobile-friendly tap/click).
  * Desktop hover still uses the native title tooltip.
  */
-async function showSettingsHelpPopup(message, title = 'ℹ️ Help') {
+async function showSettingsHelpPopup(message, title = 'ℹ️ 帮助') {
     const text = String(message || '').trim();
     if (!text) return;
     const { Popup } = SillyTavern.getContext();
@@ -3956,7 +3956,7 @@ function bindSettingsHelpIcons() {
     container.querySelectorAll(selector).forEach(icon => {
         icon.setAttribute('role', 'button');
         icon.setAttribute('tabindex', '0');
-        icon.setAttribute('aria-label', 'Show help');
+        icon.setAttribute('aria-label', '显示帮助');
     });
 
     const openHelp = (icon) => {
@@ -3996,8 +3996,8 @@ async function showLorebookAgentDocumentation() {
     const { Popup } = SillyTavern.getContext();
     const content = `
                         <div style="text-align: left; font-size: 13px; line-height: 1.5; padding-right: 8px;">
-                            <h3 style="margin-top: 0; color: var(--rt-custom-accent, #3498db);">The Lorebook Agent</h3>
-                            <p>An autonomous narrative librarian. It scans your recent chat, decides what has changed, and writes new or updated entries directly into your SillyTavern lorebooks — no manual data entry needed.</p>
+                            <h3 style="margin-top: 0; color: var(--rt-custom-accent, #3498db);">世界书代理</h3>
+                            <p>一位自主的叙事图书管理员。它会扫描你最近的聊天，判断发生了什么变化，然后直接向你的 SillyTavern lorebook 写入新的或更新的条目——无需手动录入数据。</p>
 
                             <h4 style="margin-bottom: 5px;">⏱️ How Often to Run Lorebook Agent?</h4>
                             <p>By default, the Agent runs every 3 messages, but there are tradeoffs to consider:</p>
@@ -4062,7 +4062,7 @@ async function showLorebookAgentDocumentation() {
                             </ul>
                         </div>
                     `;
-    await Popup.show.confirm('📖 Lorebook Agent Documentation', content, RT_HELP_POPUP_OPTS);
+    await Popup.show.confirm('📖 书卷代理文档', content, RT_HELP_POPUP_OPTS);
 }
 
 /**
@@ -4135,7 +4135,7 @@ function refreshPortraitPromptPresetsList() {
         nameSpan.style.fontSize = '0.85em';
         nameSpan.style.cursor = 'pointer';
         nameSpan.className = 'interactable';
-        nameSpan.title = title || 'Click to load this portrait prompt setup';
+        nameSpan.title = title || '点击加载此立绘提示词方案';
         nameSpan.addEventListener('click', onLoad);
 
         row.appendChild(nameSpan);
@@ -4145,7 +4145,7 @@ function refreshPortraitPromptPresetsList() {
             delBtn.className = 'fa-solid fa-trash-can interactable';
             delBtn.style.fontSize = '0.8em';
             delBtn.style.opacity = '0.5';
-            delBtn.title = 'Delete setup';
+            delBtn.title = '删除方案';
             delBtn.addEventListener('click', onDelete);
             row.appendChild(delBtn);
         }
@@ -4153,11 +4153,12 @@ function refreshPortraitPromptPresetsList() {
         list.appendChild(row);
     };
 
-    appendSectionLabel('Factory Art Styles');
+    appendSectionLabel('内置插画风格');
     for (const preset of FACTORY_PORTRAIT_PROMPT_PRESETS) {
+        const factoryLabel = preset.label || preset.name;
         appendRow({
-            name: preset.name,
-            title: preset.description || `Load factory style: ${preset.name}`,
+            name: factoryLabel,
+            title: preset.description || `加载内置风格：${factoryLabel}`,
             active: settings.activePortraitPromptPresetId === preset.id,
             onLoad: () => {
                 const includeNpcs = !!settings.portraitLocationIncludePresentNpcs;
@@ -4170,13 +4171,13 @@ function refreshPortraitPromptPresetsList() {
                 }, { activeId: preset.id });
                 saveSettings();
                 refreshPortraitPromptPresetsList();
-                toastr['success'](`Loaded factory style: ${preset.name}`, 'Portrait Prompt Library');
+                toastr['success'](`已加载内置风格：${factoryLabel}`, '立绘提示词库');
             },
         });
     }
 
     const entries = Object.entries(settings.savedPortraitPromptPresets || {});
-    appendSectionLabel(entries.length ? 'Your Saved Setups' : 'Your Saved Setups (none yet)');
+    appendSectionLabel(entries.length ? '你的已保存方案' : '你的已保存方案（暂无一）');
     entries.forEach(([name, preset]) => {
         appendRow({
             name,
@@ -4185,17 +4186,17 @@ function refreshPortraitPromptPresetsList() {
                 applyPortraitPromptPresetBundle(settings, preset, { activeId: `user:${name}` });
                 saveSettings();
                 refreshPortraitPromptPresetsList();
-                toastr['success'](`Loaded portrait prompt setup: ${name}`, 'Portrait Prompt Library');
+                toastr['success'](`已加载立绘提示词方案：${name}`, '立绘提示词库');
             },
             onDelete: () => {
-                if (confirm(`Are you sure you want to delete the portrait prompt setup "${name}"?`)) {
+                if (confirm(`确认要删除立绘提示词方案“${name}”吗？`)) {
                     delete settings.savedPortraitPromptPresets[name];
                     if (settings.activePortraitPromptPresetId === `user:${name}`) {
                         settings.activePortraitPromptPresetId = '';
                     }
                     saveSettings();
                     refreshPortraitPromptPresetsList();
-                    toastr['info'](`Deleted setup: ${name}`, 'Portrait Prompt Library');
+                    toastr['info'](`已删除方案：${name}`, '立绘提示词库');
                 }
             },
         });
@@ -4211,32 +4212,32 @@ async function showPortraitSettingsMenu(entityName, onRefresh, npcContent = null
     const zoomBadgeId   = `rt-portrait-zoom-badge-${Date.now()}`;
     const previewHtml = currentSrc
         ? `<div id="${zoomWrapperId}" style="position:relative;overflow:hidden;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.4);cursor:zoom-in;user-select:none;margin:0 auto 12px;line-height:0;"><img id="${zoomImgId}" src="${currentSrc}" style="position:absolute;top:0;left:0;display:block;max-width:none;max-height:none;transform-origin:0 0;will-change:transform;"/><div id="${zoomBadgeId}" style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:11px;padding:2px 7px;border-radius:10px;pointer-events:none;opacity:0;transition:opacity 0.3s;">100%</div></div>`
-        : `<div style="text-align:center;opacity:0.5;margin-bottom:10px;">No portrait set</div>`;
+        : `<div style="text-align:center;opacity:0.5;margin-bottom:10px;">未设置立绘</div>`;
     const inputId = `rt-portrait-url-${Date.now()}`;
     const fileId = `rt-portrait-file-${Date.now()}`;
     const browseBtnId = `rt-portrait-browse-${Date.now()}`;
     const popupContent = `<div style="padding:10px;box-sizing:border-box;width:100%;">
-            <b style="display:block;margin-bottom:8px;">Set Portrait — ${entityName}</b>
+            <b style="display:block;margin-bottom:8px;">设置立绘 — ${entityName}</b>
             ${previewHtml}
-            <label style="display:block;margin-bottom:4px;font-size:0.85em;opacity:0.8;">Image URL (https://…)</label>
+            <label style="display:block;margin-bottom:4px;font-size:0.85em;opacity:0.8;">图片 URL (https://…)</label>
             <div style="display:flex;gap:6px;align-items:center;">
-                <input id="${inputId}" type="text" class="text_pole" placeholder="Paste an image URL…" value="${currentSrc.startsWith('http') ? currentSrc : ''}" style="flex:1;box-sizing:border-box;"/>
-                <button id="${browseBtnId}" class="menu_button" style="white-space:nowrap;flex-shrink:0;">Browse…</button>
+                <input id="${inputId}" type="text" class="text_pole" placeholder="粘贴图片 URL…" value="${currentSrc.startsWith('http') ? currentSrc : ''}" style="flex:1;box-sizing:border-box;"/>
+                <button id="${browseBtnId}" class="menu_button" style="white-space:nowrap;flex-shrink:0;">浏览…</button>
             </div>
             <input id="${fileId}" type="file" accept="image/*" style="display:none"/>
-            <div style="font-size:0.78em;opacity:0.55;margin-top:5px;">Or drag &amp; drop onto the portrait box / paste (Ctrl+V) anywhere on this screen.</div>
+            <div style="font-size:0.78em;opacity:0.55;margin-top:5px;">或将图片拖放到立绘框中 / 粘贴（Ctrl+V）到本屏幕任意位置。</div>
         </div>`;
     const ctx = SillyTavern.getContext();
-    if (!ctx.callGenericPopup) { toastr['warning']('Popup API not available.', 'RPG Tracker'); return; }
+    if (!ctx.callGenericPopup) { toastr['warning']('弹窗 API 不可用。', 'RPG Tracker'); return; }
     const popupOpts = {
-        okButton: 'Apply', cancelButton: 'Cancel', wide: !!currentSrc,
+        okButton: '应用', cancelButton: '取消', wide: !!currentSrc,
         customButtons: [
-            { text: '🤖 AI Generate', result: 4, classes: ['menu_button'] },
+            { text: '🤖 AI 生成', result: 4, classes: ['menu_button'] },
         ],
     };
     if (currentSrc) {
-        popupOpts.customButtons.push({ text: '✂️ Crop Existing', result: 5, classes: ['menu_button'] });
-        popupOpts.customButtons.push({ text: '🗑 Clear Portrait', result: 2, classes: ['menu_button'] });
+        popupOpts.customButtons.push({ text: '✂️ 裁剪现有图片', result: 5, classes: ['menu_button'] });
+        popupOpts.customButtons.push({ text: '🗑 清除立绘', result: 2, classes: ['menu_button'] });
     }
 
     // Pin before AI Horde / native / Pollinations waits (and before the Apply
@@ -4265,10 +4266,10 @@ async function showPortraitSettingsMenu(entityName, onRefresh, npcContent = null
                 capturedRawUrl = await fileToDataUrl(file);
                 capturedUrl = '';
                 const urlInput = /** @type {HTMLInputElement|null} */ (document.getElementById(inputId));
-                if (urlInput) urlInput.value = '(image pasted — click Apply to crop ✔)';
+                if (urlInput) urlInput.value = '(已粘贴图片 — 点击“应用”裁剪 ✔)';
             } catch (err) {
                 console.error(err);
-                toastr['warning']('Could not read image from clipboard.', 'RPG Tracker');
+                toastr['warning']('无法从剪贴板读取图片。', 'RPG Tracker');
             }
         }
     };
@@ -4297,10 +4298,10 @@ async function showPortraitSettingsMenu(entityName, onRefresh, npcContent = null
                 try {
                     capturedRawUrl = await fileToDataUrl(file);
                     capturedUrl = '';
-                    if (urlInput) urlInput.value = '(file selected — click Apply to crop ✔)';
+                    if (urlInput) urlInput.value = '(已选择文件 — 点击“应用”裁剪 ✔)';
                 } catch (err) {
                     console.error(err);
-                    toastr['warning']('Could not read image file.', 'RPG Tracker');
+                    toastr['warning']('无法读取图片文件。', 'RPG Tracker');
                 }
             });
         }
@@ -4563,7 +4564,7 @@ async function showPortraitSettingsMenu(entityName, onRefresh, npcContent = null
     } else if (result === 5) {
         try {
             const cropped = await ctx.callGenericPopup(
-                'Set the crop position of the portrait',
+                '设置立绘的裁剪位置',
                 ctx.POPUP_TYPE?.CROP ?? 4,
                 '',
                 { cropImage: currentSrc, cropAspect: 1 }
@@ -4574,44 +4575,44 @@ async function showPortraitSettingsMenu(entityName, onRefresh, npcContent = null
             }
         } catch (err) {
             console.error(err);
-            toastr['warning']('Could not crop existing image.', 'RPG Tracker');
+            toastr['warning']('无法裁剪现有图片。', 'RPG Tracker');
         }
     } else if (result === 4) {
         try {
             if (s.portraitSkipPromptDialog) {
-                imageGenToast('info', `Generating portrait for ${entityName} in background…`, 'RPG Tracker');
+                imageGenToast('info', `正在后台为 ${entityName} 生成立绘…`, 'RPG Tracker');
                 const aiPrompt = npcContent !== null
                     ? await generateNpcPortraitPrompt(entityName, npcContent)
                     : await generatePortraitPrompt(entityName);
                 if (!aiPrompt) {
-                    toastr['warning']('Could not generate prompt — no context found.', 'RPG Tracker');
+                    toastr['warning']('无法生成提示词——未找到上下文。', 'RPG Tracker');
                     return;
                 }
-                imageGenToast('info', `Generating image for ${entityName}…`, 'RPG Tracker');
+                imageGenToast('info', `正在为 ${entityName} 生成图片…`, 'RPG Tracker');
                 const dataUrl = await generatePortraitDirect(aiPrompt, entityName);
                 const scaled = await scaleImageTo512Square(dataUrl);
                 await localApply(scaled);
-                imageGenToast('success', `Portrait auto-generated and applied for ${entityName}!`, 'RPG Tracker');
+                imageGenToast('success', `已为 ${entityName} 自动生成并应用立绘！`, 'RPG Tracker');
             } else {
-                imageGenToast('info', 'Generating portrait prompt…', 'RPG Tracker');
+                imageGenToast('info', '正在生成立绘提示词…', 'RPG Tracker');
                 const aiPrompt = npcContent !== null
                     ? await generateNpcPortraitPrompt(entityName, npcContent)
                     : await generatePortraitPrompt(entityName);
                 if (aiPrompt) {
                     await showPortraitPromptPopup(aiPrompt, entityName, localApply, refresh);
                 } else {
-                    toastr['warning']('Could not generate prompt — no context found.', 'RPG Tracker');
+                    toastr['warning']('无法生成提示词——未找到上下文。', 'RPG Tracker');
                 }
             }
         } catch (err) {
             console.error('[RPG Tracker] AI portrait error:', err);
-            toastr['error']('AI portrait generation failed: ' + (err.message || err), 'RPG Tracker');
+            toastr['error']('AI 立绘生成失败：' + (err.message || err), 'RPG Tracker');
         }
     } else if (result) {
         if (capturedRawUrl) {
             try {
                 const cropped = await ctx.callGenericPopup(
-                    'Set the crop position of the portrait',
+                    '设置立绘的裁剪位置',
                     ctx.POPUP_TYPE?.CROP ?? 4,
                     '',
                     { cropImage: capturedRawUrl, cropAspect: 1 }
@@ -4622,12 +4623,12 @@ async function showPortraitSettingsMenu(entityName, onRefresh, npcContent = null
                 }
             } catch (err) {
                 console.error(err);
-                toastr['warning']('Could not crop image.', 'RPG Tracker');
+                toastr['warning']('无法裁剪图片。', 'RPG Tracker');
             }
         } else if (capturedUrl && (capturedUrl.startsWith('data:image/') || /^https?:\/\//i.test(capturedUrl))) {
             await localApply(capturedUrl);
         } else if (capturedUrl) {
-            toastr['warning']('Please enter a valid https:// URL or use the Browse button.', 'RPG Tracker');
+            toastr['warning']('请输入有效的 https:// URL 或使用浏览按钮。', 'RPG Tracker');
         }
     }
 }
@@ -4650,7 +4651,7 @@ async function showLocationImageSettingsMenu(locationPath, onRefresh, locContent
             ${previewHtml}
             <label style="display:block;margin-bottom:4px;font-size:0.85em;opacity:0.8;">Image URL (https://…)</label>
             <div style="display:flex;gap:6px;align-items:center;">
-                <input id="${inputId}" type="text" class="text_pole" placeholder="Paste an image URL…" value="${currentSrc.startsWith('http') ? escapeHtml(currentSrc) : ''}" style="flex:1;box-sizing:border-box;"/>
+                <input id="${inputId}" type="text" class="text_pole" placeholder="粘贴图片 URL…" value="${currentSrc.startsWith('http') ? escapeHtml(currentSrc) : ''}" style="flex:1;box-sizing:border-box;"/>
                 <button id="${browseBtnId}" class="menu_button" style="white-space:nowrap;flex-shrink:0;">Browse…</button>
             </div>
             <input id="${fileId}" type="file" accept="image/*" style="display:none"/>
@@ -4798,12 +4799,12 @@ async function showLocationImageSettingsMenu(locationPath, onRefresh, locContent
                 }
             } catch (err) {
                 console.error(err);
-                toastr['warning']('Could not crop image.', 'RPG Tracker');
+                toastr['warning']('无法裁剪图片。', 'RPG Tracker');
             }
         } else if (capturedUrl && (capturedUrl.startsWith('data:image/') || /^https?:\/\//i.test(capturedUrl))) {
             await localApply(capturedUrl);
         } else if (capturedUrl) {
-            toastr['warning']('Please enter a valid https:// URL or use the Browse button.', 'RPG Tracker');
+            toastr['warning']('请输入有效的 https:// URL 或使用浏览按钮。', 'RPG Tracker');
         }
     }
 }
@@ -4845,7 +4846,7 @@ async function maybeCreateOnboardingPersona(extraHints = '', options = {}) {
             });
         } catch (error) {
             console.error('[RPG Tracker] Could not create name-only ST persona:', error);
-            toastr['warning'](`Character created, but the ST persona for "${charName}" could not be created.`, 'RPG Tracker');
+            toastr['warning'](`角色已创建，但无法为“${charName}”创建 ST 人格代理。`, 'RPG Tracker');
         }
     }
     if (!createPlayerCard) return;
@@ -4853,12 +4854,12 @@ async function maybeCreateOnboardingPersona(extraHints = '', options = {}) {
         ? s.onboardingPersonaWordsCustom
         : s.onboardingPersonaWords;
     const wordCount = parseInt(String(wordsRaw || '150'), 10) || 150;
-    toastr['info'](`Generating Lorebook Agent Player Card for "${charName}"…`, 'RPG Tracker');
+    toastr['info'](`正在为“${charName}”生成书卷代理玩家卡…`, 'RPG Tracker');
     const bio = await generatePersonaBio(charName, wordCount, extraHints);
     if (bio) {
         showPersonaConfirmOverlay(bio, charName, wordCount, extraHints);
     } else {
-        toastr['warning']('Character created, but Player Card generation failed.', 'RPG Tracker');
+        toastr['warning']('角色已创建，但玩家卡生成失败。', 'RPG Tracker');
     }
 }
 
@@ -4966,8 +4967,8 @@ export function refreshRenderedView() {
         // Update footer location: try parsing from recent chat status footer first, fallback to memo
         const ctx = SillyTavern.getContext();
         const locText = getCurrentLocationText(memo, ctx);
-        const locLabel = locText || 'Unknown Location';
-        const locTitle = locText ? `Location: ${locText}` : 'Unknown Location';
+        const locLabel = locText || '未知地点';
+        const locTitle = locText ? `地点：${locText}` : '未知地点';
         document.querySelectorAll('#rt-footer-location, #rt-agent-footer-location').forEach((el) => {
             el.textContent = locLabel;
             el.title = locTitle;
@@ -4982,7 +4983,7 @@ export function refreshRenderedView() {
                 footerTime.style.display = 'inline-flex';
                 footerTime.style.color = color !== 'inherit' ? color : '';
                 footerTime.textContent = emoji ? `${emoji} ${currentTime}` : currentTime;
-                footerTime.title = `Current Time: ${currentTime}`;
+                footerTime.title = `当前时间：${currentTime}`;
             } else {
                 footerTime.style.display = 'none';
             }
@@ -5280,7 +5281,7 @@ export function syncMemoView() {
         textarea.value = s.currentMemo;
         textarea.readOnly = false;
         navLabel.classList.remove('clickable');
-        navLabel.title = 'Current Live State';
+        navLabel.title = '当前实时状态';
         runtimeState.dungeonMapHistoryOverlay = null;
     } else {
         // Snapshot stone
@@ -5288,13 +5289,13 @@ export function syncMemoView() {
         textarea.value = snapshot ?? '';
         textarea.readOnly = true;
         navLabel.classList.add('clickable');
-        navLabel.title = 'Click to RESTORE this state as LIVE';
+        navLabel.title = '点击将此状态恢复为实时';
         runtimeState.dungeonMapHistoryOverlay = getDungeonMapHistoryEntry(s, runtimeState.historyViewIndex);
     }
 
     const distance = currentPos - livePos;
     if (distance === 0) {
-        navLabel.textContent = '[ LIVE ]';
+        navLabel.textContent = '[ 实时 ]';
     } else if (distance > 0) {
         navLabel.textContent = `[ -${distance} 🔄 ]`;
     } else {
@@ -5305,7 +5306,7 @@ export function syncMemoView() {
     btnFwd.disabled = currentPos <= 0;
 
     if (counter) {
-        counter.textContent = `~${Math.round(textarea.value.length / 2.62)} tokens`;
+        counter.textContent = `~${Math.round(textarea.value.length / 2.62)} 词元`;
     }
 
     // Update delta panel: always show the diff that created the currently-viewed state
@@ -5315,7 +5316,7 @@ export function syncMemoView() {
         const activeIdx = (runtimeState.historyViewIndex === -1) ? L : runtimeState.historyViewIndex;
 
         if (activeIdx === -1) {
-            deltaHtml = s.lastDelta || '<span class="delta-empty">No changes yet.</span>';
+            deltaHtml = s.lastDelta || '<span class="delta-empty">暂无变化。</span>';
         } else {
             const current = s.memoHistory[activeIdx];
             const previous = s.memoHistory[activeIdx + 1] || '';
@@ -5350,7 +5351,7 @@ function updateUIMemo(text) {
     const textarea = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('rpg-tracker-memo'));
     if (textarea) textarea.value = text;
     const counter = document.getElementById('rpg-tracker-count');
-    if (counter) counter.textContent = `~${Math.round(text.length / 2.62)} tokens`;
+    if (counter) counter.textContent = `~${Math.round(text.length / 2.62)} 词元`;
 }
 
 function updateAgentStatusIndicator(running) {
@@ -5374,41 +5375,41 @@ export function updateStatusIndicator(state) {
 
 const RENDER_HINTS = {
     CHARACTER: {
-        label: 'Entity Rows — HP Bars (Characters)',
-        description: 'Each entity is one row with an HP bar. First line: "Name (Race/Class): cur/max HP". Sub-lines: Combat (BAB), Gear, Attr, Saves, Skills, Traits, Abilities, HD, Status.',
+        label: '实体行 — HP 条（角色）',
+        description: '每个实体占一行并带 HP 条。首行格式："Name (Race/Class): cur/max HP"。子行：Combat (BAB)、Gear、Attr、Saves、Skills、Traits、Abilities、HD、Status。',
         example: 'Korgath Iron-Hide (Dwarven Warrior): 32/32 HP\nCombat: BAB: +2 | Ranged (1 attack): +3 | Melee (1 attack): +5\nGear: Volcanic Mace (+1 / 2d6+3), AC: 13 (Furs)\nAttr: STR 16 (+3), DEX 12 (+1), CON 16 (+3), INT 8 (-1), WIS 16 (+3), CHA 6 (-2)\nSaves: Fort +6 | Ref +1 | Will +1\nSkills: Athletics +5, Intimidation +4\nTraits: Darkvision (60 ft)\nAbilities: Second Wind (1/1), Action Surge (1/1)\nHD: d10 (2/2)\nStatus: Healthy'
     },
     COMBAT: {
-        label: 'Entity Rows — HP Bars (Enemies)',
-        description: 'Entity rows with COMBAT ROUND header. Martial: weapon Att/def. Caster: Spell Atk + Spell DC + backup weapon, then Cantrips/Level N Spells lines (same rendering as PARTY).',
+        label: '实体行 — HP 条（敌人）',
+        description: '带 COMBAT ROUND 标题的实体行。Martial：武器 Att/def。Caster：Spell Atk + Spell DC + 备用武器，然后是 Cantrips/Level N Spells 行（渲染方式与 PARTY 相同）。',
         example: 'COMBAT ROUND 1\nCultist Acolyte: 15/15 HP\nAtt/def: Spell Atk +4 | Spell DC 14 | Dagger (1 attack, +1 / 1d4-1 Piercing) | Robes (AC: 11)\nSaves: Fort +1, Ref +2, Will +3\nAbilities: Spellcasting\nSpells: Cantrips: Fire Bolt, Prestidigitation\nSpells: Level 1 (2/2): Magic Missile, Shield\nOther: Soldier Tier Spellcaster\nStatus: Healthy\n\nElite Enforcer: 42/42 HP\nAtt/def: Warhammer (2 attacks, +9/+4 / 1d10+4 Bludgeoning) | Plate Armor (AC: 17)\nSaves: Fort +5, Ref +3, Will +4\nAbilities: Brutal Strike (On a Warhammer hit, deal +1d10 Bludgeoning damage and force a Fort DC 16 save or knock the target prone; 2/2)\nOther: Elite Tier\nStatus: Healthy'
     },
     SPELLS: {
-        label: 'Spell Pips — Slot Tracker',
-        description: 'One line per spell level. Cantrips: comma-separated names. Slots: "Level N (available/max): Spell1, Spell2".',
+        label: '法术圆点 — 法术位追踪',
+        description: '每个法术等级一行。Cantrips：逗号分隔的名称。法术位："Level N (available/max): Spell1, Spell2"。',
         example: 'Cantrips: Guidance, Resistance\nLevel 1 (2/2): Cure Wounds, Shield of Faith\nLevel 2 (1/3): Hold Person, Silence'
     },
     INVENTORY: {
-        label: 'Bullet Points — Item List',
-        description: 'One item per line. Leading "- " dashes are stripped. Supports <font color=...> tags for rarity/class coloring.',
+        label: '项目符号 — 物品列表',
+        description: '每行一件物品。行首的 "- " 短横线会被移除。支持 <font color=...> 标签，用于按稀有度/类别着色。',
         example: '- <font color=#ff8000>Volcanic Mace (+1 / 2d6+3 Fire)</font>\n- <font color=#a335ee>Cloak of Displacement</font>\n- <font color=#0070dd>Healing Potion (Greater)</font> x2\n- <font color=#1eff00>Iron Buckler (AC +2)</font>\n- <font color=#aaaaaa>Rope (50 ft)</font>\n- 80 gold pieces'
     },
     ABILITIES: {
-        label: 'Oval Pills — Trait Tags',
-        description: 'Each line becomes a clickable pill. Text in parentheses (e.g. 10/15) is tracked as a resource. Supports <font color=...> tags.',
+        label: '椭圆药丸 — 特性标签',
+        description: '每行都会变成一个可点击的药丸。括号中的文本（例如 10/15）会被追踪为资源。支持 <font color=...> 标签。',
         example: '- Lay on Hands (10/15, Heal 1 HP per point)\n- Divine Sense (3/4, Detect celestials/fiends/undead)\n- <font color=#ffaa00>Hasted (Double speed, +2 AC)</font>\n- <font color=#ff5555>Poisoned (Disadvantage on attacks)</font>'
     }
 };
 
 // Row type options shared by both the custom field editor and the global sub-field rules list
 const ROW_TYPE_OPTIONS = [
-    ['pills', 'Pills (comma-separated chips)'],
-    ['badge', 'Badge (single chip)'],
-    ['highlight', 'Highlight (paren emphasis)'],
-    ['hp_bar', 'HP Bar (X/Y progress)'],
-    ['xp_bar', 'XP Bar (X/Y with optional level)'],
-    ['kv', 'Key / Value pair'],
-    ['text', 'Plain Text'],
+    ['pills', '药丸（逗号分隔的标签）'],
+    ['badge', '徽章（单个标签）'],
+    ['highlight', '高亮（括号强调）'],
+    ['hp_bar', 'HP 条（X/Y 进度）'],
+    ['xp_bar', 'XP 条（X/Y，可带等级）'],
+    ['kv', '键 / 值对'],
+    ['text', '纯文本'],
 ];
 
 
@@ -5469,16 +5470,16 @@ function updateMainSyspromptBackupStatusUi(settings = getSettings()) {
     if (!statusEl) return;
 
     if (!backupOn) {
-        statusEl.textContent = 'Backup is disabled — enable above to save or restore.';
+        statusEl.textContent = '备份已禁用 — 启用上方开关后即可保存或恢复。';
         return;
     }
     hydrateMainSyspromptBackup(settings);
     const backupLen = getEffectiveBackupText(settings).length;
     if (!backupLen) {
-        statusEl.textContent = 'No backup saved yet. It is created automatically before the framework overwrites Main, and kept in this browser even if the tracker or extension is turned off.';
+        statusEl.textContent = '尚未保存备份。框架覆盖 Main 之前会自动创建备份，并保存在此浏览器中，即使关闭追踪器或扩展也不会丢失。';
         return;
     }
-    statusEl.textContent = `Backup saved (${backupLen.toLocaleString()} characters). Kept if you disable the tracker or the extension.`;
+    statusEl.textContent = `已保存备份（${backupLen.toLocaleString()} 个字符）。即使关闭追踪器或扩展也会保留。`;
 }
 
 function syncMainSyspromptBackupControlsUi() {
@@ -5712,7 +5713,7 @@ async function bindFeatureConnectionSettings(options) {
         saveSettings();
     });
     const savedOllamaModel = String(settings[key('OllamaModel')] || '');
-    ollamaModel.empty().append('<option value="">-- Select Model --</option>');
+    ollamaModel.empty().append('<option value="">-- 选择模型 --</option>');
     if (savedOllamaModel) {
         ollamaModel.append($('<option></option>').val(savedOllamaModel).text(savedOllamaModel));
     }
@@ -5722,19 +5723,19 @@ async function bindFeatureConnectionSettings(options) {
     });
     $(`#${uiPrefix}_ollama_refresh`).on('click', async function () {
         const url = String(ollamaUrl.val() || '');
-        if (!url) return toastr['info']('Please enter an Ollama URL first.');
+        if (!url) return toastr['info']('请先输入 Ollama URL。');
         try {
-            toastr['info']('Fetching Ollama models...');
+            toastr['info']('正在获取 Ollama 模型...');
             const models = await fetchOllamaModels(url);
-            ollamaModel.empty().append('<option value="">-- Select Model --</option>');
+            ollamaModel.empty().append('<option value="">-- 选择模型 --</option>');
             models.forEach((model) => {
                 ollamaModel.append($('<option></option>').val(model.name).text(model.name));
             });
             ollamaModel.val(settings[key('OllamaModel')] || '');
-            toastr['success']('Ollama models updated.');
+            toastr['success']('Ollama 模型已更新。');
         } catch (error) {
             console.error(`[RPG Tracker] ${keyPrefix} Ollama fetch failed:`, error);
-            toastr['error']('Failed to fetch Ollama models. Check console.');
+            toastr['error']('获取 Ollama 模型失败，请查看控制台。');
         }
     });
 
@@ -5762,19 +5763,19 @@ async function bindFeatureConnectionSettings(options) {
     $(`#${uiPrefix}_openai_refresh`).on('click', async function () {
         const url = String(openaiUrl.val() || '');
         const apiKey = String(openaiKey.val() || '');
-        if (!url) return toastr['info']('Please enter an Endpoint URL first.');
+        if (!url) return toastr['info']('请先输入端点 URL。');
         try {
-            toastr['info']('Fetching models from endpoint...');
+            toastr['info']('正在从端点获取模型...');
             const models = await fetchOpenAIModels(url, apiKey);
-            openaiModel.empty().append('<option value="">-- Select Model --</option>');
+            openaiModel.empty().append('<option value="">-- 选择模型 --</option>');
             models.forEach((model) => {
                 const id = typeof model === 'string' ? model : (model.id || model.name);
                 if (id) openaiModel.append($('<option></option>').val(id).text(id));
             });
             openaiModel.val(settings[key('OpenaiModel')] || '');
-            toastr['success']('Models updated.');
+            toastr['success']('模型已更新。');
         } catch (_) {
-            toastr['warning']('Cannot auto-detect models. Type the model name manually.');
+            toastr['warning']('无法自动检测模型，请手动输入模型名称。');
         }
     });
 
@@ -5790,7 +5791,7 @@ async function bindFeatureConnectionSettings(options) {
         } catch (error) {
             console.warn(`[RPG Tracker] Could not load ${keyPrefix} connection profiles:`, error);
         }
-        profileSelect.empty().append('<option value="">-- No Profile Selected --</option>');
+        profileSelect.empty().append('<option value="">-- 未选择配置文件 --</option>');
         profiles.forEach((profile) => profileSelect.append($('<option></option>').val(profile).text(profile)));
         profileSelect.val(settings[profileKey] || '').on('change', function () {
             settings[profileKey] = String($(this).val() || '');
@@ -5798,7 +5799,7 @@ async function bindFeatureConnectionSettings(options) {
         });
     }
 
-    presetSelect.empty().append('<option value="">-- Use Current Settings --</option>');
+    presetSelect.empty().append('<option value="">-- 使用当前设置 --</option>');
     if (presetManager && typeof presetManager.getAllPresets === 'function') {
         presetManager.getAllPresets().forEach((preset) => {
             presetSelect.append($('<option></option>').val(preset).text(preset));
@@ -5833,7 +5834,7 @@ async function runPortraitMigrationIfNeeded() {
     }
 
     toastr['info'](
-        `Migrating ${embeddedPortraitCount} embedded portrait(s) to disk… This may take a minute.`,
+        `正在将 ${embeddedPortraitCount} 个内嵌立绘迁移到磁盘…这可能需要一分钟。`,
         'RPG Tracker',
         { timeOut: 15000 },
     );
@@ -5848,7 +5849,7 @@ async function runPortraitMigrationIfNeeded() {
             _portraitMigrationDone = true;
             if (stats.migrated > 0) {
                 toastr['success'](
-                    `Migrated ${stats.migrated} portrait(s) to user/images/${PORTRAIT_STORAGE_FOLDER}/. Your settings file should be much smaller now.`,
+                    `已将 ${stats.migrated} 个立绘迁移到 user/images/${PORTRAIT_STORAGE_FOLDER}/。设置文件现在应该小很多了。`,
                     'RPG Tracker',
                     { timeOut: 10000 },
                 );
@@ -5857,30 +5858,30 @@ async function runPortraitMigrationIfNeeded() {
             console.warn(`[RPG Tracker] Portrait migration finished but ${remaining} embedded portrait(s) remain.`);
             if (stats.failed > 0) {
                 toastr['warning'](
-                    `${stats.failed} portrait(s) could not be migrated. Use Emergency: Purge All Portraits if problems persist.`,
+                    `${stats.failed} 个立绘迁移失败。如果问题持续存在，请使用“应急：清除全部立绘”。`,
                     'RPG Tracker',
                 );
             }
         }
     } catch (err) {
         console.error('[RPG Tracker] Portrait migration failed:', err);
-        toastr['error']('Portrait migration failed — see browser console.', 'RPG Tracker');
+        toastr['error']('立绘迁移失败 — 请查看浏览器控制台。', 'RPG Tracker');
     } finally {
         setPortraitMigrationLocked(false);
     }
 }
 
 const CONNECTION_SETTINGS_UI = [
-    { key: 'state_tracker', control: '#rpg_tracker_connection_source', slot: '#rpg_connection_slot_state_tracker', label: 'State Tracker', recommendation: 'I recommend a cheap mid-tier model such as GPT-5.6 Luna, Gemini Flash/Flash-Lite series, or Deepseek V4 Flash latest.' },
-    { key: 'combat_override', control: '#rpg_combat_api_override', slot: '#rpg_connection_slot_combat_override', label: 'Combat API Override' },
-    { key: 'lorebook_agent', control: '#rpg_tracker_router_source', slot: '#rpg_connection_slot_lorebook_agent', label: 'Lorebook Agent', recommendation: 'Same models work fine here as with the State Tracker.' },
-    { key: 'adventure_companion', control: '#rpg_adventure_companion_connection_source', slot: '#rpg_connection_slot_adventure_companion', label: 'Adventure Companion' },
-    { key: 'game_system_wizard', control: '#rpg_gs_wizard_connection_source', slot: '#rpg_connection_slot_game_system_wizard', label: 'Game System Wizard', recommendation: 'I recommend using a somewhat better model here such as Sonnet 5 or above for more robust and complex systems. Your mileage varies a lot here. Experiment.' },
-    { key: 'map_architect', control: '#rpg_map_architect_connection_source', slot: '#rpg_connection_slot_map_architect', label: 'Map Architect', recommendation: 'A capable reasoning model is recommended for coherent topology, hidden information, and entity placement. Map Architect builds the foundation map; give it a stronger model than occupancy and evolution.' },
-    { key: 'map_runtime', control: '#rpg_map_runtime_connection_source', slot: '#rpg_connection_slot_map_runtime', label: 'Map Updater', recommendation: 'Occupancy can use a cheaper model than Map Architect. JSON discipline still helps.' },
-    { key: 'map_evolution', control: '#rpg_map_evolution_connection_source', slot: '#rpg_connection_slot_map_evolution', label: 'Map Evolution' },
-    { key: 'world_progression', control: '#rpg_world_connection_source', slot: '#rpg_connection_slot_world_progression', label: 'World Progression' },
-    { key: 'portraits', control: '#rpg_portrait_connection_source', slot: '#rpg_connection_slot_portraits', label: 'Portrait Generation', recommendation: 'A lightweight model should do fine.' },
+    { key: 'state_tracker', control: '#rpg_tracker_connection_source', slot: '#rpg_connection_slot_state_tracker', label: '状态追踪器', recommendation: '建议选择廉价的中端模型，例如 GPT-5.6 Luna、Gemini Flash/Flash-Lite 系列或最新的 Deepseek V4 Flash。' },
+    { key: 'combat_override', control: '#rpg_combat_api_override', slot: '#rpg_connection_slot_combat_override', label: '战斗 API 覆盖' },
+    { key: 'lorebook_agent', control: '#rpg_tracker_router_source', slot: '#rpg_connection_slot_lorebook_agent', label: '世界书代理', recommendation: '这里使用与状态追踪器相同的模型即可。' },
+    { key: 'adventure_companion', control: '#rpg_adventure_companion_connection_source', slot: '#rpg_connection_slot_adventure_companion', label: '冒险伙伴' },
+    { key: 'game_system_wizard', control: '#rpg_gs_wizard_connection_source', slot: '#rpg_connection_slot_game_system_wizard', label: '游戏系统向导', recommendation: '建议在此使用稍好一些的模型（例如 Sonnet 5 及以上），以支持更稳健、更复杂的系统。效果因系统而异，请多尝试。' },
+    { key: 'map_architect', control: '#rpg_map_architect_connection_source', slot: '#rpg_connection_slot_map_architect', label: '地图架构师', recommendation: '建议使用具备推理能力的模型，以保证拓扑、隐藏信息与实体放置的一致性。地图架构师负责构建基础地图；请为其配备比占用更新和演化更强的模型。' },
+    { key: 'map_runtime', control: '#rpg_map_runtime_connection_source', slot: '#rpg_connection_slot_map_runtime', label: '地图更新器', recommendation: '占用更新可以使用比地图架构师更便宜的模型，但 JSON 规范性依然重要。' },
+    { key: 'map_evolution', control: '#rpg_map_evolution_connection_source', slot: '#rpg_connection_slot_map_evolution', label: '地图演化' },
+    { key: 'world_progression', control: '#rpg_world_connection_source', slot: '#rpg_connection_slot_world_progression', label: '世界进程' },
+    { key: 'portraits', control: '#rpg_portrait_connection_source', slot: '#rpg_connection_slot_portraits', label: '立绘生成', recommendation: '轻量级模型即可胜任。' },
 ];
 
 function normalizeCentralConnectionDrawer(drawer, key, label, recommendation = '') {
@@ -5955,7 +5956,7 @@ function organizeConnectionSettingsUI() {
             const shortcut = document.createElement('div');
             shortcut.className = 'rt-connection-shortcut';
             shortcut.dataset.connectionKey = definition.key;
-            shortcut.innerHTML = `<span><b>${definition.label} connection</b><small>Managed in Connections &amp; Models.</small></span><button type="button" class="menu_button interactable rt-connection-shortcut-button" data-connection-target="${definition.key}"><i class="fa-solid fa-plug"></i> Configure</button>`;
+            shortcut.innerHTML = `<span><b>${definition.label} 连接</b><small>在“连接与模型”中管理。</small></span><button type="button" class="menu_button interactable rt-connection-shortcut-button" data-connection-target="${definition.key}"><i class="fa-solid fa-plug"></i> 配置</button>`;
             originalParent.insertBefore(shortcut, drawer);
         }
 
@@ -5966,7 +5967,7 @@ function organizeConnectionSettingsUI() {
     normalizeCentralConnectionDrawer(
         document.getElementById('rpg_character_creation_connection_drawer'),
         'character_creation',
-        'Character Creation & Starting Modes',
+        '角色创建与起始模式',
     );
 }
 
@@ -6203,7 +6204,7 @@ function organizeConnectionSettingsUI() {
             settings.mapArchitectSystemPrompt = DEFAULT_MAP_ARCHITECT_SYSTEM_PROMPT;
             $('#rpg_map_architect_system_prompt').val(settings.mapArchitectSystemPrompt);
             saveSettings();
-            toastr['success']('Map Architect prompt reset.');
+            toastr['success']('地图建筑师提示词已重置。');
         });
         $('#rpg_map_updater_enabled').prop('checked', settings.mapUpdaterEnabled !== false).on('change', function () {
             settings.mapUpdaterEnabled = !!$(this).prop('checked');
@@ -6229,7 +6230,7 @@ function organizeConnectionSettingsUI() {
             settings.mapUpdaterSystemPrompt = DEFAULT_MAP_UPDATER_SYSTEM_PROMPT;
             $('#rpg_map_updater_system_prompt').val(settings.mapUpdaterSystemPrompt);
             saveSettings();
-            toastr['success']('Map Updater prompt reset.');
+            toastr['success']('地图更新器提示词已重置。');
         });
         $('#rpg_map_evolution_enabled').prop('checked', settings.mapEvolutionEnabled !== false).on('change', function () {
             settings.mapEvolutionEnabled = !!$(this).prop('checked');
@@ -6336,7 +6337,7 @@ function organizeConnectionSettingsUI() {
             const sites = await listMappedEvolutionSites();
             const current = sites.find(site => site.current);
             if (!current) {
-                toastr.info('The party is not inside a mapped site.', 'Map Evolution');
+                toastr.info('队伍当前不在任何已映射地点内。', '地图演化');
                 return;
             }
             $('#rpg_map_evolution_selected_list input[type="checkbox"]').each(function () {
@@ -6347,14 +6348,14 @@ function organizeConnectionSettingsUI() {
         $('#rpg_map_evolution_evolve_now').on('click', async function () {
             const roots = persistMapEvolutionSelectedRootsFromUi();
             if (!roots.length) {
-                toastr.warning('Check at least one mapped site.', 'Map Evolution');
+                toastr.warning('请至少勾选一个已映射地点。', '地图演化');
                 return;
             }
             if (isRouterRunning() || isMapUpdaterRunning() || isMapEvolutionRunning()) {
-                toastr.warning('An agent is already running.', 'Map Evolution');
+                toastr.warning('已有智能体正在运行。', '地图演化');
                 return;
             }
-            toastr['info']('Starting Map Evolution pass...');
+            toastr['info']('正在开始地图演化进程……');
             const result = await runMapEvolutionPass({ trigger: 'manual', isManual: true, siteRoots: roots });
             notifyMapEvolutionPassResult(result);
             updateMapEvolutionScheduleDisplay();
@@ -6385,11 +6386,11 @@ function organizeConnectionSettingsUI() {
             }
 
             const acceptedFormats = s.useDdMmYyFormat
-                ? 'Accepted formats: "06/01/2026, 08:00 AM", "06/01/2026, 08:00", "06/01/2026"'
-                : 'Accepted formats: "Day 6, 08:00 AM", "Day 6, 08:00", "Day 6"';
+                ? '可接受的格式："06/01/2026, 08:00 AM"、"06/01/2026, 08:00"、"06/01/2026"'
+                : '可接受的格式："Day 6, 08:00 AM"、"Day 6, 08:00"、"Day 6"';
 
             const userInput = window.prompt(
-                'Enter the in-world time for the NEXT Map Evolution interval tick.\n' + acceptedFormats,
+                '请输入下一次地图演化间隔触发点的世界内时间。\n' + acceptedFormats,
                 fmtHint(currentNextMins)
             );
             if (userInput === null) return;
@@ -6397,15 +6398,15 @@ function organizeConnectionSettingsUI() {
             const parsedNextMins = parseInWorldTime(userInput.trim());
             if (parsedNextMins == null || parsedNextMins <= 0) {
                 const errorFormat = s.useDdMmYyFormat
-                    ? 'Could not parse the entered time. Please use a format like "06/01/26, 08:00 AM".'
-                    : 'Could not parse the entered time. Please use a format like "Day 6, 08:00 AM".';
+                    ? '无法解析输入的时间。请使用类似 "06/01/26, 08:00 AM" 的格式。'
+                    : '无法解析输入的时间。请使用类似 "Day 6, 08:00 AM" 的格式。';
                 toastr['warning'](errorFormat, 'Map Evolution');
                 return;
             }
 
             let roots = [...Object.keys(s.mapEvolutionLastFiredBySite || {}), ...listed.map(site => site.siteRoot)];
             if (!roots.length) {
-                toastr.warning('No mapped sites to schedule.', 'Map Evolution');
+                toastr.warning('没有可排程的已映射地点。', '地图演化');
                 return;
             }
             let stamps = {};
@@ -6415,14 +6416,14 @@ function organizeConnectionSettingsUI() {
                 stamps = stampEvolutionLastFired(stamps, [root], formatInWorldTime(parsedNextMins - hours * 60));
             }
             if (!Object.keys(stamps).length) {
-                toastr.warning('Every mapped site is set to never auto-tick.', 'Map Evolution');
+                toastr.warning('所有已映射地点均设置为从不自动触发。', '地图演化');
                 return;
             }
             s.mapEvolutionLastFiredBySite = stamps;
             saveSettings();
             if (s.chatLinkEnabled && runtimeState.currentChatId) saveChatState(runtimeState.currentChatId);
             updateMapEvolutionScheduleDisplay();
-            toastr['success'](`Next interval tick set to ${fmtHint(parsedNextMins)}.`, 'Map Evolution');
+            toastr['success'](`下一次间隔触发已设置为 ${fmtHint(parsedNextMins)}。`, '地图演化');
         });
         $('#rpg_map_evolution_reset_timeline').on('click', function () {
             const s = getSettings();
@@ -6430,7 +6431,7 @@ function organizeConnectionSettingsUI() {
             saveSettings();
             if (s.chatLinkEnabled && runtimeState.currentChatId) saveChatState(runtimeState.currentChatId);
             updateMapEvolutionScheduleDisplay();
-            toastr['info']('Map Evolution timeline reset. Next interval starts from the current time.', 'Map Evolution');
+            toastr['info']('地图演化时间线已重置。下一次间隔将从当前时间开始。', '地图演化');
         });
         $('#rpg_map_evolution_testing_ground').on('click', async function () {
             const { openMapEvolutionTestingGround } = await import('./src/ui/panel/panel-map-evolution-debug.js');
@@ -6444,7 +6445,7 @@ function organizeConnectionSettingsUI() {
             settings.mapEvolutionSystemPrompt = DEFAULT_MAP_EVOLUTION_SYSTEM_PROMPT;
             $('#rpg_map_evolution_system_prompt').val(settings.mapEvolutionSystemPrompt);
             saveSettings();
-            toastr['success']('Map Evolution prompt reset.');
+            toastr['success']('地图演化提示词已重置。');
         });
         $('#rpg_map_evolution_compress_prompt').val(settings.mapEvolutionCompressSystemPrompt || DEFAULT_MAP_EVOLUTION_COMPRESS_SYSTEM_PROMPT).on('input', function () {
             settings.mapEvolutionCompressSystemPrompt = String($(this).val() || '');
@@ -6454,7 +6455,7 @@ function organizeConnectionSettingsUI() {
             settings.mapEvolutionCompressSystemPrompt = DEFAULT_MAP_EVOLUTION_COMPRESS_SYSTEM_PROMPT;
             $('#rpg_map_evolution_compress_prompt').val(settings.mapEvolutionCompressSystemPrompt);
             saveSettings();
-            toastr['success']('Map Evolution history compression prompt reset.');
+            toastr['success']('地图演化历史压缩提示词已重置。');
         });
 
 
@@ -6529,17 +6530,17 @@ function organizeConnectionSettingsUI() {
                 unknown: 'background:rgba(148,163,184,0.1);color:#94a3b8;border:1px solid rgba(148,163,184,0.2);',
             };
             const badgeLabel = {
-                customized: 'your copy differs',
-                'matches new': 'matches new',
-                'matches old': 'matches old',
-                unknown: 'impact unknown',
+                customized: '你的副本有差异',
+                'matches new': '与新版本一致',
+                'matches old': '与旧版本一致',
+                unknown: '影响未知',
             };
 
             if (!oldSnap) {
                 return `
                                     <details style="margin-top:4px;background:rgba(0,0,0,0.12);padding:8px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
-                                        <summary style="cursor:pointer;user-select:none;font-weight:600;">What changed</summary>
-                                        <div style="margin-top:8px;opacity:0.85;font-size:12px;">Diff available after this acknowledge — a snapshot of today's shipped defaults will be saved so the next update can show a line-by-line changelog.</div>
+                                        <summary style="cursor:pointer;user-select:none;font-weight:600;">更改内容</summary>
+                                        <div style="margin-top:8px;opacity:0.85;font-size:12px;">本次确认后将提供差异——今日内置默认值的快照会被保存，以便下次更新可以显示逐行变更日志。</div>
                                     </details>`;
             }
 
@@ -6588,7 +6589,7 @@ function organizeConnectionSettingsUI() {
                 categoryHtml.push(`
                                         <details style="margin:0;">
                                             <summary style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                                <span>${escapeHtml(label)} — ${additions} insertion${additions === 1 ? '' : 's'}, ${deletions} deletion${deletions === 1 ? '' : 's'}</span>
+                                                <span>${escapeHtml(label)} — 新增 ${additions} 处、删除 ${deletions} 处</span>
                                                 <span style="font-size:10px;padding:1px 6px;border-radius:999px;${badgeStyles[impact] || badgeStyles.unknown}">${escapeHtml(badgeLabel[impact] || impact)}</span>
                                             </summary>
                                             <div style="margin-top:6px;">${hunkHtml.join('')}</div>
@@ -6598,14 +6599,14 @@ function organizeConnectionSettingsUI() {
             if (!categoryHtml.length) {
                 return `
                                     <details style="margin-top:4px;background:rgba(0,0,0,0.12);padding:8px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
-                                        <summary style="cursor:pointer;user-select:none;font-weight:600;">What changed</summary>
-                                        <div style="margin-top:8px;opacity:0.85;font-size:12px;">No text changes detected between the last acknowledged defaults and the current shipped defaults.</div>
+                                        <summary style="cursor:pointer;user-select:none;font-weight:600;">更改内容</summary>
+                                        <div style="margin-top:8px;opacity:0.85;font-size:12px;">上次确认的默认值与当前内置默认值之间未检测到文本更改。</div>
                                     </details>`;
             }
 
             return `
                                     <details open style="margin-top:4px;background:rgba(0,0,0,0.12);padding:8px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
-                                        <summary style="cursor:pointer;user-select:none;font-weight:600;">What changed</summary>
+                                        <summary style="cursor:pointer;user-select:none;font-weight:600;">更改内容</summary>
                                         <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">${categoryHtml.join('')}</div>
                                     </details>`;
         }
@@ -6749,7 +6750,7 @@ function organizeConnectionSettingsUI() {
                         }
 
                         await acknowledgePromptDefaults(fresh);
-                        toastr['info'](`Prompts auto-updated to latest defaults (v${currentVersion}).`, 'RPG Tracker');
+                        toastr['info'](`提示词已自动更新至最新默认值（v${currentVersion}）。`, 'RPG 追踪器');
                         console.log(`[RPG Tracker] Automatically reset all prompts/sections to defaults for version ${currentVersion}.`);
                     };
                 } else {
@@ -6767,7 +6768,7 @@ function organizeConnectionSettingsUI() {
                                 .map((c) => PROMPT_DEFAULTS_CATEGORY_LABELS[c] || c);
                             const changedSummary = changedLabels.length
                                 ? changedLabels.join(', ')
-                                : 'none detected';
+                                : '未检测到更改';
                             const diffSectionHtml = buildPromptDefaultsDiffSectionHtml(
                                 storedSnapshot,
                                 currentSnapshot,
@@ -6779,48 +6780,48 @@ function organizeConnectionSettingsUI() {
                             const allChangedChecked = PROMPT_DEFAULTS_CATEGORIES.every((c) => changedCats.has(c));
 
                             const primaryHint = hasSnapshot
-                                ? `The main action <b>Update Changed Prompts</b> replaces only categories with shipped text changes: <b>${escapeHtml(changedSummary)}</b>. Unchanged categories stay as-is.`
-                                : `No prior defaults snapshot yet — <b>Update Changed Prompts</b> will update <b>all</b> categories below. After you acknowledge, future updates can target only what changed.`;
+                                ? `主操作<b>更新已更改的提示词</b>仅替换有内置文本更改的类别：<b>${escapeHtml(changedSummary)}</b>。未更改的类别保持不变。`
+                                : `尚无先前的默认值快照——<b>更新已更改的提示词</b>将更新下方<b>所有</b>类别。确认之后，未来的更新便可只针对有更改的部分。`;
 
                             const popupHtml = `
                                 <div style="display:flex; flex-direction:column; gap:12px; text-align:left; font-size:13px; line-height:1.4; width:100%; box-sizing:border-box;">
-                                    <div>Shipped default prompts have changed in v<b>${escapeHtml(currentVersion)}</b>.</div>
+                                    <div>内置默认提示词已在 v<b>${escapeHtml(currentVersion)}</b> 中发生更改。</div>
                                     <div class="rt-prompt-upgrade-callout">
-                                        <div style="font-size:14px; font-weight:700; margin-bottom:6px;">Recommended: Update Changed Prompts</div>
+                                        <div style="font-size:14px; font-weight:700; margin-bottom:6px;">推荐：更新已更改的提示词</div>
                                         <div style="opacity:0.92; font-size:12.5px;">${primaryHint}</div>
-                                        <div style="margin-top:8px; font-size:11.5px; opacity:0.75;">Use the primary button below. Other actions are secondary.</div>
+                                        <div style="margin-top:8px; font-size:11.5px; opacity:0.75;">请使用下方的主按钮。其他操作均为次要。</div>
                                     </div>
-                                    <div style="opacity:0.9;">Or manually select categories, then use <b>Update Selected</b>. <b>Keep Custom — leave prompts untouched</b> makes no prompt changes at all (only acknowledges this update). Use <b>Save as Cartridge &amp; Update All</b> to back up first, then replace every category.</div>
+                                    <div style="opacity:0.9;">或手动选择类别，然后使用<b>更新所选</b>。<b>保留自定义——保持提示词不变</b>则完全不更改提示词（仅确认本次更新）。使用<b>另存为卡带并全部更新</b>可先备份，再替换所有类别。</div>
                                     <div style="margin-left: 10px; display:flex; flex-direction:column; gap:8px; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
                                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; margin: 0;">
                                             <input type="checkbox" id="rt-reset-sysprompt" ${chk('sysprompt')} style="cursor:pointer;">
-                                            <span>Main System Prompt${changedCats.has('sysprompt') ? ' <span class="rt-prompt-cat-changed">changed</span>' : ''}</span>
+                                            <span>主系统提示词${changedCats.has('sysprompt') ? ' <span class="rt-prompt-cat-changed">已更改</span>' : ''}</span>
                                         </label>
                                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; margin: 0;">
                                             <input type="checkbox" id="rt-reset-tracker" ${chk('tracker')} style="cursor:pointer;">
-                                            <span>State Tracker Prompts${changedCats.has('tracker') ? ' <span class="rt-prompt-cat-changed">changed</span>' : ''}</span>
+                                            <span>状态追踪提示词${changedCats.has('tracker') ? ' <span class="rt-prompt-cat-changed">已更改</span>' : ''}</span>
                                         </label>
                                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; margin: 0;">
                                             <input type="checkbox" id="rt-reset-lorebook" ${chk('lorebook')} style="cursor:pointer;">
-                                            <span>Lorebook Agent Prompts${changedCats.has('lorebook') ? ' <span class="rt-prompt-cat-changed">changed</span>' : ''}</span>
+                                            <span>知识库智能体提示词${changedCats.has('lorebook') ? ' <span class="rt-prompt-cat-changed">已更改</span>' : ''}</span>
                                         </label>
                                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; margin: 0;">
                                             <input type="checkbox" id="rt-reset-world" ${chk('world')} style="cursor:pointer;">
-                                            <span>World &amp; Map Architect Prompts${changedCats.has('world') ? ' <span class="rt-prompt-cat-changed">changed</span>' : ''}</span>
+                                            <span>世界与地图建筑师提示词${changedCats.has('world') ? ' <span class="rt-prompt-cat-changed">已更改</span>' : ''}</span>
                                         </label>
                                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; margin: 0;">
                                             <input type="checkbox" id="rt-reset-sections" ${chk('sections')} style="cursor:pointer;">
-                                            <span>NPC / PC Core Sections${changedCats.has('sections') ? ' <span class="rt-prompt-cat-changed">changed</span>' : ''}</span>
+                                            <span>NPC / PC 核心区块${changedCats.has('sections') ? ' <span class="rt-prompt-cat-changed">已更改</span>' : ''}</span>
                                         </label>
                                     </div>
                                     <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 2px 0;">
                                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; font-weight:bold; margin: 0;">
                                         <input type="checkbox" id="rt-reset-all" ${allChangedChecked ? 'checked' : ''} style="cursor:pointer;">
-                                        <span>Select All Categories</span>
+                                        <span>全选所有类别</span>
                                     </label>
                                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; margin: 0; opacity: 0.85;">
                                         <input type="checkbox" id="rt-reset-always-auto" style="cursor:pointer;">
-                                        <span>Always update everything automatically / Don't ask again</span>
+                                        <span>始终自动更新所有内容 / 不再询问</span>
                                     </label>
                                     ${diffSectionHtml}
                                 </div>
@@ -6875,16 +6876,16 @@ function organizeConnectionSettingsUI() {
                             }, 150);
 
                             const { POPUP_RESULT } = SillyTavern.getContext();
-                            const confirmResult = await Popup.show.confirm('✨ Prompt Defaults Updated', popupHtml, {
-                                okButton: 'Update Changed Prompts',
-                                cancelButton: 'Keep Custom — leave prompts untouched',
+                            const confirmResult = await Popup.show.confirm('✨ 提示词默认值已更新', popupHtml, {
+                                okButton: '更新已更改的提示词',
+                                cancelButton: '保留自定义——保持提示词不变',
                                 customButtons: [
                                     {
-                                        text: 'Update Selected',
+                                        text: '更新所选',
                                         result: POPUP_RESULT.CUSTOM2,
                                     },
                                     {
-                                        text: 'Save as Cartridge & Update All',
+                                        text: '另存为卡带并全部更新',
                                         result: POPUP_RESULT.CUSTOM1,
                                     },
                                 ],
@@ -6912,12 +6913,12 @@ function organizeConnectionSettingsUI() {
                             let cartridgeBackupName = '';
                             if (confirmResult === POPUP_RESULT.CUSTOM1) {
                                 const saved = await promptAndSaveCurrentAsCartridge({
-                                    title: '💾 Save Current Config as Game Cartridge',
-                                    okButton: 'Save & Update',
-                                    initialName: `Pre-update backup (v${currentVersion})`,
+                                    title: '💾 将当前配置另存为游戏卡带',
+                                    okButton: '保存并更新',
+                                    initialName: `更新前备份 (v${currentVersion})`,
                                 });
                                 if (!saved) {
-                                    toastr['info']('Cartridge save cancelled — prompts left unchanged. You\'ll be asked again next load.', 'RPG Tracker');
+                                    toastr['info']('已取消保存卡带——提示词保持不变。下次加载时会再次询问。', 'RPG 追踪器');
                                     return; // do NOT acknowledge fingerprint — ask again next time
                                 }
                                 cartridgeBackupName = saved.name || '';
@@ -7059,14 +7060,14 @@ function organizeConnectionSettingsUI() {
                                 syncPromptDefaultsUpgradeButton();
 
                                 if (resetCount > 0) {
-                                    toastr['success'](`Successfully reset ${resetCount} prompt category/categories to defaults.`, 'RPG Tracker');
+                                    toastr['success'](`已将 ${resetCount} 个提示词类别成功重置为默认值。`, 'RPG 追踪器');
                                 } else {
-                                    toastr['info']('No prompts were selected for reset.', 'RPG Tracker');
+                                    toastr['info']('未选择任何要重置的提示词。', 'RPG 追踪器');
                                 }
                             } else {
                                 await acknowledgePromptDefaults(fresh);
                                 syncPromptDefaultsUpgradeButton();
-                                toastr['info']('Kept custom — no prompts were changed.', 'RPG Tracker');
+                                toastr['info']('保留自定义——未更改任何提示词。', 'RPG 追踪器');
                             }
                             syncPromptDefaultsUpgradeButton();
                         };
@@ -7152,36 +7153,36 @@ function organizeConnectionSettingsUI() {
         $('#rpg_main_sysprompt_backup_stash').on('click', function () {
             const fresh = getSettings();
             if (!isMainSyspromptBackupEnabled(fresh)) {
-                return toastr['warning']('Main prompt backup is disabled. Enable it above first.', 'RPG Tracker');
+                return toastr['warning']('主提示词备份已禁用。请先在上方启用它。', 'RPG 追踪器');
             }
             const result = captureMainSyspromptBackup(fresh, { manual: true });
             persistMainSyspromptBackupIfChanged(result, fresh);
             if (result.changed || result.reason === 'kept' || result.reason === 'captured') {
-                toastr['success']('Current Quick Prompt Main saved to backup.', 'RPG Tracker');
+                toastr['success']('已将当前快速提示词 Main 保存到备份。', 'RPG 追踪器');
             } else if (result.reason === 'empty') {
-                toastr['warning']('Current Main is empty — refusing to overwrite a saved backup with nothing.', 'RPG Tracker');
+                toastr['warning']('当前 Main 为空——拒绝用空内容覆盖已保存的备份。', 'RPG 追踪器');
             } else if (result.reason === 'already-framework') {
-                toastr['warning']('Current Main looks like the framework prompt, so the existing backup was left unchanged.', 'RPG Tracker');
+                toastr['warning']('当前 Main 看起来是框架提示词，因此现有备份保持不变。', 'RPG 追踪器');
             } else {
-                toastr['error']('Could not save backup.', 'RPG Tracker');
+                toastr['error']('无法保存备份。', 'RPG 追踪器');
             }
         });
 
         $('#rpg_main_sysprompt_backup_restore').on('click', function () {
             const fresh = getSettings();
             if (!isMainSyspromptBackupEnabled(fresh)) {
-                return toastr['warning']('Main prompt backup is disabled. Enable it above first.', 'RPG Tracker');
+                return toastr['warning']('主提示词备份已禁用。请先在上方启用它。', 'RPG 追踪器');
             }
             if (!getEffectiveBackupText(fresh).trim()) {
-                return toastr['info']('No backup saved yet. Use Save current Main to backup first.', 'RPG Tracker');
+                return toastr['info']('尚未保存备份。请先使用“将当前 Main 保存为备份”。', 'RPG 追踪器');
             }
             if (restoreTrackedMainSysprompt(fresh, { manual: true })) {
                 const note = fresh.enabled && !fresh.customSysprompt
-                    ? ' Click ⏻ on the tracker panel to keep it — the framework may overwrite Main again while the tracker is on.'
+                    ? ' 点击追踪器面板上的 ⏻ 以保持它——追踪器开启期间框架可能会再次覆盖 Main。'
                     : '';
-                toastr['success'](`Backed-up Main prompt restored.${note}`, 'RPG Tracker');
+                toastr['success'](`已恢复备份的 Main 提示词。${note}`, 'RPG 追踪器');
             } else {
-                toastr['error']('Could not restore backup.', 'RPG Tracker');
+                toastr['error']('无法恢复备份。', 'RPG 追踪器');
             }
         });
 
@@ -7228,11 +7229,11 @@ function organizeConnectionSettingsUI() {
                         stored = await scalePanelBackgroundImage(stored);
                     } catch (err) {
                         console.error(err);
-                        toastr['warning']('Could not process that image.', 'RPG Tracker');
+                        toastr['warning']('无法处理该图片。', 'RPG Tracker');
                         return;
                     }
                 } else if (stored && !/^https?:\/\//i.test(stored) && !stored.startsWith('data:')) {
-                    toastr['warning']('Use an https image URL or upload a file.', 'RPG Tracker');
+                    toastr['warning']('请使用 https 图片链接或上传文件。', 'RPG Tracker');
                     return;
                 }
                 settings[which === 'day' ? keys.dayKey : keys.nightKey] = stored;
@@ -7254,7 +7255,7 @@ function organizeConnectionSettingsUI() {
                         toastr['success'](dayToast, 'RPG Tracker');
                     } catch (err) {
                         console.error(err);
-                        toastr['warning']('Could not read that file.', 'RPG Tracker');
+                        toastr['warning']('无法读取该文件。', 'RPG Tracker');
                     }
                 });
             }
@@ -7272,7 +7273,7 @@ function organizeConnectionSettingsUI() {
                         toastr['success'](nightToast, 'RPG Tracker');
                     } catch (err) {
                         console.error(err);
-                        toastr['warning']('Could not read that file.', 'RPG Tracker');
+                        toastr['warning']('无法读取该文件。', 'RPG Tracker');
                     }
                 });
             }
@@ -7319,14 +7320,14 @@ function organizeConnectionSettingsUI() {
         const syncTrackerPanelBgUi = wirePanelBgControls(
             'rpg_tracker_panel_bg',
             PANEL_BG_TRACKER_KEYS,
-            'State Tracker background set.',
-            'State Tracker night background set.',
+            '已设置状态追踪器背景。',
+            '已设置状态追踪器夜间背景。',
         );
         const syncAgentPanelBgUi = wirePanelBgControls(
             'rpg_agent_panel_bg',
             PANEL_BG_AGENT_KEYS,
-            'Lorebook Agent background set.',
-            'Lorebook Agent night background set.',
+            '已设置世界书代理背景。',
+            '已设置世界书代理夜间背景。',
         );
         globalThis._rpgSyncPanelBgSettingsUi = () => {
             syncTrackerPanelBgUi();
@@ -7548,7 +7549,7 @@ function organizeConnectionSettingsUI() {
             saveSettings();
         })) {
             getConnectionProfiles().then(profiles => {
-                combatProfileSelect.empty().append('<option value="">-- No Profile Selected --</option>');
+                combatProfileSelect.empty().append('<option value="">-- 未选择配置文件 --</option>');
                 profiles.forEach(p => combatProfileSelect.append($('<option></option>').val(p).text(p)));
                 combatProfileSelect.val(settings.combatConnectionProfileId || '');
             });
@@ -7561,11 +7562,11 @@ function organizeConnectionSettingsUI() {
         const combatPresetSelect = $('#rpg_combat_completion_preset');
         if (pm && typeof pm.getAllPresets === 'function') {
             const presets = pm.getAllPresets();
-            combatPresetSelect.empty().append('<option value="">-- Use Profile Preset --</option>');
+            combatPresetSelect.empty().append('<option value="">-- 使用配置文件预设 --</option>');
             presets.forEach(p => combatPresetSelect.append($('<option></option>').val(p).text(p)));
             combatPresetSelect.val(settings.combatCompletionPresetId || '');
         } else {
-            combatPresetSelect.empty().append('<option value="">-- Use Profile Preset --</option>');
+            combatPresetSelect.empty().append('<option value="">-- 使用配置文件预设 --</option>');
             if (settings.combatCompletionPresetId) {
                 combatPresetSelect.append($('<option></option>').val(settings.combatCompletionPresetId).text(settings.combatCompletionPresetId));
                 combatPresetSelect.val(settings.combatCompletionPresetId);
@@ -7596,7 +7597,7 @@ function organizeConnectionSettingsUI() {
             saveSettings();
             registerDiceFunctionTool();
             registerDiceSlashCommand();
-            toastr['info']("Dice logic updated.", "RPG Tracker");
+            toastr['info']("骰子逻辑已更新。", "RPG Tracker");
         });
 
         $('#rpg_tracker_dice_d100_mode').prop('checked', !!settings.diceD100Mode).on('change', function () {
@@ -7606,7 +7607,7 @@ function organizeConnectionSettingsUI() {
             registerDiceFunctionTool();
             registerDiceSlashCommand();
             scheduleAutoApply();
-            toastr['info'](settings.diceD100Mode ? '🎲 d100 Mode enabled.' : '🎲 d100 Mode disabled — reverted to d20.', 'RPG Tracker');
+            toastr['info'](settings.diceD100Mode ? '🎲 d100 模式已启用。' : '🎲 d100 模式已禁用 — 已恢复为 d20。', 'RPG Tracker');
         });
 
         $('#rpg_rng_tool_d20').prop('checked', !!settings.rngToolD20).on('change', function () {
@@ -7659,11 +7660,11 @@ function organizeConnectionSettingsUI() {
             settings.chatSetupLinkEnabled = enabled;
             if (enabled && settings.chatLinkEnabled && runtimeState.currentChatId) {
                 saveChatState(runtimeState.currentChatId);
-                toastr['success']('Per-item scopes active. Chat-bound setup saved to this chat; Global items remain shared.', 'RPG Tracker');
+                toastr['success']('分项作用域已生效。聊天绑定设置已保存到当前聊天；全局项目仍保持共享。', 'RPG Tracker');
             } else if (enabled) {
-                toastr['info']('Setup lock is ready. Turn on Chat-Linked Mode to bind the current setup.', 'RPG Tracker');
+                toastr['info']('设置锁定已就绪。开启聊天联动模式即可绑定当前设置。', 'RPG Tracker');
             } else {
-                toastr['info']('Setup scope bypass on — the current setup will carry between chats without changing saved item scopes.', 'RPG Tracker');
+                toastr['info']('设置作用域绕过已开启 — 当前设置将跨聊天延续，且不修改已保存的项目作用域。', 'RPG Tracker');
             }
             saveSettings();
             updateChatLinkUI();
@@ -7674,11 +7675,11 @@ function organizeConnectionSettingsUI() {
         $('#rpg_tracker_clear_chat_states').on('click', function () {
             const s = getSettings();
             const count = Object.keys(s.chatStates || {}).length;
-            if (count === 0) return toastr['info']('No saved chat states to clear.', 'RPG Tracker');
-            if (confirm(`Clear ALL ${count} saved chat state(s)?\n\nThis removes the auto-saved tracker data for every chat. Your current live state is unaffected.\n\nProceed?`)) {
+            if (count === 0) return toastr['info']('没有已保存的聊天状态可清除。', 'RPG Tracker');
+            if (confirm(`清空全部 ${count} 个已保存的聊天状态？\n\n这将删除每个聊天自动保存的追踪器数据。您当前的实时状态不受影响。\n\n继续吗？`)) {
                 s.chatStates = {};
                 saveSettings();
-                toastr['success'](`Cleared ${count} chat state(s).`, 'RPG Tracker');
+                toastr['success'](`已清除 ${count} 个聊天状态。`, 'RPG Tracker');
             }
         });
 
@@ -7710,17 +7711,17 @@ function organizeConnectionSettingsUI() {
                 + Object.keys(s.customLocationImages || {}).length
                 + Object.values(s.chatStates || {}).reduce((n, cs) => n + Object.keys(cs.customPortraits || {}).length + Object.keys(cs.customLocationImages || {}).length, 0);
             if (totalMaps === 0 && embedded === 0 && fileRefs === 0) {
-                return toastr['info']('No portraits to purge.', 'RPG Tracker');
+                return toastr['info']('没有需要清除的立绘。', 'RPG Tracker');
             }
             const msg = [
-                'Purge ALL Multihog portraits?',
+                '清除所有 Multihog 立绘？',
                 '',
-                `• ${totalMaps} portrait reference(s) across live state + chat links`,
-                embedded > 0 ? `• ${embedded} still embedded in settings (will be removed)` : null,
-                fileRefs > 0 ? `• ${fileRefs} file(s) under user/images/${PORTRAIT_STORAGE_FOLDER}/` : null,
+                `• 实时状态 + 聊天联动中共 ${totalMaps} 条立绘引用`,
+                embedded > 0 ? `• ${embedded} 条仍内嵌在设置中（将被移除）` : null,
+                fileRefs > 0 ? `• ${fileRefs} 个文件位于 user/images/${PORTRAIT_STORAGE_FOLDER}/ 下` : null,
                 '',
-                'Memos, lorebooks, and chat history are not affected.',
-                'This cannot be undone.',
+                'Memos、lorebook 与聊天历史不受影响。',
+                '此操作无法撤销。',
             ].filter(Boolean).join('\n');
             if (!confirm(msg)) return;
             try {
@@ -7728,10 +7729,10 @@ function organizeConnectionSettingsUI() {
                 s.portraitsFileStorageVersion = 1;
                 await saveSettings(true);
                 refreshRenderedView();
-                toastr['success']('All portraits purged. Restart SillyTavern if the UI still feels sluggish.', 'RPG Tracker');
+                toastr['success']('所有立绘已清除。若界面仍显卡顿，请重启 SillyTavern。', 'RPG Tracker');
             } catch (err) {
                 console.error('[RPG Tracker] Portrait purge failed:', err);
-                toastr['error']('Portrait purge failed — see console.', 'RPG Tracker');
+                toastr['error']('立绘清除失败 — 请查看控制台。', 'RPG Tracker');
             }
         });
 
@@ -7795,7 +7796,7 @@ function organizeConnectionSettingsUI() {
             });
         }
         if (healedFromBackup) {
-            toastr['info']('Restored the browser-local tracker configuration you selected.', 'RPG Tracker', { timeOut: 6000 });
+            toastr['info']('已恢复您选择的浏览器本地追踪器配置。', 'RPG Tracker', { timeOut: 6000 });
         }
         eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
         if (event_types.CHAT_RENAMED) {
@@ -8008,19 +8009,19 @@ function organizeConnectionSettingsUI() {
 
         async function refreshOllamaModelsList() {
             const url = $('#rpg_tracker_ollama_url').val();
-            if (!url) return toastr['info']("Please enter an Ollama URL first.");
+            if (!url) return toastr['info']("请先输入 Ollama URL。");
             try {
-                toastr['info']("Fetching Ollama models...");
+                toastr['info']("正在获取 Ollama 模型…");
                 const models = await fetchOllamaModels(url);
-                ollamaModelSelect.empty().append('<option value="">-- Select Model --</option>');
+                ollamaModelSelect.empty().append('<option value="">-- 选择模型 --</option>');
                 models.forEach(m => {
                     ollamaModelSelect.append($('<option></option>').val(m.name).text(m.name));
                 });
                 ollamaModelSelect.val(settings.ollamaModel);
-                toastr['success']("Ollama models updated.");
+                toastr['success']("Ollama 模型已更新。");
             } catch (e) {
                 console.error("[RPG Tracker] Ollama fetch failed:", e);
-                toastr['error']("Failed to fetch Ollama models. Check console.");
+                toastr['error']("获取 Ollama 模型失败。请查看控制台。");
             }
         }
         $('#rpg_tracker_ollama_refresh').on('click', refreshOllamaModelsList);
@@ -8070,11 +8071,11 @@ function organizeConnectionSettingsUI() {
         async function refreshOpenAIModelsList() {
             const url = $('#rpg_tracker_openai_url').val();
             const key = $('#rpg_tracker_openai_key').val();
-            if (!url) return toastr['info']("Please enter an Endpoint URL first.");
+            if (!url) return toastr['info']("请先输入端点 URL。");
             try {
-                toastr['info']("Fetching models from endpoint...");
+                toastr['info']("正在从端点获取模型…");
                 const models = await fetchOpenAIModels(url, key);
-                openaiModelSelect.empty().append('<option value="">-- Select Model --</option>');
+                openaiModelSelect.empty().append('<option value="">-- 选择模型 --</option>');
                 models.forEach(m => {
                     const id = typeof m === 'string' ? m : (m.id || m.name);
                     if (id) openaiModelSelect.append($('<option></option>').val(id).text(id));
@@ -8085,13 +8086,13 @@ function organizeConnectionSettingsUI() {
                     openaiModelSelect.val(saved);
                     openaiModelManual.val('');
                 }
-                toastr['success'](`${models.length} model(s) found.`);
+                toastr['success'](`发现 ${models.length} 个模型。`);
             } catch (e) {
                 console.error("[RPG Tracker] OpenAI fetch failed:", e);
                 // Show a short toast; full details logged to console
                 toastr['warning'](
-                    "Cannot auto-detect models (CORS). Type the model name manually below, or enable enableCorsProxy: true in ST's config.yaml.",
-                    "Model Sniffing Unavailable",
+                    "无法自动检测模型（CORS）。请在下方手动输入模型名称，或在 ST 的 config.yaml 中启用 enableCorsProxy: true。",
+                    "模型自动检测不可用",
                     { timeOut: 8000 }
                 );
             }
@@ -8102,9 +8103,9 @@ function organizeConnectionSettingsUI() {
             const url = $('#rpg_tracker_openai_url').val();
             const key = $('#rpg_tracker_openai_key').val();
             const model = getOpenAIModel();
-            if (!url) return toastr['info']("Enter the Endpoint URL first.");
-            if (!model) return toastr['info']("Enter or select a model name first.");
-            toastr['info']("Testing OpenAI connection...");
+            if (!url) return toastr['info']("请先输入端点 URL。");
+            if (!model) return toastr['info']("请先输入或选择模型名称。");
+            toastr['info']("正在测试 OpenAI 连接…");
             const result = await testOpenAIConnection(url, key, model);
             if (result.success) {
                 toastr['success'](result.message);
@@ -8149,18 +8150,18 @@ function organizeConnectionSettingsUI() {
         });
         $('#rpg_portrait_ollama_refresh').on('click', async function () {
             const url = $('#rpg_portrait_ollama_url').val();
-            if (!url) return toastr['info']("Please enter an Ollama URL first.");
+            if (!url) return toastr['info']("请先输入 Ollama URL。");
             try {
-                toastr['info']("Fetching Ollama models...");
+                toastr['info']("正在获取 Ollama 模型…");
                 const models = await fetchOllamaModels(url);
-                portraitOllamaModelSelect.empty().append('<option value="">-- Select Model --</option>');
+                portraitOllamaModelSelect.empty().append('<option value="">-- 选择模型 --</option>');
                 models.forEach(m => {
                     portraitOllamaModelSelect.append($('<option></option>').val(m.name).text(m.name));
                 });
                 portraitOllamaModelSelect.val(settings.portraitOllamaModel);
-                toastr['success']("Ollama models updated.");
+                toastr['success']("Ollama 模型已更新。");
             } catch (e) {
-                toastr['error']("Failed to fetch Ollama models.");
+                toastr['error']("获取 Ollama 模型失败。");
             }
         });
 
@@ -8195,19 +8196,19 @@ function organizeConnectionSettingsUI() {
         $('#rpg_portrait_openai_refresh').on('click', async function () {
             const url = $('#rpg_portrait_openai_url').val();
             const key = $('#rpg_portrait_openai_key').val();
-            if (!url) return toastr['info']("Please enter an Endpoint URL first.");
+            if (!url) return toastr['info']("请先输入端点 URL。");
             try {
-                toastr['info']("Fetching models...");
+                toastr['info']("正在获取模型…");
                 const models = await fetchOpenAIModels(url, key);
-                portraitOpenaiModelSelect.empty().append('<option value="">-- Select Model --</option>');
+                portraitOpenaiModelSelect.empty().append('<option value="">-- 选择模型 --</option>');
                 models.forEach(m => {
                     const id = typeof m === 'string' ? m : (m.id || m.name);
                     if (id) portraitOpenaiModelSelect.append($('<option></option>').val(id).text(id));
                 });
                 portraitOpenaiModelSelect.val(settings.portraitOpenaiModel);
-                toastr['success']("Models updated.");
+                toastr['success']("模型已更新。");
             } catch (e) {
-                toastr['warning']("Cannot auto-detect models. Type manually.");
+                toastr['warning']("无法自动检测模型。请手动输入。");
             }
         });
 
@@ -8218,7 +8219,7 @@ function organizeConnectionSettingsUI() {
             saveSettings();
         })) {
             getConnectionProfiles().then(profiles => {
-                portraitProfileSelect.empty().append('<option value="">-- No Profile Selected --</option>');
+                portraitProfileSelect.empty().append('<option value="">-- 未选择配置文件 --</option>');
                 profiles.forEach(p => portraitProfileSelect.append($('<option></option>').val(p).text(p)));
                 portraitProfileSelect.val(settings.portraitConnectionProfileId || "");
             });
@@ -8230,7 +8231,7 @@ function organizeConnectionSettingsUI() {
 
         if (pm && typeof pm.getAllPresets === 'function') {
             const presets = pm.getAllPresets();
-            portraitPresetSelect.empty().append('<option value="">-- Use Current Settings --</option>');
+            portraitPresetSelect.empty().append('<option value="">-- 使用当前设置 --</option>');
             presets.forEach(p => portraitPresetSelect.append($('<option></option>').val(p).text(p)));
             portraitPresetSelect.val(settings.portraitCompletionPresetId || '');
         }
@@ -8284,7 +8285,7 @@ function organizeConnectionSettingsUI() {
         syncPortraitLocationPromptForNpcToggle(settings, !!settings.portraitLocationIncludePresentNpcs);
 
         $('#rpg_portrait_npc_btn_reset_prompt').on('click', function () {
-            if (!confirm('Reset NPC/PC Portrait Prompt to default?')) return;
+            if (!confirm('是否将 NPC/PC 肖像提示词重置为默认？')) return;
 
             const { extensionSettings } = SillyTavern.getContext();
             if (extensionSettings[MODULE_NAME]) {
@@ -8299,11 +8300,11 @@ function organizeConnectionSettingsUI() {
             $('#rpg_portrait_npc_system_prompt').val(freshDefault);
             saveSettings();
             refreshPortraitPromptPresetsList();
-            toastr['success']('NPC/PC Portrait Prompt reset to default.', 'RPG Tracker');
+            toastr['success']('NPC/PC 肖像提示词已重置为默认。', 'RPG Tracker');
         });
 
         $('#rpg_portrait_character_btn_reset_prompt').on('click', function () {
-            if (!confirm('Reset Character/Party/Combat Portrait Prompt to default?')) return;
+            if (!confirm('是否将角色/队伍/战斗肖像提示词重置为默认？')) return;
 
             const { extensionSettings } = SillyTavern.getContext();
             if (extensionSettings[MODULE_NAME]) {
@@ -8318,11 +8319,11 @@ function organizeConnectionSettingsUI() {
             $('#rpg_portrait_character_system_prompt').val(freshDefault);
             saveSettings();
             refreshPortraitPromptPresetsList();
-            toastr['success']('Character/Party/Combat Portrait Prompt reset to default.', 'RPG Tracker');
+            toastr['success']('角色/队伍/战斗肖像提示词已重置为默认。', 'RPG Tracker');
         });
 
         $('#rpg_portrait_location_btn_reset_prompt').on('click', function () {
-            if (!confirm('Reset Location Scene Prompt to default?')) return;
+            if (!confirm('是否将地点场景提示词重置为默认？')) return;
 
             const { extensionSettings } = SillyTavern.getContext();
             if (extensionSettings[MODULE_NAME]) {
@@ -8337,19 +8338,19 @@ function organizeConnectionSettingsUI() {
             setPortraitLocationPromptTextarea(freshDefault);
             saveSettings();
             refreshPortraitPromptPresetsList();
-            toastr['success']('Location Scene Prompt reset to default.', 'RPG Tracker');
+            toastr['success']('地点场景提示词已重置为默认。', 'RPG Tracker');
         });
 
         $('#rpg_portrait_prompt_preset_save_btn').on('click', function () {
-            const name = prompt('Enter a name for this portrait prompt setup:', 'My Portrait Prompts');
+            const name = prompt('为此肖像提示词方案输入名称：', '我的肖像提示词方案');
             if (!name || !name.trim()) return;
             const trimmedName = name.trim();
             if (getFactoryPortraitPromptPresetNameSet().has(trimmedName.toLowerCase())) {
-                toastr['warning'](`"${trimmedName}" is a factory art style name. Choose a different name for your saved setup.`, 'Portrait Prompt Library');
+                toastr['warning'](`"${trimmedName}" 是内置画风名称，请为保存的方案选择其他名称。`, '肖像提示词库');
                 return;
             }
             if (settings.savedPortraitPromptPresets && settings.savedPortraitPromptPresets[trimmedName]) {
-                if (!confirm(`A setup named "${trimmedName}" already exists. Overwrite?`)) return;
+                if (!confirm(`已存在名为 "${trimmedName}" 的方案，是否覆盖？`)) return;
             }
             if (!settings.savedPortraitPromptPresets) settings.savedPortraitPromptPresets = {};
             settings.savedPortraitPromptPresets[trimmedName] = {
@@ -8362,7 +8363,7 @@ function organizeConnectionSettingsUI() {
             settings.activePortraitPromptPresetId = `user:${trimmedName}`;
             saveSettings();
             refreshPortraitPromptPresetsList();
-            toastr['success'](`Saved "${trimmedName}" to library.`, 'Portrait Prompt Library');
+            toastr['success'](`已将 "${trimmedName}" 保存到库中。`, '肖像提示词库');
         });
 
         refreshPortraitPromptPresetsList();
@@ -8400,18 +8401,18 @@ function organizeConnectionSettingsUI() {
         });
         $('#rpg_world_ollama_refresh').on('click', async function () {
             const url = $('#rpg_world_ollama_url').val();
-            if (!url) return toastr['info']("Please enter an Ollama URL first.");
+            if (!url) return toastr['info']("请先输入 Ollama URL。");
             try {
-                toastr['info']("Fetching Ollama models...");
+                toastr['info']("正在获取 Ollama 模型...");
                 const models = await fetchOllamaModels(url);
-                worldOllamaModelSelect.empty().append('<option value="">-- Select Model --</option>');
+                worldOllamaModelSelect.empty().append('<option value="">-- 选择模型 --</option>');
                 models.forEach(m => {
                     worldOllamaModelSelect.append($('<option></option>').val(m.name).text(m.name));
                 });
                 worldOllamaModelSelect.val(settings.worldOllamaModel);
-                toastr['success']("Ollama models updated.");
+                toastr['success']("Ollama 模型已更新。");
             } catch (e) {
-                toastr['error']("Failed to fetch Ollama models.");
+                toastr['error']("获取 Ollama 模型失败。");
             }
         });
 
@@ -8446,19 +8447,19 @@ function organizeConnectionSettingsUI() {
         $('#rpg_world_openai_refresh').on('click', async function () {
             const url = $('#rpg_world_openai_url').val();
             const key = $('#rpg_world_openai_key').val();
-            if (!url) return toastr['info']("Please enter an Endpoint URL first.");
+            if (!url) return toastr['info']("请先输入端点 URL。");
             try {
-                toastr['info']("Fetching models...");
+                toastr['info']("正在获取模型...");
                 const models = await fetchOpenAIModels(url, key);
-                worldOpenaiModelSelect.empty().append('<option value="">-- Select Model --</option>');
+                worldOpenaiModelSelect.empty().append('<option value="">-- 选择模型 --</option>');
                 models.forEach(m => {
                     const id = typeof m === 'string' ? m : (m.id || m.name);
                     if (id) worldOpenaiModelSelect.append($('<option></option>').val(id).text(id));
                 });
                 worldOpenaiModelSelect.val(settings.worldOpenaiModel);
-                toastr['success']("Models updated.");
+                toastr['success']("模型已更新。");
             } catch (e) {
-                toastr['warning']("Cannot auto-detect models. Type manually.");
+                toastr['warning']("无法自动检测模型，请手动输入。");
             }
         });
 
@@ -8469,7 +8470,7 @@ function organizeConnectionSettingsUI() {
             saveSettings();
         })) {
             getConnectionProfiles().then(profiles => {
-                worldProfileSelect.empty().append('<option value="">-- No Profile Selected --</option>');
+                worldProfileSelect.empty().append('<option value="">-- 未选择配置文件 --</option>');
                 profiles.forEach(p => worldProfileSelect.append($('<option></option>').val(p).text(p)));
                 worldProfileSelect.val(settings.worldConnectionProfileId || "");
             });
@@ -8481,7 +8482,7 @@ function organizeConnectionSettingsUI() {
 
         if (pm && typeof pm.getAllPresets === 'function') {
             const presets = pm.getAllPresets();
-            worldPresetSelect.empty().append('<option value="">-- Use Current Settings --</option>');
+            worldPresetSelect.empty().append('<option value="">-- 使用当前设置 --</option>');
             presets.forEach(p => worldPresetSelect.append($('<option></option>').val(p).text(p)));
             worldPresetSelect.val(settings.worldCompletionPresetId || '');
         }
@@ -8522,18 +8523,18 @@ function organizeConnectionSettingsUI() {
         });
         $('#rpg_gs_wizard_ollama_refresh').on('click', async function () {
             const url = $('#rpg_gs_wizard_ollama_url').val();
-            if (!url) return toastr['info']("Please enter an Ollama URL first.");
+            if (!url) return toastr['info']("请先输入 Ollama URL。");
             try {
-                toastr['info']("Fetching Ollama models...");
+                toastr['info']("正在获取 Ollama 模型...");
                 const models = await fetchOllamaModels(url);
-                gsWizardOllamaModelSelect.empty().append('<option value="">-- Select Model --</option>');
+                gsWizardOllamaModelSelect.empty().append('<option value="">-- 选择模型 --</option>');
                 models.forEach(m => {
                     gsWizardOllamaModelSelect.append($('<option></option>').val(m.name).text(m.name));
                 });
                 gsWizardOllamaModelSelect.val(settings.gameSystemWizardOllamaModel);
-                toastr['success']("Ollama models updated.");
+                toastr['success']("Ollama 模型已更新。");
             } catch (e) {
-                toastr['error']("Failed to fetch Ollama models.");
+                toastr['error']("获取 Ollama 模型失败。");
             }
         });
 
@@ -8567,19 +8568,19 @@ function organizeConnectionSettingsUI() {
         $('#rpg_gs_wizard_openai_refresh').on('click', async function () {
             const url = $('#rpg_gs_wizard_openai_url').val();
             const key = $('#rpg_gs_wizard_openai_key').val();
-            if (!url) return toastr['info']("Please enter an Endpoint URL first.");
+            if (!url) return toastr['info']("请先输入端点 URL。");
             try {
-                toastr['info']("Fetching models...");
+                toastr['info']("正在获取模型...");
                 const models = await fetchOpenAIModels(url, key);
-                gsWizardOpenaiModelSelect.empty().append('<option value="">-- Select Model --</option>');
+                gsWizardOpenaiModelSelect.empty().append('<option value="">-- 选择模型 --</option>');
                 models.forEach(m => {
                     const id = typeof m === 'string' ? m : (m.id || m.name);
                     if (id) gsWizardOpenaiModelSelect.append($('<option></option>').val(id).text(id));
                 });
                 gsWizardOpenaiModelSelect.val(settings.gameSystemWizardOpenaiModel);
-                toastr['success']("Models updated.");
+                toastr['success']("模型已更新。");
             } catch (e) {
-                toastr['warning']("Cannot auto-detect models. Type manually.");
+                toastr['warning']("无法自动检测模型，请手动输入。");
             }
         });
 
@@ -8589,7 +8590,7 @@ function organizeConnectionSettingsUI() {
             saveSettings();
         })) {
             getConnectionProfiles().then(profiles => {
-                gsWizardProfileSelect.empty().append('<option value="">-- No Profile Selected --</option>');
+                gsWizardProfileSelect.empty().append('<option value="">-- 未选择配置文件 --</option>');
                 profiles.forEach(p => gsWizardProfileSelect.append($('<option></option>').val(p).text(p)));
                 gsWizardProfileSelect.val(settings.gameSystemWizardConnectionProfileId || "");
             });
@@ -8601,7 +8602,7 @@ function organizeConnectionSettingsUI() {
 
         if (pm && typeof pm.getAllPresets === 'function') {
             const presets = pm.getAllPresets();
-            gsWizardPresetSelect.empty().append('<option value="">-- Use Current Settings --</option>');
+            gsWizardPresetSelect.empty().append('<option value="">-- 使用当前设置 --</option>');
             presets.forEach(p => gsWizardPresetSelect.append($('<option></option>').val(p).text(p)));
             gsWizardPresetSelect.val(settings.gameSystemWizardCompletionPresetId || '');
         }
@@ -8705,7 +8706,7 @@ function organizeConnectionSettingsUI() {
             }
 
             if (!worldNames || worldNames.length === 0) {
-                $container.append('<i style="opacity:0.6;">No lorebooks found.</i>');
+                $container.append('<i style="opacity:0.6;">未找到任何世界书。</i>');
                 return;
             }
 
@@ -8776,7 +8777,7 @@ function organizeConnectionSettingsUI() {
         });
         document.getElementById('rpg_tracker_theme_iterate')?.addEventListener('click', () => {
             if (!settings.customTheme) {
-                toastr['info']('No custom theme to iterate on. Generating a new one instead.', 'Theme Wizard');
+                toastr['info']('没有可迭代的自定义主题，将改为生成新主题。', '主题向导');
                 openThemeWizard(false);
             } else {
                 openThemeWizard(true);
@@ -8796,20 +8797,20 @@ function organizeConnectionSettingsUI() {
 
         document.getElementById('rpg_tracker_theme_save')?.addEventListener('click', () => {
             if (!settings.customTheme) {
-                toastr['warning']('No custom theme to save. Generate one first!', 'Theme Wizard');
+                toastr['warning']('没有可保存的自定义主题，请先生成一个！', '主题向导');
                 return;
             }
-            const name = prompt('Enter a name for this theme:', 'My Custom Theme');
+            const name = prompt('为此主题输入名称：', '我的自定义主题');
             if (name && name.trim()) {
                 const trimmedName = name.trim();
                 if (settings.savedThemes && settings.savedThemes[trimmedName]) {
-                    if (!confirm(`A theme named "${trimmedName}" already exists. Overwrite?`)) return;
+                    if (!confirm(`已存在名为"${trimmedName}"的主题。是否覆盖？`)) return;
                 }
                 if (!settings.savedThemes) settings.savedThemes = {};
                 settings.savedThemes[trimmedName] = JSON.parse(JSON.stringify(settings.customTheme));
                 saveSettings();
                 refreshSavedThemesList();
-                toastr['success'](`Saved "${name}" to library.`, 'Theme Library');
+                toastr['success'](`已将"${name}"保存到库。`, '主题库');
             }
         });
         document.getElementById('rpg_tracker_theme_wizard_undo')?.addEventListener('click', () => {
@@ -8853,7 +8854,7 @@ function organizeConnectionSettingsUI() {
         })) {
             // Fallback for older ST: /profile-list returns names only
             const profiles = await getConnectionProfiles();
-            profileSelect.empty().append('<option value="">-- No Profile Selected --</option>');
+            profileSelect.empty().append('<option value="">-- 未选择配置 --</option>');
             profiles.forEach(p => {
                 profileSelect.append($('<option></option>').val(p).text(p));
             });
@@ -8868,13 +8869,13 @@ function organizeConnectionSettingsUI() {
         const presetSelect = $('#rpg_tracker_completion_preset');
         if (pm && typeof pm.getAllPresets === 'function') {
             const presets = pm.getAllPresets();
-            presetSelect.empty().append('<option value="">-- Use Current Settings --</option>');
+            presetSelect.empty().append('<option value="">-- 使用当前设置 --</option>');
             presets.forEach(p => {
                 presetSelect.append($('<option></option>').val(p).text(p));
             });
             presetSelect.val(settings.completionPresetId || '');
         } else {
-            presetSelect.empty().append('<option value="">-- Use Current Settings --</option>');
+            presetSelect.empty().append('<option value="">-- 使用当前设置 --</option>');
             if (settings.completionPresetId) {
                 presetSelect.append($('<option></option>').val(settings.completionPresetId).text(settings.completionPresetId));
                 presetSelect.val(settings.completionPresetId);
@@ -8923,13 +8924,13 @@ function organizeConnectionSettingsUI() {
 
             const inputContent = `
                     <div style="display:flex; flex-direction:column; gap:10px; width:100%; box-sizing:border-box;">
-                        <div style="font-size:13px; opacity:0.9; font-weight:bold;">🪄 AI Custom Field Creator</div>
+                        <div style="font-size:13px; opacity:0.9; font-weight:bold;">🪄 AI 自定义字段创建器</div>
                         <div style="font-size:11px; opacity:0.7; line-height:1.4;">
-                            Describe what you want to track in plain language. The AI will generate a field name, icon, prompt instruction, and rendering template.
+                            用自然语言描述你想追踪的内容。AI 将生成字段名称、图标、提示指令和渲染模板。
                         </div>
                         <textarea id="rt_ai_field_desc" rows="4" class="text_pole"
                             style="font-size:12px; resize:vertical; width:100%;"
-                            placeholder="Example: A corruption tracker that goes up when the player does evil acts. Show it as a bar out of 100 and list corruption effects as pills."></textarea>
+                            placeholder="示例：一个堕落度追踪器，当玩家做出邪恶行为时数值上升。以100为满格用进度条显示，并将堕落效果列为胶囊标签。"></textarea>
                     </div>
                 `;
 
@@ -8941,11 +8942,11 @@ function organizeConnectionSettingsUI() {
                 }
             }, 100);
 
-            const inputResult = await Popup.show.confirm('Describe Your Custom Field', inputContent, { okButton: 'Generate', cancelButton: 'Cancel' });
+            const inputResult = await Popup.show.confirm('描述你的自定义字段', inputContent, { okButton: '生成', cancelButton: '取消' });
             if (!inputResult) return;
 
             if (!description) {
-                toastr['warning']('Please describe what you want to track.', 'AI Field Creator');
+                toastr['warning']('请描述你想追踪的内容。', 'AI 字段创建器');
                 return;
             }
 
@@ -9011,7 +9012,7 @@ RULES:
 - template MUST use rendering tags — this is just the UI preview for the user. It should match the EXAMPLE you provided in the prompt.
 - Return ONLY the JSON. No explanation, no markdown fences.`;
 
-            toastr['info']('Generating custom field with AI...', 'AI Field Creator', { timeOut: 3000 });
+            toastr['info']('正在用 AI 生成自定义字段…', 'AI 字段创建器', { timeOut: 3000 });
             try {
                 const result = await sendStateRequest(settings, 'You are a JSON configuration generator. Return ONLY valid JSON.', aiPrompt);
                 if (!result) throw new Error('No response from AI');
@@ -9037,15 +9038,15 @@ RULES:
                 // Show preview for approval
                 const previewContent = `
                         <div style="display:flex; flex-direction:column; gap:10px; width:100%; box-sizing:border-box; max-height:80vh;">
-                            <div style="font-size:13px; font-weight:bold;">🪄 AI Generated Custom Field</div>
+                            <div style="font-size:13px; font-weight:bold;">🪄 AI 生成的自定义字段</div>
                             <div style="border: 1px solid rgba(255,255,255,0.15); border-radius:8px; padding:12px; background:rgba(255,255,255,0.03); overflow-y:auto;">
-                                <div><b>Tag:</b> [${escapeHtml(parsed.tag)}]</div>
-                                <div><b>Label:</b> ${escapeHtml(parsed.icon)} ${escapeHtml(parsed.label)}</div>
-                                <div style="margin-top:6px;"><b>AI Prompt:</b></div>
+                                <div><b>标签：</b> [${escapeHtml(parsed.tag)}]</div>
+                                <div><b>名称：</b> ${escapeHtml(parsed.icon)} ${escapeHtml(parsed.label)}</div>
+                                <div style="margin-top:6px;"><b>AI 提示词：</b></div>
                                 <div style="font-size:11px; opacity:0.8; white-space:pre-wrap; padding:6px 8px; background:rgba(0,0,0,0.2); border-radius:4px; margin-top:2px;">${escapeHtml(parsed.prompt)}</div>
-                                <div style="margin-top:6px;"><b>Example Template:</b></div>
+                                <div style="margin-top:6px;"><b>示例模板：</b></div>
                                 <div style="font-size:11px; opacity:0.8; white-space:pre-wrap; padding:6px 8px; background:rgba(0,0,0,0.2); border-radius:4px; margin-top:2px; font-family:monospace;">${escapeHtml(parsed.template)}</div>
-                                <div style="margin-top:12px; font-weight:bold; font-size:12px;">Live Preview:</div>
+                                <div style="margin-top:12px; font-weight:bold; font-size:12px;">实时预览：</div>
                                 <div id="rt_ai_cfe_preview_view" class="rpg-tracker-render-view" style="margin-top:4px; border:1px solid rgba(255,255,255,0.1); border-radius:6px; background:rgba(0,0,0,0.2); padding:4px;"></div>
                             </div>
                         </div>
@@ -9076,9 +9077,9 @@ RULES:
                     }
                 }, 150);
 
-                const approved = await Popup.show.confirm('Accept Custom Field?', previewContent);
+                const approved = await Popup.show.confirm('接受自定义字段？', previewContent);
                 if (!approved) {
-                    toastr['info']('Custom field creation cancelled.', 'AI Field Creator');
+                    toastr['info']('已取消自定义字段创建。', 'AI 字段创建器');
                     return;
                 }
 
@@ -9094,17 +9095,17 @@ RULES:
                 clearDeletedCustomTagTombstones(parsed.tag);
                 saveSettings(true);
                 refreshOrderList();
-                toastr['success'](`Custom field "${parsed.label}" created!`, 'AI Field Creator');
+                toastr['success'](`自定义字段"${parsed.label}"已创建！`, 'AI 字段创建器');
             } catch (err) {
                 console.error('[RPG Tracker] AI Field Creator error:', err);
-                toastr['error'](`Failed to create field: ${err.message}`, 'AI Field Creator');
+                toastr['error'](`创建字段失败：${err.message}`, 'AI 字段创建器');
             }
         });
 
         $('#rpg_tracker_export_all_modules').on('click', () => {
             const s = getSettings();
             if (!s.customFields || s.customFields.length === 0) {
-                toastr['info']('No custom modules to export.', 'Multihog Framework');
+                toastr['info']('没有可导出的自定义模块。', 'Multihog 框架');
                 return;
             }
             exportModules(s.customFields);
@@ -9125,14 +9126,14 @@ RULES:
             const content = `
                     <div style="display:flex; flex-direction:column; gap:8px; width:100%; box-sizing:border-box;">
                         <p style="margin:0; font-size:12px; opacity:0.7;">
-                            Paste the module export code (JSON) below or load it from a file.
+                            在下方粘贴模块导出代码（JSON），或从文件加载。
                         </p>
                         <textarea id="rt_import_blob" rows="12" class="text_pole"
                             style="font-family:monospace; font-size:11px; resize:vertical; width:100%;"
                             placeholder='{"format": "multihog-custom-module", ...}'
                         ></textarea>
                         <button id="rt_import_file_btn" class="menu_button interactable" style="width:100%;">
-                            <i class="fa-solid fa-file-upload"></i> Load from File
+                            <i class="fa-solid fa-file-upload"></i> 从文件加载
                         </button>
                     </div>
                 `;
@@ -9168,7 +9169,7 @@ RULES:
                 });
             }, 100);
 
-            const result = await Popup.show.confirm('📥 Import Custom Module(s)', content, { okButton: 'Import', cancelButton: 'Cancel' });
+            const result = await Popup.show.confirm('📥 导入自定义模块', content, { okButton: '导入', cancelButton: '取消' });
             document.body.removeChild(fileInput);
 
             if (result && pastedValue.trim()) {
@@ -9178,9 +9179,9 @@ RULES:
 
         $('#rpg_tracker_delete_all_custom_modules').on('click', function () {
             const s = getSettings();
-            if (!s.customFields || s.customFields.length === 0) return toastr['info']('No custom modules to delete.', 'RPG Tracker');
+            if (!s.customFields || s.customFields.length === 0) return toastr['info']('没有可删除的自定义模块。', 'RPG 追踪器');
 
-            if (confirm(`Delete ALL (${s.customFields.length}) custom modules?\n\nThis will also remove their data from the current tracker state. Stock modules (COMBAT, CHARACTER, etc.) will not be touched.\n\nProceed?`)) {
+            if (confirm(`删除全部 (${s.customFields.length}) 个自定义模块？\n\n这还会从当前追踪器状态中移除它们的数据。内置模块（COMBAT、CHARACTER 等）不受影响。\n\n继续吗？`)) {
                 const customTags = new Set(s.customFields.map(f => f.tag.toUpperCase()));
                 removeChatSetupCatalogEntries(s, { customFieldTags: [...customTags] });
                 recordDeletedCustomTags([...customTags]);
@@ -9213,7 +9214,7 @@ RULES:
                 saveSettings();
                 refreshOrderList();
                 syncMemoView();
-                toastr['success']('All custom modules deleted.', 'RPG Tracker');
+                toastr['success']('所有自定义模块已删除。', 'RPG 追踪器');
             }
         });
 
@@ -9251,7 +9252,7 @@ RULES:
             }
             html += '</div>';
 
-            await Popup.show.confirm('🎨 Rendering Tags Library', html, { okButton: 'Close', cancelButton: false });
+            await Popup.show.confirm('🎨 渲染标签库', html, { okButton: '关闭', cancelButton: false });
         });
 
         const fullReviewChk = $('#rpg_tracker_full_review_mode');
@@ -9301,7 +9302,7 @@ RULES:
         });
 
         $('#rpg_tracker_btn_reset_prompt').on('click', function () {
-            if (!confirm('Reset the State Model prompt and user prompt suffix to the built-in defaults?')) return;
+            if (!confirm('将状态模型提示词和用户提示词后缀重置为内置默认值？')) return;
             // Re-read the default from the defaults object by temporarily clearing the stored value
             const { extensionSettings } = SillyTavern.getContext();
             delete extensionSettings[MODULE_NAME].systemPromptTemplate;
@@ -9310,7 +9311,7 @@ RULES:
             $('#rpg_tracker_core_prompt').val(freshSettings.systemPromptTemplate);
             $('#rpg_tracker_user_prompt_suffix').val(freshSettings.userPromptSuffix);
             saveSettings();
-            toastr['success']('Core prompt and user prompt suffix reset to defaults.', 'RPG Tracker');
+            toastr['success']('核心提示词和用户提示词后缀已重置为默认值。', 'RPG 追踪器');
         });
 
         $('#rpg_tracker_btn_update_sysprompt_general').on('click', async function () {
@@ -9329,7 +9330,7 @@ RULES:
             }
 
             if (!content) {
-                toastr['error'](`Could not load ${fileName}. Main prompt was NOT updated.`, 'RPG Tracker');
+                toastr['error'](`无法加载 ${fileName}。主提示词未更新。`, 'RPG 追踪器');
                 return;
             }
 
@@ -9339,22 +9340,22 @@ RULES:
             if (mainTextarea) {
                 mainTextarea.value = content;
                 mainTextarea.dispatchEvent(new Event('blur', { bubbles: true }));
-                toastr['success'](`Main sysprompt updated (${getSettings().diceFunctionTool ? 'Normal' : 'Legacy'} mode)! ✅`, 'RPG Tracker');
+                toastr['success'](`主系统提示词已更新（${getSettings().diceFunctionTool ? '正常' : '旧版'} 模式）！✅`, 'RPG 追踪器');
             } else {
                 await navigator.clipboard.writeText(content).catch(() => { });
-                toastr['info']('Quick-edit textarea not found. Sysprompt copied to clipboard — paste it manually into your Main prompt.', 'RPG Tracker');
+                toastr['info']('未找到快速编辑文本框。系统提示词已复制到剪贴板——请手动粘贴到您的 Main 提示词中。', 'RPG 追踪器');
             }
         });
 
         $('#rpg_tracker_btn_reset_all_prompts').on('click', function () {
-            if (!confirm('This will reset the Module Prompts, Active Modules, and Module Order to their factory defaults. Custom modules will be moved to the bottom of the list. Your Core Prompt will not be affected. Proceed?')) return;
+            if (!confirm('此操作将把模块提示词、活动模块和模块顺序重置为出厂默认值。自定义模块将移到列表底部。您的核心提示词不受影响。是否继续？')) return;
             const { extensionSettings } = SillyTavern.getContext();
             delete extensionSettings[MODULE_NAME].stockPrompts;
             delete extensionSettings[MODULE_NAME].blockOrder;
             delete extensionSettings[MODULE_NAME].modules;
             refreshOrderList();
             saveSettings();
-            toastr['success']('Stock modules, order, and prompts reset to factory defaults.', 'RPG Tracker');
+            toastr['success']('内置模块、顺序和提示词已重置为出厂默认值。', 'RPG 追踪器');
         });
 
         $('#rpg_tracker_btn_edit_npc_sections').on('click', function () {
@@ -9380,11 +9381,11 @@ RULES:
                 void _runPromptDefaultsDialog();
                 return;
             }
-            toastr['warning']('No pending prompt-default update dialog is loaded. Reload the page.', 'RPG Tracker');
+            toastr['warning']('未加载待处理的提示词默认值更新对话框。请重新加载页面。', 'RPG 追踪器');
         });
 
         $('#rpg_tracker_btn_reset_and_apply_sysprompt').on('click', async function () {
-            if (!confirm('This will:\n\n1. Reset the Core State Model prompt to built-in default\n2. Reset all Stock Module prompts, Active Modules, and Module Order to factory defaults\n3. Reset all Lorebook Agent prompts and World Progression prompts to factory defaults\n4. Fetch the latest sysprompt.txt and write it directly into your Quick Prompt "Main" box\n5. Automatically re-enable any custom sysprompt sections that were already enabled\n\nYour custom modules will NOT be affected. Proceed?')) return;
+            if (!confirm('此操作将：\n\n1. 将核心状态模型提示词重置为内置默认值\n2. 将所有 stock 模块提示词、活动模块和模块顺序重置为出厂默认值\n3. 将所有 Lorebook Agent 提示词和 World Progression 提示词重置为出厂默认值\n4. 获取最新的 sysprompt.txt 并直接写入您的快速提示词 "Main" 框\n5. 自动重新启用任何已启用的自定义 sysprompt 部分\n\n您的自定义模块不受影响。是否继续？')) return;
 
             const { extensionSettings } = SillyTavern.getContext();
 
@@ -9441,7 +9442,7 @@ RULES:
             }
 
             if (!content) {
-                toastr['error']('Could not load sysprompt.txt. Reset completed but Main prompt was NOT updated.', 'RPG Tracker');
+                toastr['error']('无法加载 sysprompt.txt。重置已完成，但主提示词未更新。', 'RPG 追踪器');
                 return;
             }
 
@@ -9455,7 +9456,7 @@ RULES:
                 // Fire blur to trigger ST's handleQuickEditSave listener
                 mainTextarea.dispatchEvent(new Event('blur', { bubbles: true }));
 
-                toastr['success']('All prompts reset & Main sysprompt applied! \u2705', 'RPG Tracker');
+                toastr['success']('所有提示词已重置 & 主系统提示词已应用！ \u2705', 'RPG 追踪器');
             } else {
                 // Fallback: ST might not be in OpenAI mode, so the quick-edit textarea may not exist.
                 // Copy to clipboard as a graceful fallback.
@@ -9467,9 +9468,9 @@ RULES:
                 ta.select();
                 try {
                     document.execCommand('copy');
-                    toastr['warning']('All prompts reset. Quick Prompt "Main" textarea not found. Sysprompt copied to clipboard — paste it manually and enable function calls in the completion preset!', 'RPG Tracker');
+                    toastr['warning']('所有提示词已重置。未找到快速提示词 "Main" 文本框。系统提示词已复制到剪贴板——请手动粘贴，并在完成预设中启用函数调用！', 'RPG 追踪器');
                 } catch (e) {
-                    toastr['warning']('All prompts reset. Quick Prompt "Main" textarea not found and clipboard copy failed. Use the SYSPROMPT button to copy manually.', 'RPG Tracker');
+                    toastr['warning']('所有提示词已重置。未找到快速提示词 "Main" 文本框，剪贴板复制失败。请使用 SYSPROMPT 按钮手动复制。', 'RPG 追踪器');
                 } finally {
                     document.body.removeChild(ta);
                 }
@@ -10083,21 +10084,21 @@ RULES:
         function buildCyoaSlotInput(type, slot = {}) {
             if (type === 'custom') {
                 const text = slot.text || [slot.left, slot.right].filter(Boolean).join(' ');
-                return `<input type="text" class="text_pole cyoa-slot-custom-text" placeholder="Entire choice text…" value="${escapeCyoaSlotAttribute(text)}" style="width:100%;font-size:11px;height:24px;padding:2px 6px;box-sizing:border-box;" />`;
+                return `<input type="text" class="text_pole cyoa-slot-custom-text" placeholder="完整选项文本…" value="${escapeCyoaSlotAttribute(text)}" style="width:100%;font-size:11px;height:24px;padding:2px 6px;box-sizing:border-box;" />`;
             }
-            const placeholder = type === 'trait' ? 'Ability name (e.g. Illithid) — optional'
-                : type === 'prefix' ? 'Label (e.g. [Attack] or [Timeskip])' : '';
+            const placeholder = type === 'trait' ? '能力名称（例如 Illithid）— 可选'
+                : type === 'prefix' ? '标签（例如 [Attack] 或 [Timeskip]）' : '';
             return `<input type="text" class="text_pole cyoa-slot-label" placeholder="${placeholder}" value="${escapeCyoaSlotAttribute(slot.label)}" style="width:100%;font-size:11px;height:24px;padding:2px 6px;box-sizing:border-box;" />`;
         }
 
         function buildCyoaSlotRow(slot, idx) {
             const slotType = slot.type === 'roll' ? 'narrative' : slot.type;
             const typeOpts = [
-                ['narrative', '🌀 Narrative-Decided'],
-                ['normal',    '💬 Normal'],
-                ['trait',     '⚡ Trait/Ability'],
-                ['prefix',    '🏷️ Prefix'],
-                ['custom',    'User-defined'],
+                ['narrative', '🌀 叙事决定'],
+                ['normal',    '💬 普通'],
+                ['trait',     '⚡ 特性/能力'],
+                ['prefix',    '🏷️ 前缀'],
+                ['custom',    '用户自定义'],
             ].map(([v, l]) => `<option value="${v}"${slotType === v ? ' selected' : ''}>${l}</option>`).join('');
 
             const hasInput = slotType === 'trait' || slotType === 'prefix' || slotType === 'custom';
@@ -10108,7 +10109,7 @@ RULES:
                 <div class="cyoa-slot-input" style="flex:1;display:${hasInput ? 'block' : 'none'}">
                     ${buildCyoaSlotInput(slotType, slot)}
                 </div>
-                <button class="cyoa-slot-del" style="background:rgba(200,50,50,0.15);border:1px solid rgba(200,50,50,0.4);border-radius:4px;color:rgba(255,120,120,0.9);font-size:11px;padding:1px 7px;cursor:pointer;flex-shrink:0;" title="Remove slot">×</button>
+                <button class="cyoa-slot-del" style="background:rgba(200,50,50,0.15);border:1px solid rgba(200,50,50,0.4);border-radius:4px;color:rgba(255,120,120,0.9);font-size:11px;padding:1px 7px;cursor:pointer;flex-shrink:0;" title="删除选项槽">×</button>
             </div>`;
         }
 
@@ -10195,7 +10196,7 @@ RULES:
             const select = dlg?.querySelector('#cyoa-preset-select');
             if (!select) return;
             const presets = getSettings().cyoaConfig?.presets || {};
-            select.innerHTML = '<option value="">-- Select Preset --</option>'
+            select.innerHTML = '<option value="">-- 选择预设 --</option>'
                 + Object.keys(presets).map(name => `<option value="${escapeCyoaPresetHtml(name)}" ${name === selectedName ? 'selected' : ''}>${escapeCyoaPresetHtml(name)}</option>`).join('');
         }
 
@@ -10205,7 +10206,7 @@ RULES:
             // Prefix/Trait text, rather than exporting an older stored snapshot.
             const slots = Array.isArray(visibleSlots) ? visibleSlots : presets[presetName];
             if (!presetName || !Array.isArray(slots)) {
-                toastr.warning('Select a preset to export first.', 'CYOA');
+                toastr.warning('请先选择要导出的预设。', 'CYOA');
                 return;
             }
             const json = JSON.stringify({
@@ -10217,23 +10218,23 @@ RULES:
             }, null, 2);
             const escapedJson = escapeCyoaPresetHtml(json);
             const { Popup } = SillyTavern.getContext();
-            Popup.show.confirm('📤 Export CYOA Presets', `
+            Popup.show.confirm('📤 导出 CYOA 预设', `
                 <div style="display:flex;flex-direction:column;gap:8px;min-width:360px;">
-                    <div style="font-size:12px;opacity:0.75;">This exports the selected preset, “${escapeCyoaPresetHtml(presetName)}”. Share the JSON or import it on another installation.</div>
+                    <div style="font-size:12px;opacity:0.75;">这将导出所选预设“${escapeCyoaPresetHtml(presetName)}”。可以分享该 JSON，也可在其他安装中导入。</div>
                     <textarea id="cyoa-preset-export-json" readonly rows="12" class="text_pole" style="font-family:monospace;font-size:11px;resize:vertical;width:100%;">${escapedJson}</textarea>
                     <div style="display:flex;gap:8px;">
-                        <button id="cyoa-preset-export-copy" class="menu_button interactable" style="flex:1;"><i class="fa-solid fa-copy"></i> Copy to Clipboard</button>
-                        <button id="cyoa-preset-export-download" class="menu_button interactable" style="flex:1;"><i class="fa-solid fa-file-download"></i> Export .json</button>
+                        <button id="cyoa-preset-export-copy" class="menu_button interactable" style="flex:1;"><i class="fa-solid fa-copy"></i> 复制到剪贴板</button>
+                        <button id="cyoa-preset-export-download" class="menu_button interactable" style="flex:1;"><i class="fa-solid fa-file-download"></i> 导出 .json</button>
                     </div>
-                </div>`, { okButton: 'Done', cancelButton: false });
+                </div>`, { okButton: '完成', cancelButton: false });
             setTimeout(() => {
                 document.getElementById('cyoa-preset-export-copy')?.addEventListener('click', async () => {
                     try {
                         await navigator.clipboard.writeText(json);
-                        toastr.success(`CYOA preset "${presetName}" copied to clipboard!`, 'CYOA');
+                        toastr.success(`CYOA 预设“${presetName}”已复制到剪贴板！`, 'CYOA');
                     } catch (err) {
                         console.error('[RPG Tracker] CYOA preset clipboard copy failed:', err);
-                        toastr.error('Could not copy automatically. Please select the text manually.', 'CYOA');
+                        toastr.error('无法自动复制，请手动选择文本。', 'CYOA');
                     }
                 });
                 document.getElementById('cyoa-preset-export-download')?.addEventListener('click', () => {
@@ -10256,22 +10257,22 @@ RULES:
             let value = '';
             const content = `
                 <div style="display:flex;flex-direction:column;gap:8px;min-width:360px;">
-                    <div style="font-size:12px;opacity:0.75;">Paste one exported CYOA preset. It will be added without overwriting an existing preset.</div>
+                    <div style="font-size:12px;opacity:0.75;">粘贴一个导出的 CYOA 预设，将新增该预设且不会覆盖已有预设。</div>
                     <textarea id="cyoa-preset-import-json" rows="12" class="text_pole" style="font-family:monospace;font-size:11px;resize:vertical;width:100%;" placeholder='{"format":"multihog-cyoa-preset", ...}'></textarea>
                 </div>`;
             setTimeout(() => {
                 document.getElementById('cyoa-preset-import-json')?.addEventListener('input', (event) => { value = event.target.value; });
             }, 50);
-            const result = await Popup.show.confirm('📥 Import CYOA Presets', content, { okButton: 'Import', cancelButton: 'Cancel' });
+            const result = await Popup.show.confirm('📥 导入 CYOA 预设', content, { okButton: '导入', cancelButton: '取消' });
             if (!result || !value.trim()) return null;
 
             let parsed;
             try { parsed = JSON.parse(value); } catch (_) {
-                toastr.error('Could not parse that as JSON.', 'CYOA');
+                toastr.error('无法将该内容解析为 JSON。', 'CYOA');
                 return null;
             }
             if (parsed?.format !== CYOA_PRESET_EXPORT_FORMAT || typeof parsed.name !== 'string' || !Array.isArray(parsed.slots)) {
-                toastr.error('That is not a recognized CYOA preset export.', 'CYOA');
+                toastr.error('这不是可识别的 CYOA 预设导出。', 'CYOA');
                 return null;
             }
 
@@ -10285,7 +10286,7 @@ RULES:
             // the preset's definition and must round-trip exactly through export/import.
             config.presets[name] = parsed.slots.map(slot => slot?.type === 'roll' ? { ...slot, type: 'narrative' } : { ...slot });
             saveSettings();
-            toastr.success(`CYOA preset "${name}" imported!`, 'CYOA');
+            toastr.success(`CYOA 预设“${name}”已导入！`, 'CYOA');
             return { name, slots: config.presets[name] };
         }
 
@@ -10309,103 +10310,103 @@ RULES:
 
             const html = `
             <div style="font-family:inherit;max-width:560px;min-width:380px;max-height:80vh;overflow-y:auto;overflow-x:hidden;padding-right:4px;box-sizing:border-box;">
-                <div style="font-size:15px;font-weight:bold;margin-bottom:10px;color:var(--SmartThemeBodyColor, #eee);">⚙️ CYOA Mode Settings</div>
+                <div style="font-size:15px;font-weight:bold;margin-bottom:10px;color:var(--SmartThemeBodyColor, #eee);">⚙️ CYOA 模式设置</div>
                 <div style="margin-bottom:14px;padding:8px 10px;border-radius:6px;background:rgba(120,80,220,0.12);border:1px solid rgba(120,80,220,0.35);font-size:11.5px;line-height:1.45;color:var(--SmartThemeBodyColor,#eee);">
-                    <div style="font-weight:600;margin-bottom:4px;">Recommended: Pre-Seeded RNG (RNG Queue)</div>
-                    <div style="opacity:0.9;">In Narrator Configuration, prefer <b>Pre-Seeded RNG</b> / the RNG Queue for CYOA mode. <b>RollTheDice</b> tool calls mostly add cost and latency here — choice DCs are already pre-committed in the buttons, so there is no sycophancy risk to solve with live tool rolls.</div>
+                    <div style="font-weight:600;margin-bottom:4px;">推荐：预置种子 RNG（RNG 队列）</div>
+                    <div style="opacity:0.9;">在叙述者配置中，CYOA 模式请优先使用 <b>预置种子 RNG（Pre-Seeded RNG）</b>/ RNG 队列。<b>RollTheDice</b> 工具调用在这里主要只会增加成本与延迟——选项 DC 已预先写在按钮里，无需通过实时工具掷骰来解决讨好（sycophancy）风险。</div>
                 </div>
 
-                <div style="font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Presets</div>
+                <div style="font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">预设</div>
                 <div style="display:flex;gap:5px;margin-bottom:12px;align-items:center;">
-                    <button id="cyoa-reset-slots" style="background:rgba(200,150,50,0.15);border:1px solid rgba(200,150,50,0.4);border-radius:4px;color:var(--SmartThemeBodyColor,#eee);padding:2px 8px;cursor:pointer;font-size:11px;" title="Reset all slots to default configuration">↺</button>
+                    <button id="cyoa-reset-slots" style="background:rgba(200,150,50,0.15);border:1px solid rgba(200,150,50,0.4);border-radius:4px;color:var(--SmartThemeBodyColor,#eee);padding:2px 8px;cursor:pointer;font-size:11px;" title="将全部选项槽重置为默认配置">↺</button>
                     <select id="cyoa-preset-select" class="text_pole" style="flex:1;font-size:11px;height:24px;">
-                        <option value="">-- Select Preset --</option>
+                        <option value="">-- 选择预设 --</option>
                         ${Object.keys(cfg.presets || {}).map(k => `<option value="${k}" ${k === activePreset ? 'selected' : ''}>${k}</option>`).join('')}
                     </select>
-                    <button id="cyoa-preset-save" style="background:rgba(120,80,220,0.15);border:1px solid rgba(120,80,220,0.4);border-radius:4px;color:var(--SmartThemeBodyColor,#eee);padding:2px 8px;cursor:pointer;font-size:11px;" title="Save over the selected preset">💾 Save</button>
-                    <button id="cyoa-preset-save-as" style="background:rgba(120,80,220,0.15);border:1px solid rgba(120,80,220,0.4);border-radius:4px;color:var(--SmartThemeBodyColor,#eee);padding:2px 8px;cursor:pointer;font-size:11px;" title="Save current slots as a new preset">Save As…</button>
-                    <button id="cyoa-preset-export" style="background:rgba(70,150,220,0.15);border:1px solid rgba(70,150,220,0.4);border-radius:4px;color:var(--SmartThemeBodyColor,#eee);padding:2px 8px;cursor:pointer;font-size:11px;" title="Export selected CYOA preset">📤</button>
-                    <button id="cyoa-preset-import" style="background:rgba(70,150,220,0.15);border:1px solid rgba(70,150,220,0.4);border-radius:4px;color:var(--SmartThemeBodyColor,#eee);padding:2px 8px;cursor:pointer;font-size:11px;" title="Import one CYOA preset">📥</button>
-                    <button id="cyoa-preset-del" style="background:rgba(200,50,50,0.15);border:1px solid rgba(200,50,50,0.4);border-radius:4px;color:rgba(255,120,120,0.9);padding:2px 8px;cursor:pointer;font-size:11px;" title="Delete selected preset">🗑️ Del</button>
+                    <button id="cyoa-preset-save" style="background:rgba(120,80,220,0.15);border:1px solid rgba(120,80,220,0.4);border-radius:4px;color:var(--SmartThemeBodyColor,#eee);padding:2px 8px;cursor:pointer;font-size:11px;" title="覆盖保存到所选预设">💾 Save</button>
+                    <button id="cyoa-preset-save-as" style="background:rgba(120,80,220,0.15);border:1px solid rgba(120,80,220,0.4);border-radius:4px;color:var(--SmartThemeBodyColor,#eee);padding:2px 8px;cursor:pointer;font-size:11px;" title="将当前选项槽另存为新预设">另存为…</button>
+                    <button id="cyoa-preset-export" style="background:rgba(70,150,220,0.15);border:1px solid rgba(70,150,220,0.4);border-radius:4px;color:var(--SmartThemeBodyColor,#eee);padding:2px 8px;cursor:pointer;font-size:11px;" title="导出所选 CYOA 预设">📤</button>
+                    <button id="cyoa-preset-import" style="background:rgba(70,150,220,0.15);border:1px solid rgba(70,150,220,0.4);border-radius:4px;color:var(--SmartThemeBodyColor,#eee);padding:2px 8px;cursor:pointer;font-size:11px;" title="导入一个 CYOA 预设">📥</button>
+                    <button id="cyoa-preset-del" style="background:rgba(200,50,50,0.15);border:1px solid rgba(200,50,50,0.4);border-radius:4px;color:rgba(255,120,120,0.9);padding:2px 8px;cursor:pointer;font-size:11px;" title="删除所选预设">🗑️ 删除</button>
                 </div>
 
-                <div style="font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Choice Slots</div>
+                <div style="font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">选项槽位</div>
                 <div id="cyoa-slot-list" style="max-height:230px;overflow-y:auto;padding-right:4px;">
                     ${slots.map((sl, i) => buildCyoaSlotRow(sl, i)).join('')}
                 </div>
-                <button id="cyoa-add-slot" style="margin-top:6px;width:100%;background:rgba(120,80,220,0.15);border:1px dashed rgba(120,80,220,0.5);border-radius:5px;color:var(--SmartThemeBodyColor,#eee);padding:4px 0;cursor:pointer;font-size:12px;">+ Add Choice</button>
+                <button id="cyoa-add-slot" style="margin-top:6px;width:100%;background:rgba(120,80,220,0.15);border:1px dashed rgba(120,80,220,0.5);border-radius:5px;color:var(--SmartThemeBodyColor,#eee);padding:4px 0;cursor:pointer;font-size:12px;">+ 添加选项</button>
 
-                <div style="margin-top:14px;font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Format Options</div>
+                <div style="margin-top:14px;font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">格式选项</div>
                 <div style="display:flex;flex-direction:column;gap:5px;padding-left:4px;">
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;">
-                        <input type="checkbox" id="cyoa-use-emojis" ${checked(cfg.useEmojis)} /> Use fitting emojis
+                        <input type="checkbox" id="cyoa-use-emojis" ${checked(cfg.useEmojis)} /> 使用贴合的 emoji
                     </label>
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;">
-                        <input type="checkbox" id="cyoa-use-xml" ${checked(cfg.useXmlTag)} /> <span>Wrap in &lt;choices&gt; XML tag <span title="Allows you to apply custom CSS styling to change how your choices block looks if you prefer" class="fa-solid fa-circle-question" style="opacity:0.5;cursor:help;margin-left:4px;"></span></span>
+                        <input type="checkbox" id="cyoa-use-xml" ${checked(cfg.useXmlTag)} /> <span>包裹在 &lt;choices&gt; XML 标签中 <span title="如需要，可应用自定义 CSS 样式来改变选项块的显示外观" class="fa-solid fa-circle-question" style="opacity:0.5;cursor:help;margin-left:4px;"></span></span>
                     </label>
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;">
-                        <input type="checkbox" id="cyoa-use-buttons" ${checked(cfg.useButtonTags)} /> <span>Clickable Choices <span title="Click choices to automatically send them using &lt;button&gt; functions" class="fa-solid fa-circle-question" style="opacity:0.5;cursor:help;margin-left:4px;"></span></span>
+                        <input type="checkbox" id="cyoa-use-buttons" ${checked(cfg.useButtonTags)} /> <span>可点击选项 <span title="点击选项即可通过 &lt;button&gt; 功能自动发送" class="fa-solid fa-circle-question" style="opacity:0.5;cursor:help;margin-left:4px;"></span></span>
                     </label>
                     <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;">
-                        <input type="checkbox" id="cyoa-strip-old-prompt" ${checked(cfg.stripOldChoicesFromPrompt)} /> <span>Keep only T-1 through T-4 choices in AI context <span title="Keeps the four newest completed &lt;choices&gt; blocks as fresh examples for the AI, and removes only T-5 and older choice blocks from the outgoing prompt. Every choice remains visible and clickable in chat." class="fa-solid fa-circle-question" style="opacity:0.5;cursor:help;margin-left:4px;"></span></span>
+                        <input type="checkbox" id="cyoa-strip-old-prompt" ${checked(cfg.stripOldChoicesFromPrompt)} /> <span>AI 上下文中仅保留 T-1 至 T-4 的选项 <span title="仅把最近四个已完成的 &lt;choices&gt; 块作为最新示例提供给 AI，并只从发出的提示中移除 T-5 及更早的选项块。聊天中的每个选项仍然可见且可点击。" class="fa-solid fa-circle-question" style="opacity:0.5;cursor:help;margin-left:4px;"></span></span>
                     </label>
                 </div>
 
-                <div style="margin-top:14px;font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Button Appearance</div>
+                <div style="margin-top:14px;font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">按钮外观</div>
                 <div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:6px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.06);">
                     <label style="display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;">
-                        <span style="min-width:92px;opacity:0.85;">Background</span>
+                        <span style="min-width:92px;opacity:0.85;">背景</span>
                         <input type="color" id="cyoa-btn-color" value="${cfg.buttonColor || '#120a28'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" />
                         <input type="range" id="cyoa-btn-opacity" min="0" max="100" value="${Math.round((cfg.buttonOpacity ?? 0.9) * 100)}" style="flex:1;min-width:70px;max-width:110px;accent-color:rgba(120,80,220,0.8);" />
                         <span id="cyoa-btn-opacity-label" style="font-size:10px;opacity:0.6;min-width:28px;">${Math.round((cfg.buttonOpacity ?? 0.9) * 100)}%</span>
                         <span id="cyoa-btn-preview" style="display:inline-block;width:24px;height:18px;border-radius:3px;border:1px solid rgba(255,255,255,0.25);background:${cfg.buttonColor || '#120a28'};"></span>
                     </label>
                     <label style="display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;">
-                        <span style="min-width:92px;opacity:0.85;">Text colour</span>
+                        <span style="min-width:92px;opacity:0.85;">文字颜色</span>
                         <input type="color" id="cyoa-text-color" value="${cfg.buttonTextColor || '#e8e8e8'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" ${cfg.buttonTextColor ? '' : 'disabled'} />
-                        <label style="display:flex;align-items:center;gap:4px;font-size:11px;opacity:0.8;cursor:pointer;"><input type="checkbox" id="cyoa-text-theme" ${cfg.buttonTextColor ? '' : 'checked'} /> Theme default</label>
+                        <label style="display:flex;align-items:center;gap:4px;font-size:11px;opacity:0.8;cursor:pointer;"><input type="checkbox" id="cyoa-text-theme" ${cfg.buttonTextColor ? '' : 'checked'} /> 主题默认</label>
                     </label>
                     <label style="display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;">
-                        <span style="min-width:92px;opacity:0.85;">Border</span>
+                        <span style="min-width:92px;opacity:0.85;">边框</span>
                         <input type="checkbox" id="cyoa-border-custom" ${cfg.buttonBorderColor ? 'checked' : ''} />
                         <input type="color" id="cyoa-border-color" value="${cfg.buttonBorderColor || '#7850dc'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" ${cfg.buttonBorderColor ? '' : 'disabled'} />
-                        <span style="font-size:10px;opacity:0.55;">Custom border colour</span>
+                        <span style="font-size:10px;opacity:0.55;">自定义边框颜色</span>
                     </label>
                     <label style="display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;">
-                        <span style="min-width:92px;opacity:0.85;">Choice stripe</span>
+                        <span style="min-width:92px;opacity:0.85;">选项条纹</span>
                         <input type="checkbox" id="cyoa-accent-custom" ${cfg.choiceAccentColor ? 'checked' : ''} />
                         <input type="color" id="cyoa-accent-color" value="${cfg.choiceAccentColor || '#7850dc'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" ${cfg.choiceAccentColor ? '' : 'disabled'} />
-                        <span style="font-size:10px;opacity:0.55;">Left accent on choice block</span>
+                        <span style="font-size:10px;opacity:0.55;">选项块左侧强调色</span>
                     </label>
                 </div>
 
-                <div style="margin-top:14px;font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Bracket Highlights</div>
+                <div style="margin-top:14px;font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">括号高亮</div>
                 <div style="display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:6px;background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.06);">
-                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="min-width:92px;opacity:0.85;">Mechanics</span><input type="color" id="cyoa-mech-color" value="${cfg.mechColor || '#ffc966'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" /></label>
-                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="min-width:92px;opacity:0.85;">Mech background</span><input type="range" id="cyoa-mech-bg-opacity" min="0" max="100" value="${Math.round((cfg.mechBgOpacity ?? 0.14) * 100)}" style="flex:1;max-width:120px;accent-color:rgba(255,180,60,0.85);" /><span id="cyoa-mech-bg-opacity-label" style="font-size:10px;opacity:0.6;min-width:28px;">${Math.round((cfg.mechBgOpacity ?? 0.14) * 100)}%</span></label>
-                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="min-width:92px;opacity:0.85;">DC / vs AC</span><input type="color" id="cyoa-dc-color" value="${cfg.dcColor || '#ff9f6b'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" /></label>
-                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="min-width:92px;opacity:0.85;">Modifiers</span><input type="color" id="cyoa-mod-color" value="${cfg.modColor || '#9fd4ff'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" /></label>
-                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="min-width:92px;opacity:0.85;">Prefix / trait</span><input type="color" id="cyoa-tag-color" value="${cfg.tagColor || '#c9b0ff'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" /></label>
-                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;"><span style="min-width:92px;opacity:0.85;">Roll accent</span><input type="checkbox" id="cyoa-mech-accent-custom" ${cfg.mechAccentColor ? 'checked' : ''} /><input type="color" id="cyoa-mech-accent-color" value="${cfg.mechAccentColor || cfg.mechColor || '#ffb43c'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" ${cfg.mechAccentColor ? '' : 'disabled'} /><span style="font-size:10px;opacity:0.55;">Left stripe on roll choices</span></label>
-                    <div style="display:flex;justify-content:flex-end;margin-top:2px;"><button type="button" id="cyoa-colors-reset" style="font-size:10px;background:none;border:1px solid rgba(255,255,255,0.18);border-radius:4px;color:inherit;padding:2px 8px;cursor:pointer;opacity:0.75;">Reset colours to default</button></div>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="min-width:92px;opacity:0.85;">机制</span><input type="color" id="cyoa-mech-color" value="${cfg.mechColor || '#ffc966'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" /></label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="min-width:92px;opacity:0.85;">机制背景</span><input type="range" id="cyoa-mech-bg-opacity" min="0" max="100" value="${Math.round((cfg.mechBgOpacity ?? 0.14) * 100)}" style="flex:1;max-width:120px;accent-color:rgba(255,180,60,0.85);" /><span id="cyoa-mech-bg-opacity-label" style="font-size:10px;opacity:0.6;min-width:28px;">${Math.round((cfg.mechBgOpacity ?? 0.14) * 100)}%</span></label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="min-width:92px;opacity:0.85;">DC / 对抗 AC</span><input type="color" id="cyoa-dc-color" value="${cfg.dcColor || '#ff9f6b'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" /></label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="min-width:92px;opacity:0.85;">调整值</span><input type="color" id="cyoa-mod-color" value="${cfg.modColor || '#9fd4ff'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" /></label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="min-width:92px;opacity:0.85;">前缀 / 特性</span><input type="color" id="cyoa-tag-color" value="${cfg.tagColor || '#c9b0ff'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" /></label>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;"><span style="min-width:92px;opacity:0.85;">掷骰强调</span><input type="checkbox" id="cyoa-mech-accent-custom" ${cfg.mechAccentColor ? 'checked' : ''} /><input type="color" id="cyoa-mech-accent-color" value="${cfg.mechAccentColor || cfg.mechColor || '#ffb43c'}" style="width:32px;height:22px;padding:1px 2px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:none;cursor:pointer;" ${cfg.mechAccentColor ? '' : 'disabled'} /><span style="font-size:10px;opacity:0.55;">掷骰选项左侧条纹</span></label>
+                    <div style="display:flex;justify-content:flex-end;margin-top:2px;"><button type="button" id="cyoa-colors-reset" style="font-size:10px;background:none;border:1px solid rgba(255,255,255,0.18);border-radius:4px;color:inherit;padding:2px 8px;cursor:pointer;opacity:0.75;">恢复默认颜色</button></div>
                 </div>
 
                 <div style="margin-top:10px;">
-                    <div style="font-size:10px;opacity:0.55;margin-bottom:4px;">Live preview</div>
+                    <div style="font-size:10px;opacity:0.55;margin-bottom:4px;">实时预览</div>
                     <div id="cyoa-style-preview"></div>
                 </div>
 
                 <div style="margin-top:14px;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
-                        <span style="font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;">CYOA Prompt</span>
-                        <button id="cyoa-reset-prompt" style="font-size:11px;background:none;border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:inherit;padding:2px 10px;cursor:pointer;opacity:0.7;" title="Regenerate from slots above">↺ Regenerate</button>
+                        <span style="font-size:11px;font-weight:bold;opacity:0.6;text-transform:uppercase;letter-spacing:0.05em;">CYOA 提示</span>
+                        <button id="cyoa-reset-prompt" style="font-size:11px;background:none;border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:inherit;padding:2px 10px;cursor:pointer;opacity:0.7;" title="根据上方槽位重新生成">↺ 重新生成</button>
                     </div>
-                    <div style="font-size:10px;opacity:0.5;margin-bottom:5px;">Live preview — edits are saved on Apply. Changing slots/format auto-regenerates.</div>
+                    <div style="font-size:10px;opacity:0.5;margin-bottom:5px;">实时预览 — 编辑内容在点击“应用”时保存。更改槽位/格式会自动重新生成。</div>
                     <textarea id="cyoa-prompt-textarea" class="text_pole" rows="10" style="width:100%;font-size:11px;font-family:monospace;resize:vertical;background:rgba(0,0,0,0.3);box-sizing:border-box;">${initialPrompt}</textarea>
                 </div>
             </div>`;
 
-            const popup = new Popup(html, POPUP_TYPE.CONFIRM, '', { okButton: 'Apply', cancelButton: 'Cancel' });
+            const popup = new Popup(html, POPUP_TYPE.CONFIRM, '', { okButton: '应用', cancelButton: '取消' });
 
             // popup.dlg is the actual <dialog> element — available immediately after construction,
             // persists on the object even after ST removes the element from the document.
@@ -10520,7 +10521,7 @@ RULES:
                         regeneratePromptPreview(dlg);
                     }
                     if (e.target.id === 'cyoa-reset-slots') {
-                        if (!confirm('Reset all choice slots to the default configuration?')) return;
+                        if (!confirm('将所有选择槽位重置为默认配置？')) return;
                         const list = dlg.querySelector('#cyoa-slot-list');
                         list.innerHTML = DEFAULT_CYOA_SLOTS.map((sl, i) => buildCyoaSlotRow(sl, i)).join('');
                         regeneratePromptPreview(dlg);
@@ -10533,25 +10534,25 @@ RULES:
                     if (e.target.id === 'cyoa-preset-save') {
                         const name = dlg.querySelector('#cyoa-preset-select')?.value;
                         if (!name) {
-                            toastr.warning('Select a preset to save, or use Save As… to create one.', 'CYOA');
+                            toastr.warning('选择要保存的预设，或使用“另存为…”创建新预设。', 'CYOA');
                             return;
                         }
                         const freshS = getSettings();
                         if (!freshS.cyoaConfig.presets) freshS.cyoaConfig.presets = {};
                         freshS.cyoaConfig.presets[name] = readSlotsFromPopup(dlg);
                         saveSettings();
-                        toastr.success(`Preset "${name}" updated!`, 'CYOA');
+                        toastr.success(`预设“${name}”已更新！`, 'CYOA');
                         refreshCyoaPresetSelect(dlg, name);
                     }
                     if (e.target.id === 'cyoa-preset-save-as') {
-                        const name = prompt('Enter a name for this preset:')?.trim();
+                        const name = prompt('为此预设输入名称：')?.trim();
                         if (!name) return;
                         const freshS = getSettings();
                         if (!freshS.cyoaConfig.presets) freshS.cyoaConfig.presets = {};
-                        if (freshS.cyoaConfig.presets[name] && !confirm(`Overwrite preset "${name}"?`)) return;
+                        if (freshS.cyoaConfig.presets[name] && !confirm(`覆盖预设“${name}”？`)) return;
                         freshS.cyoaConfig.presets[name] = readSlotsFromPopup(dlg);
                         saveSettings();
-                        toastr.success(`Preset "${name}" saved!`, 'CYOA');
+                        toastr.success(`预设“${name}”已保存！`, 'CYOA');
                         refreshCyoaPresetSelect(dlg, name);
                     }
                     if (e.target.id === 'cyoa-preset-export') {
@@ -10573,13 +10574,13 @@ RULES:
                         const sel = dlg.querySelector('#cyoa-preset-select');
                         const name = sel?.value;
                         if (!name) return;
-                        if (!confirm(`Delete preset "${name}"?`)) return;
+                        if (!confirm(`删除预设“${name}”？`)) return;
                         const freshS = getSettings();
                         if (freshS.cyoaConfig.presets) {
                             delete freshS.cyoaConfig.presets[name];
                             saveSettings();
-                            toastr.success(`Preset "${name}" deleted!`, 'CYOA');
-                            sel.innerHTML = '<option value="">-- Select Preset --</option>' + Object.keys(freshS.cyoaConfig.presets).map(k => `<option value="${k}">${k}</option>`).join('');
+                            toastr.success(`预设“${name}”已删除！`, 'CYOA');
+                            sel.innerHTML = '<option value="">-- 选择预设 --</option>' + Object.keys(freshS.cyoaConfig.presets).map(k => `<option value="${k}">${k}</option>`).join('');
                         }
                     }
                 });
@@ -10724,13 +10725,13 @@ RULES:
                     <div style="font-size:11px;opacity:.7;margin:5px 0 0 23px;">Parses <code>(Friendship: Name +X)</code> annotations from the narrator output.</div>
                 </label>
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;">
-                    <label style="font-size:12px;font-weight:700;">State Tracker relationship instruction</label>
-                    <button id="rpg_relationship_state_tracker_prompt_reset" type="button" class="menu_button interactable" style="padding:2px 7px;font-size:11px;width:auto !important;min-width:max-content;white-space:nowrap;line-height:1.2;flex:0 0 auto;">Reset to built-in</button>
+                    <label style="font-size:12px;font-weight:700;">State Tracker 关系指令</label>
+                    <button id="rpg_relationship_state_tracker_prompt_reset" type="button" class="menu_button interactable" style="padding:2px 7px;font-size:11px;width:auto !important;min-width:max-content;white-space:nowrap;line-height:1.2;flex:0 0 auto;">重置为内置</button>
                 </div>
-                <div style="font-size:11px;opacity:.7;margin:4px 0 6px;">Used only with State Tracker Tags. Edit what the tracker should expect and output. Optional placeholders: <code>{{max}}</code> and <code>{{full_audit_rule}}</code>.</div>
+                <div style="font-size:11px;opacity:.7;margin:4px 0 6px;">仅与 State Tracker Tags 一起使用。编辑追踪器应期望和输出的内容。可选占位符：<code>{{max}}</code> 和 <code>{{full_audit_rule}}</code>。</div>
                 <textarea id="rpg_relationship_state_tracker_prompt" rows="13" style="width:100%;resize:vertical;box-sizing:border-box;font-family:var(--mainFontFamily, monospace);font-size:11px;line-height:1.35;">${escapeHtml(displayedPrompt)}</textarea>
             </div>`;
-            const popup = new Popup(html, POPUP_TYPE.CONFIRM, '', { okButton: 'Apply', cancelButton: 'Cancel' });
+            const popup = new Popup(html, POPUP_TYPE.CONFIRM, '', { okButton: '应用', cancelButton: '取消' });
             const promptField = popup.dlg?.querySelector('#rpg_relationship_state_tracker_prompt');
             popup.dlg?.querySelector('#rpg_relationship_state_tracker_prompt_reset')?.addEventListener('click', () => {
                 if (!promptField) return;
@@ -10922,10 +10923,10 @@ RULES:
             btn.prop('disabled', true);
             try {
                 const count = await activateCampaignBooks({ debugSource: 'manual:settings-activate-books' });
-                toastr['success'](`Activated ${count} campaign lorebook${count === 1 ? '' : 's'}.`);
+                toastr['success'](`已激活 ${count} 个战役世界书。`);
                 await refreshAgentManifestNow();
             } catch (e) {
-                toastr['error']('Failed to activate campaign lorebooks.');
+                toastr['error']('战役世界书激活失败。');
             } finally {
                 btn.prop('disabled', false);
             }
@@ -10955,14 +10956,14 @@ RULES:
             const { Popup } = SillyTavern.getContext();
             const confirmHtml = `
                     <div style="text-align: left; font-size: 0.9em; line-height: 1.5;">
-                        <p>You are about to run a <b>Full Audit</b> of the entire chat history through the Lorebook Agent.</p>
-                        <p style="margin-top: 8px;">⏳ This may take <b>several minutes</b> depending on the size of your chat. The agent will process the history in chunks, rebuilding and updating your lorebooks sequentially.</p>
-                        <p style="margin-top: 8px; color: #ffa500;">⚠️ <b>Do not send messages to the AI while the audit is running.</b></p>
+                        <p>您即将通过 Lorebook Agent 对整个聊天历史执行<b>全面审计</b>。</p>
+                        <p style="margin-top: 8px;">⏳ 根据聊天大小，这可能需要<b>几分钟</b>。代理将分块处理历史记录，并依次重建和更新您的世界书。</p>
+                        <p style="margin-top: 8px; color: #ffa500;">⚠️ <b>审计运行期间请勿向 AI 发送消息。</b></p>
                     </div>
                 `;
-            const confirmed = await Popup.show.confirm('📚 Lorebook Agent Full Audit', confirmHtml, {
-                okButton: 'Start Full Audit',
-                cancelButton: 'Cancel'
+            const confirmed = await Popup.show.confirm('📚 Lorebook Agent 全面审计', confirmHtml, {
+                okButton: '开始全面审计',
+                cancelButton: '取消'
             });
             if (!confirmed) return;
 
@@ -11003,14 +11004,14 @@ RULES:
                 }
 
                 if (chunks.length === 0) {
-                    toastr.info("No chat history to audit.");
+                    toastr.info("没有可审计的聊天历史。");
                     return;
                 }
 
                 console.log(`[RPG Tracker] Agent Full Audit: ${chunks.length} chunk(s) queued.`);
 
                 for (let i = 0; i < chunks.length; i++) {
-                    toastr.info(`Agent Full Audit: Chunk ${i + 1} of ${chunks.length}...`, "Lorebook Agent", { timeOut: 8000 });
+                    toastr.info(`全面审计：第 ${i + 1} / ${chunks.length} 块...`, "Lorebook Agent", { timeOut: 8000 });
                     console.log(`[RPG Tracker] Agent Full Audit: Starting chunk ${i + 1}/${chunks.length} (${chunks[i].length} messages)`);
 
                     // Wait for any lingering router pass to finish (e.g. auto-cleanup from prior chunk)
@@ -11021,7 +11022,7 @@ RULES:
                     }
                     if (isRouterRunning()) {
                         console.warn(`[RPG Tracker] Agent Full Audit: Chunk ${i + 1} skipped — router still busy after 30s.`);
-                        toastr.warning(`Chunk ${i + 1} skipped — agent was still busy.`, "Lorebook Agent");
+                        toastr.warning(`第 ${i + 1} 块已跳过 — 代理仍处于忙碌状态。`, "Lorebook Agent");
                         continue;
                     }
 
@@ -11033,10 +11034,10 @@ RULES:
                     await new Promise(r => setTimeout(r, 100));
                 }
 
-                toastr.success(`Agent Full Audit complete (${chunks.length} chunk${chunks.length > 1 ? 's' : ''}).`, "Lorebook Agent");
+                toastr.success(`全面审计完成（共 ${chunks.length} 块）。`, "Lorebook Agent");
             } catch (e) {
                 console.error("[RPG Tracker] Agent Full Audit failed:", e);
-                toastr.error("Agent Full Audit failed.");
+                toastr.error("全面审计失败。");
             } finally {
                 $('#rt-agent-router-full-audit, #rt-agent-router-full-audit-panel').prop('disabled', false);
             }
@@ -11048,9 +11049,9 @@ RULES:
             try {
                 _loreActivationDebugLast = await readLoreActivationDebugSnapshot('manual:capture-settings');
                 renderLoreActivationDebugPanel();
-                toastr['info']('Lore debug snapshot captured (read-only, no /world commands).');
+                toastr['info']('Lore 调试快照已捕获（只读，未执行 /world 命令）。');
             } catch (_) {
-                toastr['error']('Capture failed.');
+                toastr['error']('捕获失败。');
             } finally {
                 btn.prop('disabled', false);
             }
@@ -11062,9 +11063,9 @@ RULES:
                 const ctx = SillyTavern.getContext();
                 const id = ctx.chatId || runtimeState.currentChatId || '';
                 await syncCampaignPrefixAndWorldsForChat(id, 'manual:re-sync-settings');
-                toastr['info']('Re-sync finished; see JSON in Lore activation debug below.');
+                toastr['info']('重新同步完成；请查看下方 Lore 激活调试中的 JSON。');
             } catch (_) {
-                toastr['error']('Re-sync failed.');
+                toastr['error']('重新同步失败。');
             } finally {
                 btn.prop('disabled', false);
             }
@@ -11082,18 +11083,18 @@ RULES:
         });
         $('#rpg_tracker_router_ollama_refresh').on('click', async function () {
             const url = $('#rpg_tracker_router_ollama_url').val();
-            if (!url) return toastr['info']("Please enter an Ollama URL first.");
+            if (!url) return toastr['info']("请先输入 Ollama URL。");
             try {
-                toastr['info']("Fetching Ollama models...");
+                toastr['info']("正在获取 Ollama 模型...");
                 const models = await fetchOllamaModels(url);
-                routerOllamaModelSelect.empty().append('<option value="">-- Select Model --</option>');
+                routerOllamaModelSelect.empty().append('<option value="">-- 选择模型 --</option>');
                 models.forEach(m => {
                     routerOllamaModelSelect.append($('<option></option>').val(m.name).text(m.name));
                 });
                 routerOllamaModelSelect.val(settings.routerOllamaModel);
-                toastr['success']("Ollama models updated.");
+                toastr['success']("Ollama 模型已更新。");
             } catch (e) {
-                toastr['error']("Failed to fetch Ollama models.");
+                toastr['error']("获取 Ollama 模型失败。");
             }
         });
 
@@ -11128,19 +11129,19 @@ RULES:
         $('#rpg_tracker_router_openai_refresh').on('click', async function () {
             const url = $('#rpg_tracker_router_openai_url').val();
             const key = $('#rpg_tracker_router_openai_key').val();
-            if (!url) return toastr['info']("Please enter an Endpoint URL first.");
+            if (!url) return toastr['info']("请先输入端点 URL。");
             try {
-                toastr['info']("Fetching models...");
+                toastr['info']("正在获取模型...");
                 const models = await fetchOpenAIModels(url, key);
-                routerOpenaiModelSelect.empty().append('<option value="">-- Select Model --</option>');
+                routerOpenaiModelSelect.empty().append('<option value="">-- 选择模型 --</option>');
                 models.forEach(m => {
                     const id = typeof m === 'string' ? m : (m.id || m.name);
                     if (id) routerOpenaiModelSelect.append($('<option></option>').val(id).text(id));
                 });
                 routerOpenaiModelSelect.val(settings.routerOpenaiModel);
-                toastr['success']("Models updated.");
+                toastr['success']("模型已更新。");
             } catch (e) {
-                toastr['warning']("Cannot auto-detect models. Type manually.");
+                toastr['warning']("无法自动检测模型，请手动输入。");
             }
         });
 
@@ -11151,7 +11152,7 @@ RULES:
             saveSettings();
         })) {
             getConnectionProfiles().then(profiles => {
-                routerProfileSelect.empty().append('<option value="">-- No Profile Selected --</option>');
+                routerProfileSelect.empty().append('<option value="">-- 未选择配置文件 --</option>');
                 profiles.forEach(p => routerProfileSelect.append($('<option></option>').val(p).text(p)));
                 routerProfileSelect.val(settings.routerConnectionProfileId || "");
             });
@@ -11163,7 +11164,7 @@ RULES:
 
         if (pm && typeof pm.getAllPresets === 'function') {
             const presets = pm.getAllPresets();
-            routerPresetSelect.empty().append('<option value="">-- Use Current Settings --</option>');
+            routerPresetSelect.empty().append('<option value="">-- 使用当前设置 --</option>');
             presets.forEach(p => routerPresetSelect.append($('<option></option>').val(p).text(p)));
             routerPresetSelect.val(settings.routerCompletionPresetId || '');
         }
@@ -11450,23 +11451,23 @@ RULES:
 
             isSyncingRouterPrompt = true;
             if (isBasic) {
-                $desc.html('The editable <strong>Basic Mode</strong> base prompt. Its format/module template is editable below; dynamic placeholders are expanded only for each request.');
+                $desc.html('可编辑的<strong>基础模式</strong>基础提示词。其格式/模块模板可在下方编辑；动态占位符仅会在每次请求时展开。');
                 $prompt.val(settings.routerBasicSystemPromptTemplate || '');
                 $modular.val(settings.routerModularPromptTemplate || '');
                 $modularWrap.show();
                 $agentContextWrap.hide();
                 $fragmentsBasic.show();
                 $fragmentsAgent.hide();
-                $btn.html('<i class="fa-solid fa-arrow-rotate-left"></i> Reset Basic Mode Prompts');
+                $btn.html('<i class="fa-solid fa-arrow-rotate-left"></i> 重置基础模式提示词');
             } else {
-                $desc.html('The editable <strong>Agent Mode</strong> base prompt. Shared rules are editable below; action/tool schemas are generated from enabled modules at request time.');
+                $desc.html('可编辑的<strong>代理模式</strong>基础提示词。共享规则可在下方编辑；操作/工具模式会在请求时根据已启用的模块生成。');
                 $prompt.val(settings.routerSystemPromptTemplate || '');
                 $modularWrap.hide();
                 $agentContext.val(settings.routerAgentSharedContextTemplate || '');
                 $agentContextWrap.show();
                 $fragmentsBasic.hide();
                 $fragmentsAgent.show();
-                $btn.html('<i class="fa-solid fa-arrow-rotate-left"></i> Reset Agent Mode Prompts');
+                $btn.html('<i class="fa-solid fa-arrow-rotate-left"></i> 重置代理模式提示词');
             }
             $('#rpg_tracker_router_combat_guidance_basic').val(settings.routerCombatProfileGuidanceBasicTemplate || '');
             $('#rpg_tracker_router_combat_guidance_agent').val(settings.routerCombatProfileGuidanceAgentTemplate || '');
@@ -11538,14 +11539,14 @@ RULES:
 
         $('#rpg_tracker_router_btn_reset_prompt').on('click', function () {
             const isBasic = !!settings.routerBasicMode;
-            const modeName = isBasic ? 'Basic Mode' : 'Agent Mode';
-            const promptLabel = isBasic ? 'base, format/module, and runtime-fragment prompts' : 'base, shared-context, and runtime-fragment prompts';
-            if (!confirm(`Reset ${modeName} ${promptLabel} to default?`)) return;
+            const modeName = isBasic ? '基础模式' : '代理模式';
+            const promptLabel = isBasic ? '基础、格式/模块与运行时片段提示词' : '基础、共享上下文与运行时片段提示词';
+            if (!confirm(`将${modeName}的${promptLabel}重置为默认值？`)) return;
 
             resetLorebookPromptTemplates(settings, isBasic ? 'basic' : 'agent');
             syncRouterPromptUi();
             saveSettings();
-            toastr['success'](`${modeName} prompts reset to default.`, 'RPG Tracker');
+            toastr['success'](`${modeName}提示词已重置为默认值。`, 'RPG Tracker');
         });
 
         syncRouterPromptUi();
@@ -11556,10 +11557,10 @@ RULES:
             delete settings.npcWordTargetRescaleNotice;
             saveSettings();
             toastr['info'](
-                `NPC word targets are now overall [CORE] totals (exactly N words). ` +
-                `Rescaled ${notice.fromMajor}→${notice.toMajor} major and ${notice.fromMinor}→${notice.toMinor} minor ` +
-                `(×${notice.sectionCount} sections).`,
-                'NPC Word Targets',
+                `NPC 字数目标现在是总体 [CORE] 总计（正好 N 字）。` +
+                `已按比例调整：${notice.fromMajor}→${notice.toMajor} 个主要条目、${notice.fromMinor}→${notice.toMinor} 个次要条目` +
+                `（×${notice.sectionCount} 个分区）。`,
+                'NPC 字数目标',
                 { timeOut: 12000 },
             );
         }
@@ -11585,7 +11586,7 @@ RULES:
             const label = s.worldProgressionLastFiredPeriodLabel || '';
             const mins = label ? (parseInWorldTime(label) ?? -1) : -1;
 
-            const lastReportText = label || 'Never';
+            const lastReportText = label || '从未';
             $wpLastFired.text(lastReportText);
             $wpLastReportVal.text(lastReportText);
 
@@ -11682,7 +11683,7 @@ RULES:
             saveSettings();
         });
         $wpResetPrompt.on('click', function () {
-            if (!confirm('Reset World Progression system prompt to default?')) return;
+            if (!confirm('将世界进程系统提示词重置为默认值？')) return;
             const { extensionSettings } = SillyTavern.getContext();
             if (extensionSettings[MODULE_NAME]) {
                 delete extensionSettings[MODULE_NAME].worldProgressionSystemPrompt;
@@ -11691,7 +11692,7 @@ RULES:
             getSettings().worldProgressionSystemPrompt = freshDefault;
             $wpSystemPrompt.val(freshDefault);
             saveSettings();
-            toastr['success']('World Progression prompt reset to default.', 'World Progression');
+            toastr['success']('世界进程提示词已重置为默认值。', '世界进程');
         });
         const $wpInjectionPosition = $('#rpg_world_progression_injection_position');
         const $wpInjectionDepth = $('#rpg_world_progression_injection_depth');
@@ -11741,11 +11742,11 @@ RULES:
             }
 
             const acceptedFormats = s.useDdMmYyFormat
-                ? 'Accepted formats: "06/01/2026, 08:00 AM", "06/01/2026, 08:00", "06/01/2026"'
-                : 'Accepted formats: "Day 6, 08:00 AM", "Day 6, 08:00", "Day 6"';
+                ? '可接受的格式："06/01/2026, 08:00 AM"、"06/01/2026, 08:00"、"06/01/2026"'
+                : '可接受的格式："Day 6, 08:00 AM"、"Day 6, 08:00"、"Day 6"';
 
             const userInput = window.prompt(
-                'Enter the in-world time for the NEXT report.\n' + acceptedFormats,
+                '输入下一次报告的世界内时间。\n' + acceptedFormats,
                 fmtHint(currentNextMins)
             );
             if (userInput === null) return; // cancelled
@@ -11753,9 +11754,9 @@ RULES:
             const parsedNextMins = parseInWorldTime(userInput.trim());
             if (parsedNextMins == null || parsedNextMins <= 0) {
                 const errorFormat = s.useDdMmYyFormat
-                    ? 'Could not parse the entered time. Please use a format like "06/01/26, 08:00 AM".'
-                    : 'Could not parse the entered time. Please use a format like "Day 6, 08:00 AM".';
-                toastr['warning'](errorFormat, 'World Progression');
+                    ? '无法解析输入的时间。请使用类似 "06/01/26, 08:00 AM" 的格式。'
+                    : '无法解析输入的时间。请使用类似 "Day 6, 08:00 AM" 的格式。';
+                toastr['warning'](errorFormat, '世界进程');
                 return;
             }
 
@@ -11764,7 +11765,7 @@ RULES:
             s.worldProgressionLastFiredPeriodLabel = formatInWorldTime(lastFiredMins);
             saveSettings();
             updateWorldProgressionLastFiredDisplay();
-            toastr['success'](`Next report set to ${fmtHint(parsedNextMins)}.`, 'World Progression');
+            toastr['success'](`已将下一次报告设为 ${fmtHint(parsedNextMins)}。`, '世界进程');
         });
 
         $wpGenerateNow.on('click', async function () {
@@ -11774,22 +11775,22 @@ RULES:
             const timeStr = timeMatch ? extractCurrentTimeStr(timeMatch[1]) : '';
             const currentMinutes = piw(timeStr);
             if (currentMinutes < 0) {
-                toastr['warning']('Cannot parse in-world time from State Memo. Make sure the State Tracker has run at least once.', 'World Progression');
+                toastr['warning']('无法从状态备忘录中解析世界内时间。请确保状态追踪器至少运行过一次。', '世界进程');
                 return;
             }
             // Force fire by temporarily clearing lastFiredAtMinutes so it picks up the current period
             const savedLast = s.worldProgressionLastFiredAtMinutes;
             s.worldProgressionLastFiredAtMinutes = -1;
-            $wpGenerateNow.prop('disabled', true).text('Generating…');
+            $wpGenerateNow.prop('disabled', true).text('正在生成…');
             try {
                 await rwp(timeStr, currentMinutes);
                 updateWorldProgressionLastFiredDisplay();
-                toastr['success']('World Progression report generated.', 'World Progression');
+                toastr['success']('世界进程报告已生成。', '世界进程');
             } catch (e) {
-                toastr['error'](`World Progression error: ${e.message}`, 'World Progression');
+                toastr['error'](`世界进程错误：${e.message}`, '世界进程');
                 s.worldProgressionLastFiredAtMinutes = savedLast;
             } finally {
-                $wpGenerateNow.prop('disabled', false).html('<i class="fa-solid fa-globe"></i> Generate Now (current period)');
+                $wpGenerateNow.prop('disabled', false).html('<i class="fa-solid fa-globe"></i> 立即生成（当前周期）');
             }
         });
 
@@ -11801,19 +11802,19 @@ RULES:
             const timeStr = timeMatch ? extractCurrentTimeStr(timeMatch[1]) : '';
             const currentMinutes = piw(timeStr);
             if (currentMinutes < 0) {
-                toastr['warning']('Cannot parse in-world time from State Memo. Make sure the State Tracker has run at least once.', 'World Progression');
+                toastr['warning']('无法从状态备忘录中解析世界内时间。请确保状态追踪器至少运行过一次。', '世界进程');
                 return;
             }
 
             const popupBody = `
                 <div style="display:flex; flex-direction:column; gap:10px; width:100%; box-sizing:border-box;">
-                    <div style="font-size:13px; opacity:0.9; font-weight:bold;">🌍 Fire with Extra Instructions</div>
+                    <div style="font-size:13px; opacity:0.9; font-weight:bold;">🌍 使用额外指令生成</div>
                     <div style="font-size:11px; opacity:0.7; line-height:1.4;">
-                        Enter extra instructions to append to the World Progression system prompt for this run only (e.g., "make things pick up", "get more chaotic").
+                        输入要附加到本次运行的世界进程系统提示词中的额外指令（例如："让剧情发展起来"、"制造更多混乱"）。
                     </div>
                     <textarea id="rt_wp_extra_instructions_settings" rows="4" class="text_pole"
                         style="font-size:12px; resize:vertical; width:100%;"
-                        placeholder="e.g. Make the factions more aggressive, increase conflicts, or introduce a major weather event."></textarea>
+                        placeholder="例如：让派系更具攻击性、增加冲突，或引入重大天气事件。"></textarea>
                 </div>
             `;
 
@@ -11826,22 +11827,22 @@ RULES:
             }, 100);
 
             const { Popup } = SillyTavern.getContext();
-            const choice = await Popup.show.confirm('World Progression', popupBody, { okButton: 'Fire', cancelButton: 'Cancel' });
+            const choice = await Popup.show.confirm('世界进程', popupBody, { okButton: '生成', cancelButton: '取消' });
             if (!choice) return;
 
             // Force fire by temporarily clearing lastFiredAtMinutes so it picks up the current period
             const savedLast = s.worldProgressionLastFiredAtMinutes;
             s.worldProgressionLastFiredAtMinutes = -1;
-            $wpFireWithInstructions.prop('disabled', true).text('Generating…');
+            $wpFireWithInstructions.prop('disabled', true).text('正在生成…');
             try {
                 await rwp(timeStr, currentMinutes, extraInstructions);
                 updateWorldProgressionLastFiredDisplay();
-                toastr['success']('World Progression report generated.', 'World Progression');
+                toastr['success']('世界进程报告已生成。', '世界进程');
             } catch (e) {
-                toastr['error'](`World Progression error: ${e.message}`, 'World Progression');
+                toastr['error'](`世界进程错误：${e.message}`, '世界进程');
                 s.worldProgressionLastFiredAtMinutes = savedLast;
             } finally {
-                $wpFireWithInstructions.prop('disabled', false).html('<i class="fa-solid fa-wand-magic-sparkles"></i> Fire with Extra Instructions');
+                $wpFireWithInstructions.prop('disabled', false).html('<i class="fa-solid fa-wand-magic-sparkles"></i> 使用额外指令生成');
             }
         });
 
@@ -11855,7 +11856,7 @@ RULES:
             if (s.chatLinkEnabled && runtimeState.currentChatId) saveChatState(runtimeState.currentChatId);
             updateWorldProgressionLastFiredDisplay();
             if (typeof runtimeState.updateAgentWorldStatusRef === 'function') runtimeState.updateAgentWorldStatusRef();
-            toastr['info']('World Progression timeline reset. Next report will start from the current time.', 'World Progression');
+            toastr['info']('世界进程时间线已重置。下一次报告将从当前时间开始。', '世界进程');
         });
 
         $('#rpg_world_progression_purge_history').on('click', () => { void confirmAndPurgeWorldHistory(); });
@@ -11866,22 +11867,22 @@ RULES:
         $wpConsolidateNow.on('click', async function () {
             const count = parseInt(String($wpConsolidateCount.val() || '')) || 7;
             if (count < 2) {
-                toastr['warning']('Please enter a count of at least 2 reports to consolidate.', 'World Progression');
+                toastr['warning']('请输入至少 2 份要合并的报告数量。', '世界进程');
                 return;
             }
-            if (!confirm(`Are you sure you want to consolidate the oldest ${count} raw reports right now?`)) {
+            if (!confirm(`确定要立即合并最早的 ${count} 份原始报告吗？`)) {
                 return;
             }
 
             const { runWorldProgressionConsolidationPass } = await import('./router.js');
-            $wpConsolidateNow.prop('disabled', true).text('Consolidating…');
+            $wpConsolidateNow.prop('disabled', true).text('正在合并…');
             try {
                 const label = await runWorldProgressionConsolidationPass(count);
-                toastr['success'](`Consolidated into "${label}".`, 'World Progression');
+                toastr['success'](`已合并为"${label}"。`, '世界进程');
             } catch (e) {
-                toastr['error'](`Consolidation error: ${e.message}`, 'World Progression');
+                toastr['error'](`合并错误：${e.message}`, '世界进程');
             } finally {
-                $wpConsolidateNow.prop('disabled', false).html('<i class="fa-solid fa-compress"></i> Consolidate Now');
+                $wpConsolidateNow.prop('disabled', false).html('<i class="fa-solid fa-compress"></i> 立即合并');
             }
         });
 
@@ -11945,7 +11946,7 @@ RULES:
                 .filter(name => name && !String(name).toLowerCase().endsWith('_skeleton'))
                 .sort((a, b) => String(a).localeCompare(String(b)));
             if (!sourceBooks.length) {
-                $wpSkeletonLorebookList.append($('<i>').css('opacity', '0.6').text('No lorebooks found.'));
+                $wpSkeletonLorebookList.append($('<i>').css('opacity', '0.6').text('未找到世界书。'));
                 return;
             }
 
@@ -11985,10 +11986,10 @@ RULES:
                 const count = locCount + facCount + conflictCount;
 
                 $wpSkeletonStatus.text(count > 0
-                    ? `${count} macro skeleton entries in "${skeletonBookName}" (LOC: ${locCount}, FAC: ${facCount}, CONFLICT: ${conflictCount})`
-                    : 'No skeleton generated.');
+                    ? `"${skeletonBookName}" 中有 ${count} 条宏骨架条目（LOC：${locCount}，FAC：${facCount}，CONFLICT：${conflictCount}）`
+                    : '未生成骨架。');
             } catch (_) {
-                $wpSkeletonStatus.text('No skeleton generated.');
+                $wpSkeletonStatus.text('未生成骨架。');
             }
         }
 
@@ -12028,22 +12029,22 @@ RULES:
         $wpGenerateAtmosphere.on('click', async function () {
             const ctx = SillyTavern.getContext();
             if (!ctx.chat || ctx.chat.length === 0) {
-                toastr['warning']('No chat history available. Please type some messages first.', 'World Skeleton');
+                toastr['warning']('没有可用的聊天记录。请先发送一些消息。', '世界骨架');
                 return;
             }
             const lookback = parseInt(String($wpSkeletonAtmosphereLookback.val() || '')) || 30;
-            $wpGenerateAtmosphere.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Generating…');
+            $wpGenerateAtmosphere.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> 正在生成…');
             try {
                 const { runAtmosphereGenerationPass } = await import('./router.js');
                 const summary = await runAtmosphereGenerationPass(lookback);
                 getSettings().worldProgressionSkeletonAtmosphereSummary = summary;
                 $wpSkeletonAtmosphere.val(summary);
                 saveSettings();
-                toastr['success']('Skeleton Source auto-generated successfully.', 'World Skeleton');
+                toastr['success']('骨架源已自动生成。', '世界骨架');
             } catch (e) {
-                toastr['error'](`Failed to generate Skeleton Source: ${e.message}`, 'World Skeleton');
+                toastr['error'](`生成骨架源失败：${e.message}`, '世界骨架');
             } finally {
-                $wpGenerateAtmosphere.prop('disabled', false).html('<i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Generate');
+                $wpGenerateAtmosphere.prop('disabled', false).html('<i class="fa-solid fa-wand-magic-sparkles"></i> 自动生成');
             }
         });
 
@@ -12068,7 +12069,7 @@ RULES:
         });
 
         $wpResetSkeletonPrompt.on('click', function () {
-            if (!confirm('Reset World Skeleton system prompt to default?')) return;
+            if (!confirm('将世界骨架系统提示词重置为默认值？')) return;
             const { extensionSettings } = SillyTavern.getContext();
             if (extensionSettings[MODULE_NAME]) {
                 delete extensionSettings[MODULE_NAME].worldProgressionSkeletonSystemPrompt;
@@ -12077,32 +12078,32 @@ RULES:
             getSettings().worldProgressionSkeletonSystemPrompt = freshDefault;
             $wpSkeletonPrompt.val(freshDefault);
             saveSettings();
-            toastr['success']('World Skeleton prompt reset to default.', 'World Skeleton');
+            toastr['success']('世界骨架提示词已重置为默认值。', '世界骨架');
         });
 
         $wpGenerateSkeleton.on('click', async function () {
             const atmosphere = String($wpSkeletonAtmosphere.val() || '').trim();
             const useLorebooks = !!$wpSkeletonUseLorebooks.prop('checked');
             if (!atmosphere && !useLorebooks) {
-                toastr['warning']('Please enter a Skeleton Source or enable existing lorebook sources before generating.', 'World Skeleton');
+                toastr['warning']('请先输入骨架源或启用已存在的设定集来源，然后再生成。', '世界骨架');
                 return;
             }
             const ctx = SillyTavern.getContext();
             const prefix = getEffectiveRouterCampaignPrefix(ctx.chatId || '');
             if (!prefix) {
-                toastr['warning']('No campaign prefix set. Set a prefix or open a chat in SillyTavern first.', 'World Skeleton');
+                toastr['warning']('未设置战役前缀。请先设置前缀或在 SillyTavern 中打开聊天。', '世界骨架');
                 return;
             }
-            $wpGenerateSkeleton.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Generating…');
+            $wpGenerateSkeleton.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> 正在生成…');
             try {
                 const { runSkeletonGenerationPass } = await import('./router.js');
                 const count = await runSkeletonGenerationPass(atmosphere, false);
                 await updateSkeletonStatus();
-                toastr['success'](`World Skeleton generated: ${count} entries created.`, 'World Skeleton');
+                toastr['success'](`世界骨架已生成：已创建 ${count} 个条目。`, '世界骨架');
             } catch (e) {
-                toastr['error'](`World Skeleton error: ${e.message}`, 'World Skeleton');
+                toastr['error'](`世界骨架出错：${e.message}`, '世界骨架');
             } finally {
-                $wpGenerateSkeleton.prop('disabled', false).html('<i class="fa-solid fa-wand-magic-sparkles"></i> Generate Skeleton');
+                $wpGenerateSkeleton.prop('disabled', false).html('<i class="fa-solid fa-wand-magic-sparkles"></i> 生成骨架');
             }
         });
 
@@ -12111,25 +12112,25 @@ RULES:
             const useExisting = !!$wpSkeletonUseExisting.prop('checked');
             const useLorebooks = !!$wpSkeletonUseLorebooks.prop('checked');
             if (!useExisting && !useLorebooks && !atmosphere) {
-                toastr['warning']('Please enter a Skeleton Source or enable an existing source before adding entries.', 'World Skeleton');
+                toastr['warning']('请先输入骨架源或启用已存在的来源，然后再添加条目。', '世界骨架');
                 return;
             }
             const ctx = SillyTavern.getContext();
             const prefix = getEffectiveRouterCampaignPrefix(ctx.chatId || '');
             if (!prefix) {
-                toastr['warning']('No campaign prefix set. Set a prefix or open a chat in SillyTavern first.', 'World Skeleton');
+                toastr['warning']('未设置战役前缀。请先设置前缀或在 SillyTavern 中打开聊天。', '世界骨架');
                 return;
             }
-            $wpAddSkeleton.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Adding…');
+            $wpAddSkeleton.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> 正在添加…');
             try {
                 const { runSkeletonGenerationPass } = await import('./router.js');
                 const count = await runSkeletonGenerationPass(atmosphere, true, useExisting);
                 await updateSkeletonStatus();
-                toastr['success'](`World Skeleton updated: ${count} additional entries added.`, 'World Skeleton');
+                toastr['success'](`世界骨架已更新：已新增 ${count} 个条目。`, '世界骨架');
             } catch (e) {
-                toastr['error'](`World Skeleton error: ${e.message}`, 'World Skeleton');
+                toastr['error'](`世界骨架出错：${e.message}`, '世界骨架');
             } finally {
-                $wpAddSkeleton.prop('disabled', false).html('<i class="fa-solid fa-plus"></i> Add to Skeleton');
+                $wpAddSkeleton.prop('disabled', false).html('<i class="fa-solid fa-plus"></i> 添加到骨架');
             }
         });
 
@@ -12163,7 +12164,7 @@ RULES:
 
         $('#rpg_tracker_btn_update').on('click', async function () {
             const { chat } = SillyTavern.getContext();
-            if (!chat || chat.length === 0) return toastr['info']("No chat history found.", "RPG Tracker");
+            if (!chat || chat.length === 0) return toastr['info']("未找到聊天记录。", "RPG 追踪器");
 
             let lastAssistantMsg = "";
             for (let i = chat.length - 1; i >= 0; i--) {
@@ -12175,14 +12176,14 @@ RULES:
                     break;
                 }
             }
-            if (!lastAssistantMsg) return toastr['info']("No assistant message with content found.", "RPG Tracker");
+            if (!lastAssistantMsg) return toastr['info']("未找到包含内容的助手消息。", "RPG 追踪器");
 
-            toastr['info']("Triggering manual State Update...", "RPG Tracker");
+            toastr['info']("正在触发手动状态更新…", "RPG 追踪器");
             await runStateModelPass(lastAssistantMsg);
         });
 
         $('#rpg_tracker_btn_clear').on('click', function () {
-            if (confirm("Are you sure you want to clear the memory history and wipe the tracker?")) {
+            if (confirm("确定要清除记忆历史并清空追踪器吗？")) {
                 settings.currentMemo = "";
                 settings.prevMemo1 = "";
                 settings.prevMemo2 = "";
@@ -12197,8 +12198,8 @@ RULES:
                 updateUIMemo("");
                 refreshRenderedView();
                 const dp = document.getElementById('rpg-tracker-delta-content');
-                if (dp) dp.innerHTML = '<span class="delta-empty">Log cleared.</span>';
-                toastr['success']("RPG Tracker logic wiped.", "RPG Tracker");
+                if (dp) dp.innerHTML = '<span class="delta-empty">日志已清除。</span>';
+                toastr['success']("RPG 追踪器逻辑已清除。", "RPG Tracker");
             }
         });
 
@@ -12207,13 +12208,13 @@ RULES:
             if (btn.disabled) return;
             const prevHtml = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Writing checkpoint…';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 正在写入检查点…';
             try {
                 await forceDiskCheckpoint();
-                toastr['success']('Disk checkpoint written. Future rollbacks should land on this state.', 'RPG Tracker');
+                toastr['success']('磁盘检查点已写入。后续回滚将落在此状态。', 'RPG Tracker');
             } catch (err) {
                 console.error('[RPG Tracker] Force disk checkpoint failed:', err);
-                toastr['error'](`Checkpoint failed: ${err?.message || err}. Keep this tab open and try again.`, 'RPG Tracker');
+                toastr['error'](`检查点写入失败：${err?.message || err}。请保持此标签页打开并重试。`, 'RPG Tracker');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = prevHtml;
@@ -12221,7 +12222,7 @@ RULES:
         });
 
         $('#rpg_tracker_btn_factory_reset').on('click', async function () {
-            if (!confirm("⚠️ NUCLEAR OPTION ⚠️\n\nThis will wipe EVERYTHING and restore factory defaults:\n\n• All custom fields, game systems, and saved cartridges\n• All profiles and per-chat linked state (memos, portraits, location images)\n• All custom portraits and location scene art files\n• All prompt and configuration changes\n\nYour SillyTavern Quick Prompt Main box is not changed. Proceed?")) return;
+            if (!confirm("⚠️ 核弹级操作 ⚠️\n\n此操作将清除所有内容并恢复出厂默认设置：\n\n• 所有自定义字段、游戏系统和已保存的卡带\n• 所有配置文件和按聊天关联的状态（备忘录、肖像、地点图片）\n• 所有自定义肖像和地点场景美术文件\n• 所有提示词和配置更改\n\n您的 SillyTavern 快捷提示词主输入框不会更改。是否继续？")) return;
 
             setPortraitMigrationLocked(true);
             try {
@@ -12234,11 +12235,11 @@ RULES:
                 resetAutoGenerationTracking();
                 resetImmersionSceneArtTracking();
                 await saveSettings(true);
-                toastr['success']('Framework reset to factory defaults. Reloading in 2 seconds…', 'RPG Tracker');
+                toastr['success']('框架已重置为出厂默认设置。2 秒后重新加载…', 'RPG Tracker');
                 setTimeout(() => location.reload(), 2000);
             } catch (err) {
                 console.error('[RPG Tracker] Factory reset failed:', err);
-                toastr['error'](`Factory reset failed: ${err.message || err}`, 'RPG Tracker');
+                toastr['error'](`出厂重置失败：${err.message || err}`, 'RPG Tracker');
                 setPortraitMigrationLocked(false);
             }
         });
@@ -12249,9 +12250,9 @@ RULES:
         $('#rpg_tracker_profile_save').on('click', function () {
             const sel = /** @type {HTMLSelectElement} */ (document.getElementById('rpg_tracker_profile_select'));
             const name = sel.value;
-            if (!name) return toastr['info']('No profile selected to overwrite. Use "Save As" for new profiles.', 'RPG Tracker');
+            if (!name) return toastr['info']('未选择要覆盖的配置。新建配置请使用“另存为”。', 'RPG Tracker');
             saveProfile(name);
-            toastr['success'](`Profile "${name}" overwritten.`, 'RPG Tracker');
+            toastr['success'](`配置“${name}”已覆盖。`, 'RPG Tracker');
         });
 
         $('#rpg_tracker_profile_save_as').on('click', async function () {
@@ -12261,22 +12262,22 @@ RULES:
 
             let name = null;
             if (Popup && Popup.show && Popup.show.input) {
-                name = await Popup.show.input('Save Profile', 'Save profile as:', existing || '');
+                name = await Popup.show.input('保存配置', '配置另存为：', existing || '');
             } else {
-                name = prompt('Save profile as:', existing || '');
+                name = prompt('配置另存为：', existing || '');
             }
 
             name = name?.trim();
             if (!name) return;
             saveProfile(name);
             refreshProfileDropdown();
-            toastr['success'](`Profile "${name}" saved.`, 'RPG Tracker');
+            toastr['success'](`配置“${name}”已保存。`, 'RPG Tracker');
         });
 
         $('#rpg_tracker_profile_load').on('click', function () {
             const sel = /** @type {HTMLSelectElement} */ (document.getElementById('rpg_tracker_profile_select'));
             const name = sel.value;
-            if (!name) return toastr['info']('No profile selected.', 'RPG Tracker');
+            if (!name) return toastr['info']('未选择配置。', 'RPG Tracker');
             loadProfile(name);
             toastr['success'](`Profile "${name}" loaded.`, 'RPG Tracker');
         });
@@ -12284,19 +12285,19 @@ RULES:
         $('#rpg_tracker_profile_delete').on('click', async function () {
             const sel = /** @type {HTMLSelectElement} */ (document.getElementById('rpg_tracker_profile_select'));
             const name = sel.value;
-            if (!name) return toastr['info']('No profile selected.', 'RPG Tracker');
+            if (!name) return toastr['info']('未选择配置。', 'RPG Tracker');
 
             const { Popup, POPUP_RESULT } = SillyTavern.getContext();
             if (Popup && Popup.show && Popup.show.confirm) {
-                const confirmResult = await Popup.show.confirm('Delete Profile', `Delete profile "${name}"?`);
+                const confirmResult = await Popup.show.confirm('删除配置', `确定删除配置“${name}”？`);
                 if (confirmResult !== POPUP_RESULT.AFFIRMATIVE) return;
             } else {
-                if (!confirm(`Delete profile "${name}"?`)) return;
+                if (!confirm(`确定删除配置“${name}”？`)) return;
             }
 
             deleteProfile(name);
             refreshProfileDropdown();
-            toastr['success'](`Profile "${name}" deleted.`, 'RPG Tracker');
+            toastr['success'](`配置“${name}”已删除。`, 'RPG Tracker');
         });
 
         function syncRngToolsUi(s) {

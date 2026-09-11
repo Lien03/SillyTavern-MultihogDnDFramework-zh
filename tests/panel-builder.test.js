@@ -34,7 +34,7 @@ describe('panel builder', () => {
         const source = readFileSync(new URL('../src/ui/panel/panel-builder.js', import.meta.url), 'utf8');
         expect(source).toContain('node.item?.has_dungeon_map');
         expect(source).toContain('rt-dungeon-map-badge');
-        expect(source).toContain('View private dungeon map (alpha) attached to this root Location');
+        expect(source).toContain('title="查看此根地点附带的私人地城地图（alpha）"');
         expect(source).toContain('openDungeonMapPopup');
         expect(source).toContain('openDungeonMapReadablePopup');
         expect(source).toContain('rt-dungeon-map-delete');
@@ -42,8 +42,8 @@ describe('panel builder', () => {
         expect(source).toContain('deleteDungeonMapFromLocationEntry');
         expect(source).toContain('runMapArchitect');
         expect(source).toContain('allowOffsite: true');
-        expect(source).toContain('Create a private map for this location root');
-        expect(source).toContain('Remove the private map from this Location (keeps CORE)');
+        expect(source).toContain('title="为此地点根创建私人地图"');
+        expect(source).toContain('title="从此地点移除私人地图（保留 CORE）"');
         expect(source).not.toContain('startUserRequestedAreaMapGeneration');
         expect(source).not.toContain('renderDungeonMapReadableHtml');
         expect(source).not.toContain('revealAll: true');
@@ -53,22 +53,22 @@ describe('panel builder', () => {
         expect(source).toContain('inferMapArchitectArgs');
         expect(source).toContain("value=\"auto\" checked");
         expect(source).toContain('rt-map-create-lookback');
-        expect(source).toContain('Filling map brief for');
+        expect(source).toContain('正在为 ${site} 填充地图简报…');
         expect(source).toContain('id="rt-map-create-manual" hidden');
         expect(source).toContain('rt-loc-add-mapped-btn');
         expect(source).toContain('rt-loc-maps-guide-btn');
-        expect(source).toContain('Maps Guide');
-        expect(source).toContain('What Are Maps?');
-        expect(source).toContain('World Progression and Map Evolution interaction');
+        expect(source).toContain('地图指南');
+        expect(source).toContain('什么是地图？');
+        expect(source).toContain('世界进程与地图演化的交互');
         expect(source).toContain('promptAndCreateMappedLocation');
         expect(source).toContain('requireNew: true');
         expect(source).toContain('locationKeys');
-        expect(source).toContain('The location name is added automatically');
+        expect(source).toContain('地点名称会自动添加。最多 6 个。');
         expect(source).toContain('rt-map-loc-mode');
         expect(source).toContain('rt-map-loc-brief');
         expect(source).toContain('rt-map-loc-lookback');
-        expect(source).toContain('0 uses no recent chat');
-        expect(source).toContain('Optional reference context');
+        expect(source).toContain('0 表示不使用最近的聊天记录——仅使用名称和简报。');
+        expect(source).toContain('可选参考上下文');
         expect(source).toContain('data-map-context-lorebooks');
         expect(source).toContain('data-map-context-character-cards');
         expect(source).toContain('populateMapCreationContextOptions');
@@ -194,9 +194,9 @@ describe('panel builder', () => {
         expect(source).toContain('promptMappedEvolutionSites');
         expect(source).toContain('siteRoots');
         expect(source).toContain('listMappedEvolutionSites');
-        expect(source).toContain("toastr['info']('Starting Lorebook Agent pass...')");
-        expect(source).toContain("toastr['info']('Starting Map Updater pass...')");
-        expect(source).toContain("toastr['info']('Starting Map Evolution pass...')");
+        expect(source).toContain("toastr['info']('正在启动世界书代理流程…')");
+        expect(source).toContain("toastr['info']('正在启动地图更新流程…')");
+        expect(source).toContain("toastr['info']('正在启动地图演化流程…')");
     });
 
     it('shares Stop and tabbed Agent Console with Map Updater without NPC auto-portraits', () => {
@@ -206,7 +206,7 @@ describe('panel builder', () => {
         expect(source).toContain('stopMapUpdaterPass()');
         expect(source).toContain('stopMapEvolutionPass()');
         expect(source).toContain("skipped === 'stopped'");
-        expect(source).toContain("toastr['info']('Stopped.', 'Map Updater')");
+        expect(source).toContain("toastr['info']('已停止。', 'Map Updater')");
         expect(source).toContain("source === 'lorebook_agent'");
         expect(source).toContain('checkAndTriggerAutoGenerations(refreshAll)');
         expect(source).toContain('rt-agent-terminal-tabs');

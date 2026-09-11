@@ -37,7 +37,7 @@ export async function createOrSelectGameMasterCard(options = {}) {
         const raw = await res.json();
         allChars = Array.isArray(raw) ? raw : [];
     } catch (err) {
-        const msg = String(err?.message || err || 'Failed to load character cards.');
+        const msg = String(err?.message || err || '加载角色卡片失败。');
         globalThis.toastr?.error?.(msg.substring(0, 180), 'Multihog D&D Framework');
         return { ok: false, created: false, selected: false, avatar: '', name };
     }
@@ -59,10 +59,10 @@ export async function createOrSelectGameMasterCard(options = {}) {
     if (existing) {
         try {
             const selected = await selectByAvatarOrName(existing.avatar, name);
-            globalThis.toastr?.info?.(`"${name}" already exists — selected it.`, 'Multihog D&D Framework');
+            globalThis.toastr?.info?.(`"${name}" 已存在——已选中。`, 'Multihog D&D Framework');
             return { ok: true, created: false, selected, avatar: existing.avatar || '', name };
         } catch (err) {
-            const msg = String(err?.message || err || 'Failed to select Game Master card.');
+            const msg = String(err?.message || err || '选择旁白卡片失败。');
             globalThis.toastr?.error?.(msg.substring(0, 180), 'Multihog D&D Framework');
             return { ok: false, created: false, selected: false, avatar: existing.avatar || '', name };
         }
@@ -77,10 +77,10 @@ export async function createOrSelectGameMasterCard(options = {}) {
         if (!res.ok) throw new Error(await res.text());
         const avatarKey = (await res.text()).trim();
         const selected = await selectByAvatarOrName(avatarKey, name);
-        globalThis.toastr?.success?.(`Created and selected "${name}".`, 'Multihog D&D Framework');
+        globalThis.toastr?.success?.(`已创建并选中 "${name}"。`, 'Multihog D&D Framework');
         return { ok: true, created: true, selected, avatar: avatarKey, name };
     } catch (err) {
-        const msg = String(err?.message || err || 'Failed to create Game Master card.');
+        const msg = String(err?.message || err || '创建旁白卡片失败。');
         globalThis.toastr?.error?.(msg.substring(0, 180), 'Multihog D&D Framework');
         return { ok: false, created: false, selected: false, avatar: '', name };
     }

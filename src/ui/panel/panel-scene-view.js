@@ -32,7 +32,7 @@ export function createSceneViewController({
                 return;
             }
             if (path) {
-                toastr.info(`No location record for "${path}" yet.`, 'Visuals/Map');
+                toastr.info(`还没有「${path}」对应的地点记录。`, '视觉/地图');
             }
         };
 
@@ -59,7 +59,7 @@ export function createSceneViewController({
                             item?.content || '',
                         );
                     } else if (raw) {
-                        toastr.info(`No lore match for "${raw}". Add a Locations entry or check the name.`, 'Visuals/Map');
+                        toastr.info(`没有匹配到「${raw}」的设定。请添加地点条目或检查名称。`, '视觉/地图');
                     }
                 };
                 hero.addEventListener('click', () => { void activateHero(); });
@@ -185,7 +185,7 @@ export function createSceneViewController({
                 syncAgentImmersionUi();
                 const container = agentPanel.querySelector('#rt-agent-immersion-view');
                 if (container) {
-                    container.innerHTML = '<div style="text-align:center;opacity:0.5;font-size:0.769em;padding:10px;">Failed to load scene view.</div>';
+                    container.innerHTML = '<div style="text-align:center;opacity:0.5;font-size:0.769em;padding:10px;">场景视图加载失败。</div>';
                 }
             }
         };

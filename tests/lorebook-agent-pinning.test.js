@@ -90,19 +90,19 @@ describe('Lorebook Agent pin UI wiring', () => {
         expect(panelBuilderSource).toContain('rt-agent-entry-pin');
         expect(panelBuilderSource).toContain('fa-thumbtack');
         expect(panelBuilderSource).toContain("? '#34a853'");
-        expect(panelBuilderSource).toContain("? 'Pinned — always active'");
+        expect(panelBuilderSource).toContain("? '已固定——对 Lorebook Agent 始终生效'");
         expect(panelBuilderSource).toContain('setLorebookEntryPinned(item.id, nextPinned)');
     });
 
     it('NPC card grid includes a pin action and pinned status badge', () => {
         expect(panelBuilderSource).toContain('rt-npc-pin');
-        expect(panelBuilderSource).toContain('📌 Pinned');
+        expect(panelBuilderSource).toContain('📌 已固定');
     });
 
     it('Active Lore Keys pills color pinned entries green and expose Unpin instead of Deactivate', () => {
         expect(panelRouterSource).toContain('rt-router-unpin-key');
-        expect(panelRouterSource).toContain('📌 Pinned — always active');
-        expect(panelRouterSource).toContain("title=\"Unpin\"");
+        expect(panelRouterSource).toContain('📌 已固定 — 始终激活');
+        expect(panelRouterSource).toContain('title="取消固定"');
         expect(panelRouterSource).toContain('setLorebookEntryPinned(key, false)');
         expect(panelRouterSource).toContain('rgba(52, 168, 83, 0.65)');
     });

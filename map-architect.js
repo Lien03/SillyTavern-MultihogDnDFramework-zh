@@ -45,7 +45,7 @@ function broadcastStep(type, content, metadata = {}) {
 }
 
 function siteToastLabel(site) {
-    return String(site || 'location').trim() || 'location';
+    return String(site || '地点').trim() || '地点';
 }
 
 function startMapArchitectToast(site) {
@@ -58,7 +58,7 @@ function startMapArchitectToast(site) {
     }
     try {
         const toast = toastrApi.info(
-            `Generating a location map for ${siteToastLabel(site)}...`,
+            `正在为 ${siteToastLabel(site)} 生成地点地图...`,
             'Map Architect',
             { timeOut: 0, extendedTimeOut: 0, closeButton: true },
         );
@@ -80,8 +80,8 @@ function finishMapArchitectToast(site, succeeded) {
     try {
         method(
             succeeded
-                ? `Location map ready for ${siteToastLabel(site)}.`
-                : `Location map generation failed for ${siteToastLabel(site)}. See the tool result for details.`,
+                ? `已为 ${siteToastLabel(site)} 生成地点地图。`
+                : `为 ${siteToastLabel(site)} 生成地点地图失败，详情请见工具结果。`,
             'Map Architect',
             { timeOut: succeeded ? 5000 : 10000, extendedTimeOut: succeeded ? 10000 : 20000 },
         );
@@ -369,7 +369,7 @@ async function runMapArchitectOnce(rawArgs) {
     if (!args.briefDescription) args.briefDescription = legacyBriefDescription(args.prompt, args.site);
     if (!['SMALL', 'MEDIUM', 'LARGE'].includes(args.scale)) args.scale = 'MEDIUM';
 
-    broadcastStep('start', `Initializing Map Architect for ${args.site}...`);
+    broadcastStep('start', `正在为 ${args.site} 初始化 Map Architect...`);
 
     const ctx = SillyTavern.getContext();
     const settings = getSettings();
@@ -402,10 +402,10 @@ async function runMapArchitectOnce(rawArgs) {
             const continuation = hostContext.explicit
                 ? 'This was an offsite structural edit. Keep the current player location and narration unchanged.'
                 : 'Keep unseen facts private and continue narration from the player-observable entrance.';
-            broadcastStep('finish', `Linked existing map for ${args.site} inside ${hostContext.hostSite}.`);
+            broadcastStep('finish', `已将 ${args.site} 的现有地图链接到 ${hostContext.hostSite} 内部。`);
             return `[MAP_ARCHITECT_RESULT — PRIVATE]\nThe existing peer map was preserved and linked inside ${hostContext.hostSite}.\n\n${formatDungeonMapForNarrator(saved.document)}\n\n${continuation}\n[/MAP_ARCHITECT_RESULT]`;
         }
-        broadcastStep('finish', `Reused existing map for ${args.site}.`);
+        broadcastStep('finish', `已复用 ${args.site} 的现有地图。`);
         return existingResult(existing);
     }
     if (rawArgs?.requireNew && await locationRootExists(args.site)) {
@@ -421,8 +421,8 @@ async function runMapArchitectOnce(rawArgs) {
     let topologyIssues = [];
 
     for (let attempt = 0; attempt <= MAX_CORRECTION_ATTEMPTS; attempt++) {
-        if (attempt > 0) broadcastStep('thought', `Topology correction pass ${attempt} for ${args.site}...`);
-        else broadcastStep('thought', `Building ${args.kind.toLowerCase()} topology for ${args.site}...`);
+        if (attempt > 0) broadcastStep('thought', `正在为 ${args.site} 进行拓扑修正（第 ${attempt} 轮）...`);
+        else broadcastStep('thought', `正在为 ${args.site} 构建 ${args.kind.toLowerCase()} 拓扑...`);
         const output = await sendStateRequest(
             requestSettings(settings),
             DEFAULT_MAP_ARCHITECT_TOPOLOGY_SYSTEM_PROMPT,
@@ -448,7 +448,7 @@ async function runMapArchitectOnce(rawArgs) {
             : { valid: false, errors: [] };
         if (validation.valid) {
             topology = validation.document;
-            broadcastStep('result', `Topology locked with ${topology.areas.length} areas for ${args.site}.`);
+            broadcastStep('result', `已为 ${args.site} 锁定拓扑，共 ${topology.areas.length} 个区域。`);
             break;
         }
         topologyIssues = parsed.error
@@ -461,7 +461,7 @@ async function runMapArchitectOnce(rawArgs) {
 
     if (!topology) {
         const failureMessage = `The architect could not produce a valid connected topology after ${MAX_CORRECTION_ATTEMPTS + 1} attempts. Nothing was saved. Problems: ${conciseIssues(topologyIssues)}`;
-        broadcastStep('error', failureMessage);
+        broadcastStep('error', `地图建筑师在 ${MAX_CORRECTION_ATTEMPTS + 1} 次尝试后未能生成有效的连通拓扑。未保存任何内容。问题：${conciseIssues(topologyIssues)}`);
         throw mapArchitectFailure(failureMessage);
     }
 
@@ -471,8 +471,8 @@ async function runMapArchitectOnce(rawArgs) {
     let placementIssues = [];
 
     for (let attempt = 0; attempt <= MAX_CORRECTION_ATTEMPTS; attempt++) {
-        if (attempt > 0) broadcastStep('thought', `Content correction pass ${attempt} for ${args.site}...`);
-        else broadcastStep('thought', `Populating ${topology.areas.length} locked areas for ${args.site}...`);
+        if (attempt > 0) broadcastStep('thought', `正在为 ${args.site} 进行内容修正（第 ${attempt} 轮）...`);
+        else broadcastStep('thought', `正在为 ${args.site} 填充 ${topology.areas.length} 个已锁定区域...`);
         const output = await sendStateRequest(
             requestSettings(settings),
             placementSystemPrompt,
@@ -503,7 +503,7 @@ async function runMapArchitectOnce(rawArgs) {
 
     if (!completedMap) {
         const failureMessage = `The architect produced valid topology but could not place valid contents after ${MAX_CORRECTION_ATTEMPTS + 1} attempts. Nothing was saved. Problems: ${conciseIssues(placementIssues)}`;
-        broadcastStep('error', failureMessage);
+        broadcastStep('error', `地图建筑师生成了有效拓扑，但在 ${MAX_CORRECTION_ATTEMPTS + 1} 次尝试后未能放置有效内容。未保存任何内容。问题：${conciseIssues(placementIssues)}`);
         throw mapArchitectFailure(failureMessage);
     }
     if (!isLocationMappingEnabled(getSettings())) {
@@ -517,11 +517,12 @@ async function runMapArchitectOnce(rawArgs) {
         hostContext,
     });
     const status = saved.existing ? 'A concurrent map already existed and was preserved.' : `Map saved to ${saved.entryId}.`;
+    const statusDisplay = saved.existing ? '已存在并发生成的地图，原地图已保留。' : `地图已保存到 ${saved.entryId}。`;
     const continuation = hostContext?.explicit
         ? 'This was an offsite structural edit. Do not move the player, change the Location footer, or narrate entry into the new map.'
         : `Continue narration from ${args.entrance}; reveal only what the player can perceive. Once they enter, copy this exact site name into the Location footer: "${args.site}".`;
-    broadcastStep('result', status);
-    broadcastStep('finish', `Map Architect finished for ${args.site}.`);
+    broadcastStep('result', statusDisplay);
+    broadcastStep('finish', `Map Architect 已完成 ${args.site} 的地图生成。`);
     return `[MAP_ARCHITECT_RESULT — PRIVATE]\n${status}\nTreat this as objective current canon. Do not expose unseen facts.\n\n${formatDungeonMapForNarrator(saved.document)}\n\n${continuation}\n[/MAP_ARCHITECT_RESULT]`;
 }
 
@@ -531,17 +532,17 @@ async function runMapArchitectOnce(rawArgs) {
  */
 export async function inferMapArchitectArgs({ site, loreEntry = '', userBrief = '', lookback, lorebookNames = [], characterCards = [] } = {}) {
     const siteRoot = String(site || '').trim();
-    if (!siteRoot) throw new Error('Map Architect auto-fill needs a location root.');
+    if (!siteRoot) throw new Error('Map Architect 自动填充需要一个地点根。');
 
     const ctx = SillyTavern.getContext();
     const settings = getSettings();
     if (!isLocationMappingEnabled(settings)) {
-        throw new Error('Persistent Maps is disabled in Components. No map brief was filled.');
+        throw new Error('Persistent Maps 已在组件中禁用。未填充地图简报。');
     }
 
     const current = await syncDungeonMapsToLocationLorebook(ctx.chat || [], { capture: false });
     if ((current.errors || []).some(error => /no campaign prefix/i.test(String(error)))) {
-        throw new Error('No campaign prefix is available, so there is no safe Locations lorebook target.');
+        throw new Error('没有可用的战役前缀，因此没有安全的 Locations 知识库目标。');
     }
 
     const windowSize = resolveLookback(settings, lookback);
@@ -577,7 +578,7 @@ Output only the JSON object.`;
     );
     const parsed = parseMapArchitectResponse(output);
     if (!parsed.value) {
-        throw new Error(parsed.error || 'Map Architect returned no map brief JSON.');
+        throw new Error(parsed.error || 'Map Architect 未返回地图简报 JSON。');
     }
 
     const kind = normalizeMapSiteKind(parsed.value.kind);
@@ -587,7 +588,7 @@ Output only the JSON object.`;
     const scale = String(parsed.value.scale || 'MEDIUM').trim().toUpperCase();
     const threat = normalizeMapSiteThreat(parsed.value.threat, defaultMapSiteThreat(kind));
     if (!entrance || !prompt || !briefDescription) {
-        throw new Error('Map Architect returned an incomplete map brief (entrance, prompt, and brief_description are required).');
+        throw new Error('Map Architect 返回的地图简报不完整（需要 entrance、prompt 与 brief_description）。');
     }
 
     const extraKeys = Array.isArray(parsed.value.keywords)

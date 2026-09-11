@@ -487,7 +487,7 @@ export function renderMapEvolutionHistoryHtml(backlogBySite, siteRoot, { revealA
 export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '', currentLocation = '' } = {}) {
     const ctx = globalThis.SillyTavern?.getContext?.();
     if (!ctx?.callGenericPopup || !mapDocument) return;
-    const site = siteLabel || mapDocument.site || 'Site map';
+    const site = siteLabel || mapDocument.site || '站点地图';
     let currentDocument = mapDocument;
     let revealAll = isDungeonMapRevealAll();
     let currentView = 'readable';
@@ -515,7 +515,7 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
         </div>
         <div class="rt-map-updater-direct-panel">
             <div class="rt-map-updater-direct-bar">
-                <textarea class="rt-map-updater-direct-input text_pole" rows="2" placeholder="Instruct Map Updater for this site only… (Enter to run, Shift+Enter for newline)"></textarea>
+                <textarea class="rt-map-updater-direct-input text_pole" rows="2" placeholder="仅针对此地点指示地图更新器…（回车执行，Shift+回车换行）"></textarea>
                 <div class="rt-map-updater-direct-actions">
                     <label class="rt-lookback-field rt-map-updater-direct-lookback-label" title="Recent story lookback for this manual Map Updater run">
                         <span class="rt-lookback-field-label">Lookback:</span>
@@ -624,7 +624,7 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
     }
     raw?.addEventListener('input', () => {
         rawDirty = true;
-        if (rawStatus) rawStatus.textContent = 'Unsaved changes.';
+        if (rawStatus) rawStatus.textContent = '有未保存的更改。';
     });
     rawSave?.addEventListener('click', async () => {
         if (!revealAll || !raw) return;
@@ -637,16 +637,16 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
             return;
         }
         rawSave.disabled = true;
-        if (rawStatus) rawStatus.textContent = 'Saving…';
+        if (rawStatus) rawStatus.textContent = '保存中…';
         try {
             const routerSpec = '../../../router.js';
             const { persistManualDungeonMapDocument } = await import(routerSpec);
             await persistManualDungeonMapDocument(site, parsed.document);
             currentDocument = parsed.document;
             rawDirty = false;
-            if (rawStatus) rawStatus.textContent = 'Saved.';
+            if (rawStatus) rawStatus.textContent = '已保存。';
             if (typeof globalThis.toastr?.success === 'function') {
-                globalThis.toastr.success(`Map JSON saved for ${site}.`, 'Map Inspector', { timeOut: 4000 });
+                globalThis.toastr.success(`已为 ${site} 保存地图 JSON。`, 'Map Inspector', { timeOut: 4000 });
             }
             await reloadInspectorFromLiveMap({ resetRaw: true });
         } catch (error) {
@@ -661,15 +661,15 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
     });
     runButton?.addEventListener('click', async () => {
         if (runtimeState.isLoreOrMapAgentBusyRef?.()) {
-            if (runStatus) runStatus.textContent = 'Another lore or map agent is already running.';
+            if (runStatus) runStatus.textContent = '已有传说或地图代理正在运行。';
             return;
         }
         if (typeof runtimeState.runMapEvolutionPassRef !== 'function') {
-            if (runStatus) runStatus.textContent = 'Map Evolution is not available yet.';
+            if (runStatus) runStatus.textContent = '地图演化尚不可用。';
             return;
         }
         runButton.disabled = true;
-        if (runStatus) runStatus.textContent = `Running Map Evolution for ${site}…`;
+        if (runStatus) runStatus.textContent = `正在为 ${site} 运行地图演化…`;
         try {
             const result = await runtimeState.runMapEvolutionPassRef({ trigger: 'manual', isManual: true, siteRoots: [site] });
             if (result?.ok) {
@@ -690,7 +690,7 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
                         : `Map Evolution could not complete for ${site}.`;
             }
         } catch (error) {
-            if (runStatus) runStatus.textContent = `Map Evolution failed: ${String(error?.message || error)}`;
+            if (runStatus) runStatus.textContent = `地图演化失败：${String(error?.message || error)}`;
         } finally {
             runButton.disabled = false;
         }
@@ -743,8 +743,7 @@ export function ensureDetachedDungeonMapPanel(handlers = {}) {
                 <button type="button" class="rpg-tracker-icon-btn rt-reattach-btn" title="Re-attach">✕</button>
             </div>
         </div>
-        <div class="rpg-tracker-content rpg-tracker-detached-body" id="rt-dungeon-map-detached-body"></div>
-        <div class="rt-resizer-br rt-detached-resizer-br" title="Resize"></div>
+        <div class="rt-resizer-br rt-detached-resizer-br" title="调整大小"></div>
     `;
     document.body.appendChild(panel);
 
@@ -805,7 +804,7 @@ export function updateDetachedDungeonMapPanel(scene, handlers = {}) {
     const merged = { ...(panel._dungeonMapHandlers || {}), ...handlers };
     panel._dungeonMapHandlers = merged;
     panel._dungeonMapScene = scene;
-    const site = scene?.dungeonMap?.siteRoot || scene?.dungeonMap?.document?.site || 'Site map';
+    const site = scene?.dungeonMap?.siteRoot || scene?.dungeonMap?.document?.site || '站点地图';
     const title = panel.querySelector('.rpg-tracker-header-left span');
     if (title) {
         title.replaceChildren();

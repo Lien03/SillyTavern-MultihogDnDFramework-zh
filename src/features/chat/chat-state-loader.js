@@ -256,7 +256,7 @@ export function createChatStateLoader({
         }
         const label = s.worldProgressionLastFiredPeriodLabel || '';
         const labelMins = label ? (parseInWorldTime(label) ?? -1) : -1;
-        const lastText = label || 'Never';
+        const lastText = label || '从未';
         $('#rpg_world_progression_last_fired').text(lastText);
         $('#rpg_world_progression_last_report_val').text(lastText);
         const intervalMinutes = (s.worldProgressionIntervalHours || 24) * 60;
@@ -279,7 +279,7 @@ export function createChatStateLoader({
                 return tStr ? (parseInWorldTime(tStr) ?? -1) : -1;
             })(),
         });
-        const evoLast = evoSchedule.lastMins >= 0 ? formatInWorldTime(evoSchedule.lastMins) : 'Never';
+        const evoLast = evoSchedule.lastMins >= 0 ? formatInWorldTime(evoSchedule.lastMins) : '从未';
         $('#rpg_map_evolution_last_fired').text(evoLast);
         $('#rpg_map_evolution_last_report_val').text(evoLast);
         $('#rpg_map_evolution_next_report_val').text(evoSchedule.nextMins >= 0 ? formatInWorldTime(evoSchedule.nextMins) : '—');
@@ -305,7 +305,7 @@ export function createChatStateLoader({
     s.currentMemo = applyQuestSyncAndStripMemo(s.currentMemo);
 
     const dp = document.getElementById('rpg-tracker-delta-content');
-    if (dp) dp.innerHTML = s.lastDelta || '<span class="delta-empty">No changes yet.</span>';
+    if (dp) dp.innerHTML = s.lastDelta || '<span class="delta-empty">暂无变化。</span>';
 
     refreshOrderList();
     syncMemoView();

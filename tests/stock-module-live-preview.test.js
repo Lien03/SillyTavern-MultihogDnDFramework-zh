@@ -9,7 +9,7 @@ describe('stock module editor live preview', () => {
         expect(editorSource).toContain('id="rt_pe_preview"');
         expect(editorSource).toContain('id="rt_pe_preview_header"');
         expect(editorSource).toContain('id="rt_pe_preview_view"');
-        expect(editorSource).toContain('UI Live Preview');
+        expect(editorSource).toContain('UI 实时预览');
     });
 
     it('renders sandbox changes through the normal stock-card renderer', () => {

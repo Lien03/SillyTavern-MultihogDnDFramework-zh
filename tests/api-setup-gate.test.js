@@ -30,7 +30,7 @@ describe('API setup checklist', () => {
     it('labels Text Completion vs Chat Completion for the overlay', () => {
         expect(describeMainApi('openai')).toBe('Chat Completion');
         expect(describeMainApi('textgenerationwebui')).toBe('Text Completion');
-        expect(describeMainApi('')).toBe('not set');
+        expect(describeMainApi('')).toBe('未设置');
     });
 
     it('reads the live API from SillyTavern context', () => {
@@ -98,23 +98,23 @@ describe('API setup checklist', () => {
         expect(html).toContain('id="rt-api-setup-continue"');
         expect(html).not.toMatch(/id="rt-api-setup-continue"[^>]*disabled/);
         expect(html).toContain('Anti-Museum Tour');
-        expect(html).toContain('People get JSON syntax errors and other stuff, and it turns out it&apos;s because ST makes its maximum output length far too low by default.');
-        expect(html).toContain('Chat Completion is enabled');
-        expect(html).toContain('Text Completion is a legacy API that was relevant before ChatGPT came out. Do not use it.');
-        expect(html).toContain('Function calling is enabled');
-        expect(html).toContain('This is crucial to use the more effective version of tools in Multihog D&amp;D, though there is a &quot;MacGyver&quot; path available if you absolutely can\'t use tools.');
-        expect(html).toContain('Maximum context size is unlimited');
-        expect(html).toContain('There is no reason to limit this today, and in fact there are reasons not to.');
-        expect(html).toContain('Imposing an artificial context limit does nothing but destroy your cache hits, which means you pay more.');
-        expect(html).toContain('Output length is set to 100,000');
-        expect(html).toContain('truncating the JSON and giving a schema/syntax error.');
-        expect(html).toContain('The result is that my extension throws an error and looks broken. However, this is just another bad default.');
+        expect(html).toContain('人们会遇到 JSON 语法错误之类的问题，最终发现都是因为 ST 默认把最大输出长度设得过低。');
+        expect(html).toContain('Chat Completion 已启用');
+        expect(html).toContain('Text Completion 是 ChatGPT 问世之前的旧式 API。请不要使用它。');
+        expect(html).toContain('Function calling 已启用');
+        expect(html).toContain('要使用 Multihog D&amp;D 中更高效的工具版本，这项设置至关重要；若实在无法使用工具，也备有一条“MacGyver”路径。');
+        expect(html).toContain('最大上下文大小不受限制');
+        expect(html).toContain('如今没有任何理由限制它——实际上理由恰恰相反。');
+        expect(html).toContain('人为设置上下文上限只会破坏缓存命中率，让你花更多钱。');
+        expect(html).toContain('输出长度已设为 100,000');
+        expect(html).toContain('JSON 被截断，直接报 schema/语法错误。');
+        expect(html).toContain('结果就是扩展抛错、看起来像坏了。不过，这只是又一个糟糕的默认值罢了。');
         expect(html).toContain('href="https://github.com/Lodactio/Extension-Summaryception"');
         expect(html).toContain('>summarizer</a>');
         expect(html).toContain('id="rt-api-setup-gm-name"');
         expect(html).toContain('value="Game Master"');
         expect(html).toContain('id="rt-api-setup-create-gm"');
-        expect(html).toContain('Multihog doesn&apos;t use a one-on-one chat format but uses a format written like a book, that seamlessly allows for multiple characters. The messages are attributed to a narrator, not a single character.');
+        expect(html).toContain('Multihog 不使用一对一的聊天格式，而是采用小说式的书写格式，让多个角色可以无缝共存。消息归属于旁白，而不是某个单一角色。');
         expect(html.match(/type="checkbox"/g)?.length).toBe(4);
         expect(html).not.toContain('These live checkmarks reflect your current SillyTavern settings');
     });

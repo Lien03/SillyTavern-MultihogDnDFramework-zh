@@ -57,7 +57,7 @@ export function wireAgentWorldProgression({
             const lastEl = agentPanel.querySelector('#rt-agent-world-last-fired');
             const nextEl = agentPanel.querySelector('#rt-agent-world-next-fire');
             const badge = agentPanel.querySelector('#rt-agent-world-enabled-badge');
-            if (lastEl) lastEl.textContent = label || 'Never';
+            if (lastEl) lastEl.textContent = label || '从未';
 
             let nextMins = -1;
             if (mins >= 0) {
@@ -72,7 +72,7 @@ export function wireAgentWorldProgression({
             }
             if (nextEl) nextEl.textContent = nextMins >= 0 ? fmtWP(nextMins) : '—';
             if (badge) {
-                badge.textContent = s.worldProgressionEnabled ? 'ON' : 'OFF';
+                badge.textContent = s.worldProgressionEnabled ? '开' : '关';
                 badge.style.cssText = s.worldProgressionEnabled
                     ? 'font-size:0.692em; padding:1px 7px; border-radius:10px; font-weight:bold; cursor:pointer; user-select:none; background:rgba(52,168,83,0.18); color:#34a853; border:1px solid rgba(52,168,83,0.3);'
                     : 'font-size:0.692em; padding:1px 7px; border-radius:10px; font-weight:bold; cursor:pointer; user-select:none; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.35); border:1px solid rgba(255,255,255,0.1);';
@@ -116,23 +116,23 @@ export function wireAgentWorldProgression({
                 const timeStr = timeMatch ? extractCurrentTimeStr(timeMatch[1]) : '';
                 const currentMinutes = piw(timeStr);
                 if (currentMinutes < 0) {
-                    toastr['warning']('Cannot parse in-world time from State Memo. Make sure the State Tracker has run at least once.', 'World Progression');
+                    toastr['warning']('无法从状态备忘录解析世界内时间，请确保状态追踪器至少运行过一次。', '世界进程');
                     return;
                 }
                 const savedLast = s.worldProgressionLastFiredAtMinutes;
                 s.worldProgressionLastFiredAtMinutes = -1;
                 /** @type {HTMLButtonElement} */ (worldFireNowBtn).disabled = true;
-                worldFireNowBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating…';
+                worldFireNowBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 生成中…';
                 try {
                     await rwp(timeStr, currentMinutes);
                     updateAgentWorldStatus();
-                    toastr['success']('World Progression report generated.', 'World Progression');
+                    toastr['success']('世界进程报告已生成。', '世界进程');
                 } catch (e) {
-                    toastr['error'](`World Progression error: ${e.message}`, 'World Progression');
+                    toastr['error'](`世界进程错误：${e.message}`, '世界进程');
                     s.worldProgressionLastFiredAtMinutes = savedLast;
                 } finally {
                     /** @type {HTMLButtonElement} */ (worldFireNowBtn).disabled = false;
-                    worldFireNowBtn.innerHTML = '<i class="fa-solid fa-globe"></i> Fire Now';
+                    worldFireNowBtn.innerHTML = '<i class="fa-solid fa-globe"></i> 立即生成';
                 }
             });
         }
@@ -147,19 +147,19 @@ export function wireAgentWorldProgression({
                 const timeStr = timeMatch ? extractCurrentTimeStr(timeMatch[1]) : '';
                 const currentMinutes = piw(timeStr);
                 if (currentMinutes < 0) {
-                    toastr['warning']('Cannot parse in-world time from State Memo. Make sure the State Tracker has run at least once.', 'World Progression');
+                    toastr['warning']('无法从状态备忘录解析世界内时间，请确保状态追踪器至少运行过一次。', '世界进程');
                     return;
                 }
 
                 const popupBody = `
                     <div style="display:flex; flex-direction:column; gap:10px; width:100%; box-sizing:border-box;">
-                        <div style="font-size:13px; opacity:0.9; font-weight:bold;">🌍 Fire with Extra Instructions</div>
+                        <div style="font-size:13px; opacity:0.9; font-weight:bold;">🌍 附带额外指令生成</div>
                         <div style="font-size:11px; opacity:0.7; line-height:1.4;">
-                            Enter extra instructions to append to the World Progression system prompt for this run only (e.g., "make things pick up", "get more chaotic").
+                            输入要附加到本次运行 World Progression 系统提示词末尾的额外指令（例如“让事态加速推进”、“制造更多混乱”）。
                         </div>
                         <textarea id="rt_wp_extra_instructions_agent" rows="4" class="text_pole"
                             style="font-size:12px; resize:vertical; width:100%;"
-                            placeholder="e.g. Make the factions more aggressive, increase conflicts, or introduce a major weather event."></textarea>
+                            placeholder="例如：让各派系更具攻击性、增加冲突，或引入一场重大天气事件。"></textarea>
                     </div>
                 `;
 
@@ -172,23 +172,23 @@ export function wireAgentWorldProgression({
                 }, 100);
 
                 const { Popup } = SillyTavern.getContext();
-                const choice = await Popup.show.confirm('World Progression', popupBody, { okButton: 'Fire', cancelButton: 'Cancel' });
+                const choice = await Popup.show.confirm('世界进程', popupBody, { okButton: '生成', cancelButton: '取消' });
                 if (!choice) return;
 
                 const savedLast = s.worldProgressionLastFiredAtMinutes;
                 s.worldProgressionLastFiredAtMinutes = -1;
                 /** @type {HTMLButtonElement} */ (worldFireExtraBtn).disabled = true;
-                worldFireExtraBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating…';
+                worldFireExtraBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 生成中…';
                 try {
                     await rwp(timeStr, currentMinutes, extraInstructions);
                     updateAgentWorldStatus();
-                    toastr['success']('World Progression report generated.', 'World Progression');
+                    toastr['success']('世界进程报告已生成。', '世界进程');
                 } catch (e) {
-                    toastr['error'](`World Progression error: ${e.message}`, 'World Progression');
+                    toastr['error'](`世界进程错误：${e.message}`, '世界进程');
                     s.worldProgressionLastFiredAtMinutes = savedLast;
                 } finally {
                     /** @type {HTMLButtonElement} */ (worldFireExtraBtn).disabled = false;
-                    worldFireExtraBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Fire with Extra Instructions';
+                    worldFireExtraBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> 附带额外指令生成';
                 }
             });
         }
@@ -204,7 +204,7 @@ export function wireAgentWorldProgression({
                 if (s.chatLinkEnabled && runtimeState.currentChatId) saveChatState(runtimeState.currentChatId);
                 updateAgentWorldStatus();
                 if (typeof runtimeState.updateWorldProgressionLastFiredDisplayRef === 'function') runtimeState.updateWorldProgressionLastFiredDisplayRef();
-                toastr['info']('World Progression timeline reset. Next report will start from the current time.', 'World Progression');
+                toastr['info']('世界进程时间线已重置，下次报告将从当前时间开始。', '世界进程');
             });
         }
 

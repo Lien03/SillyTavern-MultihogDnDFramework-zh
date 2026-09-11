@@ -22,14 +22,14 @@ describe('onboarding Player Card and ST persona options', () => {
         expect(html).toContain('id="rt-cr-st-persona-cb" checked');
         expect(html.match(/Create Player Card in Lorebook Agent \(Recommended\)/g)).toHaveLength(2);
         expect(html.match(/Create ST Persona \(Recommended\)/g)).toHaveLength(2);
-        expect(html).toContain('same player name');
+        expect(html).toContain('使用相同玩家名');
         expect(html).not.toContain('Create Persona (Recommended)');
     });
 
     it('requires a rolled name for the Other Ways Custom path', () => {
         const html = renderMemoAsCards('', null, {});
 
-        expect(html).toContain('id="rt-onboarding-rolled-name" placeholder="Roll or enter a name"');
+        expect(html).toContain('id="rt-onboarding-rolled-name" placeholder="掷骰或输入名字"');
         expect(html).toContain('id="rt-onboarding-roll-name"');
         expect(html).toMatch(/data-archetype="custom" data-name-required="true" disabled/);
         expect(html).toMatch(/data-archetype="persona">/);
@@ -113,7 +113,7 @@ describe('onboarding Player Card and ST persona options', () => {
         expect(html).toContain('id="rt-onboarding-create-gm"');
         expect(html).toContain('id="rt-onboarding-gm-name"');
         expect(html).toContain('value="Game Master"');
-        expect(html).toContain('Create narrator card');
+        expect(html).toContain('创建旁白卡');
         expect(html).toContain('attributed to a narrator, not a single character');
         expect(html).toContain('Leave the card content empty');
     });
@@ -121,9 +121,9 @@ describe('onboarding Player Card and ST persona options', () => {
     it('links the startup welcome note to the GitHub releases page', () => {
         const html = renderMemoAsCards('', null, {});
 
-        expect(html).toContain('Welcome to Multihog D&D Framework!');
+        expect(html).toContain('欢迎使用 Multihog D&D Framework！');
         expect(html).toContain('href="https://github.com/MultihogAurelius/SillyTavern-MultihogDnDFramework/releases"');
-        expect(html).toContain('Releases section of the GitHub page');
+        expect(html).toContain('Releases 板块');
     });
 
     it('does not show a Discord link on the startup menu', () => {

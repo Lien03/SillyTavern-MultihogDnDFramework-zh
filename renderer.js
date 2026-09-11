@@ -99,7 +99,7 @@ export function renderDayNightBadge(str) {
     // Stars only during moon phases — a handful of fixed dots is enough to read as a starfield.
     const starsHtml = isMoon ? `<div class="rt-sky-stars"></div>` : '';
 
-    return `<div class="rt-daynight-badge rt-sky-${phase}" title="In-world time of day: ${escapeHtml(phase.replace(/([A-Z])/g, ' $1').toLowerCase())}">${starsHtml}${bodyHtml}</div>`;
+    return `<div class="rt-daynight-badge rt-sky-${phase}" title="世界内时间：${escapeHtml(phase.replace(/([A-Z])/g, ' $1').toLowerCase())}">${starsHtml}${bodyHtml}</div>`;
 }
 
     export const STOCK_FIELD_RULES = {
@@ -183,10 +183,10 @@ export function renderDayNightBadge(str) {
                         const positiveBg = getBarBackground(positiveBarId, positiveDefault, pct);
                         const negativeBg = getBarBackground(negativeBarId, negativeDefault, pct);
                         const positiveRecolorData = positiveBarId
-                            ? ` data-recolor-id="${escapeHtml(positiveBarId)}" data-recolor-current="${escapeHtml(positiveBg)}" data-barrel-direction="positive" title="Click to recolor the positive side"`
+                            ? ` data-recolor-id="${escapeHtml(positiveBarId)}" data-recolor-current="${escapeHtml(positiveBg)}" data-barrel-direction="positive" title="点击重新着色正面"`
                             : '';
                         const negativeRecolorData = negativeBarId
-                            ? ` data-recolor-id="${escapeHtml(negativeBarId)}" data-recolor-current="${escapeHtml(negativeBg)}" data-barrel-direction="negative" title="Click to recolor the negative side"`
+                            ? ` data-recolor-id="${escapeHtml(negativeBarId)}" data-recolor-current="${escapeHtml(negativeBg)}" data-barrel-direction="negative" title="点击重新着色负面"`
                             : '';
                         const valueClass = clamped > 0 ? 'rt-barrel-value-positive' : clamped < 0 ? 'rt-barrel-value-negative' : 'rt-barrel-value-zero';
                         const valueDirection = clamped > 0 ? 'positive' : clamped < 0 ? 'negative' : 'zero';
@@ -225,7 +225,7 @@ export function renderDayNightBadge(str) {
                         : 'linear-gradient(90deg,#e74c3c,#c0392b)';
                     if (barId) barBg = getBarBackground(barId, barBg, pct);
 
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" data-recolor-explicit-color="${rule.color ? 'true' : 'false'}" title="Click to recolor"` : '';
+                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" data-recolor-explicit-color="${rule.color ? 'true' : 'false'}" title="点击重新着色"` : '';
 
                     const showAsPct = getBarShowAsPercentage(barId);
                     const dispCur = showAsPct ? Math.round(pct) : cur;
@@ -255,7 +255,7 @@ export function renderDayNightBadge(str) {
                     let barBg = rule.color ? rule.color : DEFAULT_XP_COLOR;
                     if (barId) barBg = getBarBackground(barId, barBg, pct);
 
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="Click to recolor"` : '';
+                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="点击重新着色"` : '';
 
                     const showAsPct = getBarShowAsPercentage(barId);
                     const dispCur = showAsPct ? Math.round(pct) : xm[1];
@@ -301,7 +301,7 @@ export function renderDayNightBadge(str) {
                     let barBg = rule.color ? rule.color : 'linear-gradient(90deg, #00c88c, #00d4ff)';
                     if (barId) barBg = getBarBackground(barId, barBg, pct);
                     
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="Click to recolor"` : '';
+                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="点击重新着色"` : '';
 
                     return `<div class="rt-entity-sub-line rt-progress-row">${labelHtml}
                         <div class="rt-progress-bar-wrap"${recolorData}${makeBarAnimationData(barId, cur, max)}>
@@ -320,7 +320,7 @@ export function renderDayNightBadge(str) {
                     const extra = value.replace(pm[0], '').trim();
                     let barBg = rule.color ? rule.color : 'var(--rt-accent, #00ffaa)';
                     if (barId) barBg = getBarBackground(barId, barBg, pct);
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="Click to recolor"` : '';
+                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="点击重新着色"` : '';
                     
                     return `<div class="rt-entity-sub-line rt-clock-row">${labelHtml}
                         <div class="rt-clock-icon"${recolorData} style="background: conic-gradient(${barBg} ${pct}%, transparent 0);"></div>
@@ -339,7 +339,7 @@ export function renderDayNightBadge(str) {
                     const empty = Math.max(0, max - filled);
                     let barBg = rule.color ? rule.color : '#ffd700';
                     if (barId) barBg = getBarBackground(barId, barBg, max > 0 ? (filled / max) * 100 : 0);
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="Click to recolor"` : '';
+                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="点击重新着色"` : '';
 
                     const starsHtml = `<span class="rt-stars-icon" style="color:${barBg};"${recolorData}>${'★'.repeat(filled)}${'☆'.repeat(empty)}</span>`;
                     return `<div class="rt-entity-sub-line rt-stars-row">${labelHtml} ${starsHtml} <span class="rt-stars-label">${extra ? escapeHtml(extra) : ''}</span></div>`;
@@ -354,7 +354,7 @@ export function renderDayNightBadge(str) {
                     const extra = value.replace(pm[0], '').trim();
                     let barBg = rule.color ? rule.color : (pct >= 100 ? '#e74c3c' : pct >= 75 ? '#f1c40f' : '#2ecc71');
                     if (barId) barBg = getBarBackground(barId, barBg, pct);
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="Click to recolor"` : '';
+                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="点击重新着色"` : '';
 
                     return `<div class="rt-entity-sub-line rt-weight-row">${labelHtml}
                         <span class="rt-weight-icon">⚖️</span>
@@ -386,7 +386,7 @@ export function renderDayNightBadge(str) {
                     const extra = value.replace(pm[0], '').trim();
                     let barBg = rule.color ? rule.color : '#3498db';
                     if (barId) barBg = getBarBackground(barId, barBg, max > 0 ? (cur/max)*100 : 0);
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="Click to recolor"` : '';
+                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="点击重新着色"` : '';
                     
                     let orbsHtml = '';
                     for (let i = 0; i < max; i++) {
@@ -438,7 +438,7 @@ export function renderDayNightBadge(str) {
                     const extra = value.replace(pm[0], '').trim();
                     let barBg = rule.color ? rule.color : 'var(--rt-accent, #00ffaa)';
                     if (barId) barBg = getBarBackground(barId, barBg, max > 0 ? (cur/max)*100 : 0);
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="Click to recolor"` : '';
+                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="点击重新着色"` : '';
                     
                     let phaseHtml = '';
                     for (let i = 0; i < max; i++) {
@@ -467,7 +467,7 @@ export function renderDayNightBadge(str) {
                     const extra = value.replace(pm[0], '').trim();
                     let barBg = rule.color ? rule.color : 'linear-gradient(90deg, #2ecc71, #f1c40f, #e74c3c)';
                     if (barId) barBg = getBarBackground(barId, barBg, pct);
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="Click to recolor"` : '';
+                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="点击重新着色"` : '';
                     
                     const degrees = -90 + (180 * (pct / 100));
                     
@@ -491,7 +491,7 @@ export function renderDayNightBadge(str) {
                     const isLow = cur <= 1 && max > 1;
                     let barBg = rule.color ? rule.color : (isLow ? '#e74c3c' : '#2ecc71');
                     if (barId) barBg = getBarBackground(barId, barBg, pct);
-                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="Click to recolor"` : '';
+                    const recolorData = barId ? ` data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" title="点击重新着色"` : '';
                     
                     const chargeHtml = `<div class="rt-battery-wrap ${isLow && cur === 0 ? 'empty-flash' : ''}"${recolorData}${makeBarAnimationData(barId, cur, max)} style="border-color:${barBg};">
                         <div class="rt-battery-fill" style="width:${pct}%;background:${barBg};"></div>
@@ -577,7 +577,7 @@ export function renderDayNightBadge(str) {
                 spellsHtml = spellList.split(',').map(s => {
                     const name = s.trim();
                     const slug = name.toLowerCase().replace(/'/g, '').replace(/[^a-z0-9]+/g, '-');
-                    return `<a href="https://dnd5e.wikidot.com/spell:${slug}" target="_blank" class="rt-spell-name" title="View spell on Wikidot">${escapeHtmlWithColor(name)}</a>`;
+                    return `<a href="https://dnd5e.wikidot.com/spell:${slug}" target="_blank" class="rt-spell-name" title="在 Wikidot 查看法术">${escapeHtmlWithColor(name)}</a>`;
                 }).join('');
             }
             html += `<div class="rt-spell-row"><span class="rt-spell-level">${escapeHtmlWithColor(lbl.trim())}</span><div class="rt-spell-inline-group"><div class="rt-spell-list">${pipsHtml}${spellsHtml}</div></div></div>`;
@@ -1276,8 +1276,8 @@ export function renderDayNightBadge(str) {
 
     function renderPartyCompactButton(isOn) {
         const active = isOn ? ' active' : '';
-        const title = isOn ? 'Show full party details' : 'Compact mode: portrait, name, and HP only';
-        return `<button type="button" class="rt-party-compact-btn${active}" data-tag="PARTY" aria-pressed="${isOn ? 'true' : 'false'}" title="${title}">Compact Mode</button>`;
+        const title = isOn ? '显示完整队伍详情' : '紧凑模式：仅头像、名字与生命值';
+        return `<button type="button" class="rt-party-compact-btn${active}" data-tag="PARTY" aria-pressed="${isOn ? 'true' : 'false'}" title="${title}">紧凑模式</button>`;
     }
 
     const ACTIVE_TAB_KEY = 'rpg_tracker_active_tab';
@@ -1321,7 +1321,7 @@ function renderPortraitHtml(entityName) {
 function wrapEntityHtml(entityName, contentHtml) {
     if (!getSettings().enablePortraits) return contentHtml;
     return `<div class="rt-entity-container" data-entity-name="${escapeHtml(entityName)}">
-        <div class="rt-entity-portrait-container" title="Drop image here or click to set portrait">
+        <div class="rt-entity-portrait-container" title="拖放图片到此处或点击设置头像">
             ${renderPortraitHtml(entityName)}
         </div>
         <div class="rt-entity-content">${contentHtml}</div>
@@ -1550,13 +1550,13 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                         if (inlineEntityName) {
                             results.push(`<div class="rt-entity-row" style="display:block; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:6px;">
                                 <div class="rt-entity-name" style="font-size:1.1em; margin-bottom:6px;">${escapeHtmlWithColor(currentEntity)}</div>
-                                <div class="rt-hp-bar-wrap${unknownHp ? ' rt-hp-unknown' : ''}" title="Click to recolor HP" data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" data-recolor-explicit-color="${inlineBarRule?.color ? 'true' : 'false'}"${hasKnownRange ? makeBarAnimationData(barId, cur, max) : ''} style="position:relative; height:14px; border-radius:4px; overflow:hidden; background:rgba(255,255,255,0.1); margin-bottom:4px; width:100%;">
+                                <div class="rt-hp-bar-wrap${unknownHp ? ' rt-hp-unknown' : ''}" title="点击重新着色生命值" data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" data-recolor-explicit-color="${inlineBarRule?.color ? 'true' : 'false'}"${hasKnownRange ? makeBarAnimationData(barId, cur, max) : ''} style="position:relative; height:14px; border-radius:4px; overflow:hidden; background:rgba(255,255,255,0.1); margin-bottom:4px; width:100%;">
                                     <div class="rt-hp-bar" style="width:${pct.toFixed(1)}%; height:100%; border-radius:4px; background:${barBg}; transition:width 0.3s;"></div>
                                 </div>
                                 <span class="rt-hp-label" style="display:block; font-size:0.82em; opacity:0.85; text-align:left; line-height:1.2;">${label}</span>
                             </div>`);
                         } else {
-                            results.push(`<div class="rt-entity-row"><div class="rt-entity-name">${escapeHtmlWithColor(currentEntity)}</div><div class="rt-hp-bar-wrap${unknownHp ? ' rt-hp-unknown' : ''}" title="Click to recolor HP" data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" data-recolor-explicit-color="${inlineBarRule?.color ? 'true' : 'false'}"${hasKnownRange ? makeBarAnimationData(barId, cur, max) : ''}><div class="rt-hp-bar" style="width:${pct.toFixed(1)}%;background:${barBg};"></div></div><span class="rt-hp-label">${label}</span></div>`);
+                            results.push(`<div class="rt-entity-row"><div class="rt-entity-name">${escapeHtmlWithColor(currentEntity)}</div><div class="rt-hp-bar-wrap${unknownHp ? ' rt-hp-unknown' : ''}" title="点击重新着色生命值" data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}" data-recolor-explicit-color="${inlineBarRule?.color ? 'true' : 'false'}"${hasKnownRange ? makeBarAnimationData(barId, cur, max) : ''}><div class="rt-hp-bar" style="width:${pct.toFixed(1)}%;background:${barBg};"></div></div><span class="rt-hp-label">${label}</span></div>`);
                         }
 
                         if (status) {
@@ -1707,7 +1707,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
 
                         return `<div class="rt-xp-row" data-xp-current="${cur}" data-xp-max="${max}" data-xp-level="${level}" data-xp-show-percentage="${showAsPct}">
                             <div class="rt-xp-label"><span>Level ${level}</span><span>XP: <span class="rt-xp-current">${dispCur}</span> / <span class="rt-xp-max">${dispMax}</span></span></div>
-                            <div class="rt-xp-bar-wrap" title="Click to recolor XP" data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}">
+                            <div class="rt-xp-bar-wrap" title="点击重新着色经验值" data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}">
                                 <div class="rt-xp-bar" style="width:${pct.toFixed(1)}%; background:${barBg};"></div>
                             </div>
                         </div>`;
@@ -1730,7 +1730,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
 
                         return `<div class="rt-xp-row" data-xp-current="${cur}" data-xp-max="${max}" data-xp-level="${level || ''}" data-xp-show-percentage="${showAsPct}">
                             <div class="rt-xp-label">${levelHtml}<span>XP: <span class="rt-xp-current">${dispCur}</span> / <span class="rt-xp-max">${dispMax}</span></span></div>
-                            <div class="rt-xp-bar-wrap" title="Click to recolor XP" data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}">
+                            <div class="rt-xp-bar-wrap" title="点击重新着色经验值" data-recolor-id="${escapeHtml(barId)}" data-recolor-current="${escapeHtml(barBg)}">
                                 <div class="rt-xp-bar" style="width:${pct.toFixed(1)}%; background:${barBg};"></div>
                             </div>
                         </div>`;
@@ -1762,7 +1762,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                             .replace(/'/g, '')
                             .replace(/[^a-z0-9]+/g, '-');
                         const url = `https://dnd5e.wikidot.com/spell:${slug}`;
-                        return `<a href="${url}" target="_blank" class="rt-spell-name" title="View spell on Wikidot">${escapeHtmlWithColor(name)}</a>`;
+                        return `<a href="${url}" target="_blank" class="rt-spell-name" title="在 Wikidot 查看法术">${escapeHtmlWithColor(name)}</a>`;
                     }).join('');
                     return `<div class="rt-spell-row">
                         <span class="rt-spell-level">${escapeHtmlWithColor(label.trim())}</span>
@@ -1834,7 +1834,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                             // Build tooltip combining effect (if any) and worth
                             const tooltipParts = [];
                             if (effectVal) tooltipParts.push(`Effect: ${effectVal}`);
-                            tooltipParts.push(`Worth: ${worthVal}`);
+                            tooltipParts.push(`价值：${worthVal}`);
                             titleAttr = ` title="${escapeHtml(tooltipParts.join('\n'))}"`;
 
                             if (worthMode === 'display') {
@@ -1998,72 +1998,72 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
             const startTimeInputVal = obSettings.initialTime || '08:00 AM';
 
             return `<div class="rt-empty" style="text-align: left; align-items: flex-start; padding: 12px; gap: 10px; overflow-y: auto;">
-                <a class="rt-bmc-btn" href="https://buymeacoffee.com/multihog" target="_blank" rel="noopener noreferrer" title="Buy Me a Coffee">
+                <a class="rt-bmc-btn" href="https://buymeacoffee.com/multihog" target="_blank" rel="noopener noreferrer" title="请我喝杯咖啡">
                     <img src="${escapeHtml(BUY_ME_A_COFFEE_ICON)}" alt="" width="14" height="20">
-                    <span>Buy Me a Coffee</span>
+                    <span>请我喝杯咖啡</span>
                 </a>
                 <div style="text-align: center; width: 100%; margin-bottom: 2px; flex-shrink: 0;">
-                    <div class="rt-empty-icon rt-onboarding-crest" aria-label="Fencers guarding a shield">
+                    <div class="rt-empty-icon rt-onboarding-crest" aria-label="击剑手护卫盾徽">
                         <span class="rt-onboarding-crest-fencer" aria-hidden="true">🤺</span>
                         <span class="rt-onboarding-crest-shield" aria-hidden="true">🛡️</span>
                         <span class="rt-onboarding-crest-fencer rt-onboarding-crest-fencer-mirrored" aria-hidden="true">🤺</span>
                     </div>
                     <div style="font-size: 16px; font-weight: bold; color: var(--rt-text);">Multihog D&D Framework</div>
-                    <div style="margin: 8px auto 0; max-width: 520px; color: var(--rt-text-muted); font-size: 0.9em; line-height: 1.4;">Welcome to Multihog D&D Framework! To see the latest significant additions, check out the <a href="https://github.com/MultihogAurelius/SillyTavern-MultihogDnDFramework/releases" target="_blank" rel="noopener noreferrer" style="color: var(--rt-accent);">Releases section of the GitHub page</a>, which I treat as a kind of dev blog.</div>
+                    <div style="margin: 8px auto 0; max-width: 520px; color: var(--rt-text-muted); font-size: 0.9em; line-height: 1.4;">欢迎使用 Multihog D&D Framework！想了解最近的重要更新，请查看 <a href="https://github.com/MultihogAurelius/SillyTavern-MultihogDnDFramework/releases" target="_blank" rel="noopener noreferrer" style="color: var(--rt-accent);">GitHub 页面的 Releases 板块</a>——我把它当作一种开发日志。</div>
                 </div>
 
                 <div class="rt-onboarding-hero">
-                    <button type="button" class="rt-onboarding-hero-btn rt-random-char-btn" data-archetype="char_roll">🎲 Character Creator</button>
-                    <div class="rt-onboarding-hero-sub">Build your character step by step — presets, Lorebook Player Card, and full stat generation.</div>
+                    <button type="button" class="rt-onboarding-hero-btn rt-random-char-btn" data-archetype="char_roll">🎲 角色创建器</button>
+                    <div class="rt-onboarding-hero-sub">逐步构建你的角色——预设、Lorebook 玩家卡与完整属性生成。</div>
                 </div>
 
                 <div class="rt-quickstart" id="rt-quickstart">
-                    <div class="rt-quickstart-title">⚡ Instant Action</div>
-                    <div class="rt-quickstart-sub">Choose a genre, optionally enter a name or Initial Setup, then begin. Leave the name blank to let the AI choose it. The extension uses your Narrator Configuration, starts at Level 1 with 0 XP unless Random Level is on, rolls a class and other unspecified details, and builds a Lorebook Agent Player Card plus a name-only ST persona. Uncheck Send Starter Message if you want to type your own first action instead of letting the AI open the campaign.</div>
-                    <div class="rt-quickstart-genres" role="group" aria-label="Quick Start genre">
-                        <button type="button" class="rt-quickstart-genre-btn" data-genre="fantasy" aria-pressed="false">⚔️ Fantasy</button>
-                        <button type="button" class="rt-quickstart-genre-btn" data-genre="realistic" aria-pressed="false">🏙️ Modern</button>
-                        <button type="button" class="rt-quickstart-genre-btn" data-genre="scifi" aria-pressed="false">🚀 Sci-Fi</button>
-                        <button type="button" class="rt-quickstart-genre-btn" data-genre="horror" aria-pressed="false">👻 Horror</button>
+                    <div class="rt-quickstart-title">⚡ 即时行动</div>
+                    <div class="rt-quickstart-sub">选择类型，可选地输入名字或初始设定，然后开始。名字留空可让 AI 来取。扩展会使用你的旁白配置，从 1 级、0 XP 起步（除非开启随机等级），掷出职业及其余未指定的细节，并构建一张 Lorebook Agent 玩家卡和一个仅含名字的 ST 人设。若想自己输入第一个行动而不是让 AI 开启战役，请取消勾选发送开场消息。</div>
+                    <div class="rt-quickstart-genres" role="group" aria-label="快速开始类型">
+                        <button type="button" class="rt-quickstart-genre-btn" data-genre="fantasy" aria-pressed="false">⚔️ 奇幻</button>
+                        <button type="button" class="rt-quickstart-genre-btn" data-genre="realistic" aria-pressed="false">🏙️ 现代</button>
+                        <button type="button" class="rt-quickstart-genre-btn" data-genre="scifi" aria-pressed="false">🚀 科幻</button>
+                        <button type="button" class="rt-quickstart-genre-btn" data-genre="horror" aria-pressed="false">👻 恐怖</button>
                     </div>
                     <div class="rt-quickstart-name-picker">
-                        <input type="text" class="rt-quickstart-name" id="rt-quickstart-name" placeholder="Optional — enter, roll, or let AI choose" aria-label="Optional Instant Action character name" autocomplete="off" />
-                        <button type="button" class="rt-quickstart-roll-btn" id="rt-quickstart-roll-name" disabled>🎲 Roll Name</button>
+                        <input type="text" class="rt-quickstart-name" id="rt-quickstart-name" placeholder="可选——输入、掷骰或让 AI 选择" aria-label="可选快速开始角色名" autocomplete="off" />
+                        <button type="button" class="rt-quickstart-roll-btn" id="rt-quickstart-roll-name" disabled>🎲 随机名字</button>
                     </div>
                     <label class="rt-quickstart-instructions-label" for="rt-quickstart-instructions">
-                        <span>Initial Setup (optional)</span>
-                        <small>Guide the character, setting, premise, or tone. Anything left unspecified is still randomized.</small>
+                        <span>初始设定（可选）</span>
+                        <small>引导角色、背景、前提或基调。任何未指定的内容仍会随机生成。</small>
                     </label>
-                    <textarea class="rt-quickstart-instructions" id="rt-quickstart-instructions" rows="2" maxlength="1000" placeholder="e.g. A 28-year-old female ranger with a crossbow, starting in a storm-battered frontier town" aria-label="Optional Instant Action Initial Setup"></textarea>
+                    <textarea class="rt-quickstart-instructions" id="rt-quickstart-instructions" rows="2" maxlength="1000" placeholder="例如：28 岁女性游侠，手持弩，出生于饱经风暴的边疆小镇" aria-label="可选快速开始初始设定"></textarea>
                     <div class="rt-quickstart-options">
                         <div class="rt-quickstart-player-card-length">
-                            <label for="rt-quickstart-persona-words">Player Card length</label>
-                            <select id="rt-quickstart-persona-words" class="text_pole" aria-label="Instant Action Player Card word count">
+                            <label for="rt-quickstart-persona-words">玩家卡长度</label>
+                            <select id="rt-quickstart-persona-words" class="text_pole" aria-label="即时行动玩家卡字数">
                                 ${[100, 150, 200, 300, 400, 500, 750, 1000].map(n => {
                                     const selected = String(obSettings.onboardingPersonaWords || '150') === String(n) ? ' selected' : '';
-                                    return `<option value="${n}"${selected}>${n} words</option>`;
+                                    return `<option value="${n}"${selected}>${n} 字</option>`;
                                 }).join('')}
-                                <option value="other"${obSettings.onboardingPersonaWords === 'other' ? ' selected' : ''}>Custom…</option>
+                                <option value="other"${obSettings.onboardingPersonaWords === 'other' ? ' selected' : ''}>自定义…</option>
                             </select>
-                            <input id="rt-quickstart-persona-words-custom" type="number" class="text_pole" value="${escapeHtml(String(obSettings.onboardingPersonaWordsCustom || ''))}" style="display:${obSettings.onboardingPersonaWords === 'other' ? 'block' : 'none'}" placeholder="50–5000" min="50" max="5000" aria-label="Custom Instant Action Player Card word count" />
+                            <input id="rt-quickstart-persona-words-custom" type="number" class="text_pole" value="${escapeHtml(String(obSettings.onboardingPersonaWordsCustom || ''))}" style="display:${obSettings.onboardingPersonaWords === 'other' ? 'block' : 'none'}" placeholder="50–5000" min="50" max="5000" aria-label="自定义即时行动玩家卡字数" />
                         </div>
                         <div class="rt-quickstart-flag">
-                            <label for="rt-quickstart-random-level" title="When this is off, Instant Action starts at Level 1 with 0 XP. When it is on, a level from 1–10 is rolled. Initial Setup still wins if it names a level.">
-                                <span>Random Level?</span>
-                                <input type="checkbox" id="rt-quickstart-random-level" ${obSettings.onboardingInstantActionRandomLevel === true ? 'checked' : ''} aria-label="Random Level" />
+                            <label for="rt-quickstart-random-level" title="关闭时，快速开始从 1 级、0 XP 起步；开启时随机 1–10 级。若初始设定指定了等级，则以它为准。">
+                                <span>随机等级？</span>
+                                <input type="checkbox" id="rt-quickstart-random-level" ${obSettings.onboardingInstantActionRandomLevel === true ? 'checked' : ''} aria-label="随机等级" />
                             </label>
-                            <span class="rt-cr-help-icon" title="When this is off, Instant Action starts at Level 1 with 0 XP. When it is on, a level from 1–10 is rolled. Initial Setup still wins if it names a level.">?</span>
+                            <span class="rt-cr-help-icon" title="关闭时，快速开始从 1 级、0 XP 起步；开启时随机 1–10 级。若初始设定指定了等级，则以它为准。">?</span>
                         </div>
                         <div class="rt-quickstart-flag">
-                            <label for="rt-quickstart-send-starter" title="If this is checked, the AI automatically starts the campaign as soon as the rolled character is ready.">
-                                <span>Send Starter Message?</span>
-                                <input type="checkbox" id="rt-quickstart-send-starter" ${obSettings.onboardingSendStarterMessage !== false ? 'checked' : ''} aria-label="Send Starter Message" />
+                            <label for="rt-quickstart-send-starter" title="勾选后，AI 会在掷出的角色就绪后自动开始战役。">
+                                <span>发送开场消息？</span>
+                                <input type="checkbox" id="rt-quickstart-send-starter" ${obSettings.onboardingSendStarterMessage !== false ? 'checked' : ''} aria-label="发送开场消息" />
                             </label>
-                            <span class="rt-cr-help-icon" title="If this is checked, the AI automatically starts the campaign as soon as the rolled character is ready.">?</span>
+                            <span class="rt-cr-help-icon" title="勾选后，AI 会在掷出的角色就绪后自动开始战役。">?</span>
                         </div>
                     </div>
-                    <button type="button" class="rt-quickstart-begin-btn" id="rt-quickstart-begin" disabled>⚡ Begin Instant Action</button>
-                    <div class="rt-quickstart-status" id="rt-quickstart-status">Select a genre to begin</div>
+                    <button type="button" class="rt-quickstart-begin-btn" id="rt-quickstart-begin" disabled>⚡ 开始即时行动</button>
+                    <div class="rt-quickstart-status" id="rt-quickstart-status">选择一个类型以开始</div>
                 </div>
 
                 <div class="rt-onboarding-secondary rt-onboarding-drawer rt-onboarding-other-drawer">
@@ -2077,7 +2077,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                 <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; margin: 4px 0; flex-shrink: 0;">
                     <div class="rt-onboarding-config-row">
                         <div class="rt-onboarding-field">
-                            <span class="rt-onboarding-field-label">Level <span class="rt-cr-help-icon" title="Pick 'N/A' if your system doesn't use numeric character levels — Custom and Persona generation will not invent a level, XP, or D&D-style level indicator.">?</span></span>
+                            <span class="rt-onboarding-field-label">等级 <span class="rt-cr-help-icon" title="如果你的系统不使用数字角色等级，请选「N/A」—— Custom 与 Persona 生成不会虚构等级、XP 或 D&D 式等级指示。">?</span></span>
                             <select id="rt-starting-level" class="text_pole" style="width: auto; min-width: 60px; padding: 2px 4px; font-size: 11px; height: 22px; border-radius: 4px; background: var(--black70a);">
                                 <option value="none"${onboardingLevelIsNone ? ' selected' : ''}>N/A — No Levels</option>
                                 ${[...Array(20).keys()].map(i => {
@@ -2097,46 +2097,46 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                             </select>
                         </div>
                         <div class="rt-onboarding-field">
-                            <span class="rt-onboarding-field-label">Gear Tier</span>
-                            <select id="rt-onboarding-gear-tier" class="text_pole" title="How well-equipped the generated character should be." style="width: auto; min-width: 110px; padding: 2px 4px; font-size: 11px; height: 22px; border-radius: 4px; background: var(--black70a);">
+                            <span class="rt-onboarding-field-label">装备级别</span>
+                            <select id="rt-onboarding-gear-tier" class="text_pole" title="生成角色应有的装备水平。" style="width: auto; min-width: 110px; padding: 2px 4px; font-size: 11px; height: 22px; border-radius: 4px; background: var(--black70a);">
                                 ${gearTierOptions}
                             </select>
                         </div>
                         <div class="rt-onboarding-field">
                             <span class="rt-onboarding-field-label">Time &amp; Date</span>
                             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                <div class="rt-seg-toggle" id="rt-onboarding-date-seg" role="group" title="Choose the calendar format used for [TIME] tracking.">
-                                    <button type="button" data-value="day" class="${!useDdMmYy ? 'active' : ''}">Day 1</button>
+                                <div class="rt-seg-toggle" id="rt-onboarding-date-seg" role="group" title="选择 [TIME] 追踪使用的日历格式。">
+                                    <button type="button" data-value="day" class="${!useDdMmYy ? 'active' : ''}">第 1 天</button>
                                     <button type="button" data-value="date" class="${useDdMmYy ? 'active' : ''}">DD/MM/YYYY</button>
                                 </div>
                                 <input type="text" id="rt-onboarding-start-date" class="text_pole" value="${startDateInputVal}" placeholder="01/01/2026" style="width: 80px; text-align: center; height: 22px; font-size: 11px; border-radius: 4px; background: var(--black70a); display: ${useDdMmYy ? 'inline-block' : 'none'};" />
-                                <div class="rt-seg-toggle" id="rt-onboarding-clock-seg" role="group" title="Choose the clock format used for [TIME] tracking.">
+                                <div class="rt-seg-toggle" id="rt-onboarding-clock-seg" role="group" title="选择 [TIME] 追踪使用的时钟格式。">
                                     <button type="button" data-value="12" class="${!use24h ? 'active' : ''}">12h</button>
                                     <button type="button" data-value="24" class="${use24h ? 'active' : ''}">24h</button>
                                 </div>
-                                <input type="text" id="rt-onboarding-start-time" class="text_pole" value="${startTimeInputVal}" placeholder="${use24h ? '08:00' : '08:00 AM'}" title="Initial time of day for the very first [TIME] block." style="width: 74px; text-align: center; height: 22px; font-size: 11px; border-radius: 4px; background: var(--black70a);" />
+                                <input type="text" id="rt-onboarding-start-time" class="text_pole" value="${startTimeInputVal}" placeholder="${use24h ? '08:00' : '08:00 AM'}" title="首个 [TIME] 块的初始时刻。" style="width: 74px; text-align: center; height: 22px; font-size: 11px; border-radius: 4px; background: var(--black70a);" />
                             </div>
                         </div>
                     </div>
                     <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85em; margin: 2px 0;">
                         <input type="checkbox" id="rt-onboarding-combat-guide-cb" ${obSettings.onboardingUseCombatScalingGuide !== false ? 'checked' : ''} />
-                        <span>Use Combat &amp; Skill Scaling Guide</span>
-                        <span class="rt-cr-help-icon" title="When enabled, the AI is guided by a classic d20/BAB-style combat and skill progression reference. Turn this off if you're using your own homebrew system and don't want D&D-flavored scaling language influencing Instant Action, Custom, Persona, or PC Import generation.">?</span>
+                        <span>使用战斗与技能成长指南</span>
+                        <span class="rt-cr-help-icon" title="启用后，AI 会参考经典 d20/BAB 式战斗与技能成长体系。若你使用自创系统、不希望 D&D 风格成长用语影响 Instant Action、Custom、Persona 或 PC Import 生成，请关闭。">?</span>
                     </label>
-                    <textarea id="rt-onboarding-custom-instructions" class="text_pole" placeholder="Custom setting/character instructions (e.g. Victorian London, space marine, gritty realism, cyberpunk decker...)" style="width: 100%; min-height: 40px; max-height: 120px; font-size: 11px; padding: 4px 6px; border-radius: 4px; background: var(--black70a); resize: vertical; margin-top: 2px;">${escapeHtml(obSettings.onboardingCustomInstructions || '')}</textarea>
+                    <textarea id="rt-onboarding-custom-instructions" class="text_pole" placeholder="自定义设定/角色说明（例如：维多利亚伦敦、星际战士、写实暗黑、赛博朋克黑客...）" style="width: 100%; min-height: 40px; max-height: 120px; font-size: 11px; padding: 4px 6px; border-radius: 4px; background: var(--black70a); resize: vertical; margin-top: 2px;">${escapeHtml(obSettings.onboardingCustomInstructions || '')}</textarea>
                     <div class="rt-quickstart-name-picker rt-onboarding-name-picker">
-                        <input type="text" class="rt-quickstart-name" id="rt-onboarding-rolled-name" placeholder="Roll or enter a name" aria-label="Other Ways character name" autocomplete="off" />
-                        <button type="button" class="rt-quickstart-roll-btn" id="rt-onboarding-roll-name">🎲 Roll Name</button>
+                        <input type="text" class="rt-quickstart-name" id="rt-onboarding-rolled-name" placeholder="掷骰或输入名字" aria-label="其他方式角色名" autocomplete="off" />
+                        <button type="button" class="rt-quickstart-roll-btn" id="rt-onboarding-roll-name">🎲 随机名字</button>
                     </div>
-                    <div class="rt-onboarding-name-hint" id="rt-onboarding-name-hint">Roll a genre-matched name before using Custom.</div>
+                    <div class="rt-onboarding-name-hint" id="rt-onboarding-name-hint">使用 Custom 前，先掷一个符合流派的名称。</div>
                     <div style="display:flex; flex-direction:column; gap:5px; flex-shrink:0; padding:4px 0 2px;">
                         <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                             <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.88em;">
                                 <input type="checkbox" id="rt-onboarding-player-card-cb"${obSettings.onboardingCreatePersona ? ' checked' : ''} />
                                 <span>Create Player Card in Lorebook Agent (Recommended)</span>
                             </label>
-                            <span class="rt-cr-help-icon" title="When checked, the AI writes a rich appearance, personality, habits, and backstory for a Lorebook Agent Player Card. A preview appears so you can edit, regenerate, copy, or add it to this chat.">?</span>
-                            <span style="opacity:0.6; font-size:0.8em; margin-left:4px;">Word count:</span>
+                            <span class="rt-cr-help-icon" title="勾选后，AI 会为 Lorebook Agent 玩家卡撰写丰富的外貌、性格、习惯与背景故事。预览出现后，你可以编辑、重新生成、复制或添加到当前聊天。">?</span>
+                            <span style="opacity:0.6; font-size:0.8em; margin-left:4px;">字数：</span>
                             <select id="rt-onboarding-persona-words" class="text_pole" style="width:65px; font-size:11px; height:22px; padding:2px 4px;">
                                 ${[100, 150, 200, 300, 400, 500, 750, 1000].map(n => {
                                     const sel = String(obSettings.onboardingPersonaWords || '150') === String(n) ? ' selected' : '';
@@ -2144,14 +2144,14 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                                 }).join('')}
                                 <option value="other"${obSettings.onboardingPersonaWords === 'other' ? ' selected' : ''}>Other...</option>
                             </select>
-                            <input id="rt-onboarding-persona-words-custom" type="number" class="text_pole" value="${escapeHtml(String(obSettings.onboardingPersonaWordsCustom || ''))}" style="display:${obSettings.onboardingPersonaWords === 'other' ? 'inline-block' : 'none'}; width:65px; font-size:11px; height:22px; padding:2px 4px; margin-left:4px;" placeholder="e.g. 800" min="50" max="5000" />
+                            <input id="rt-onboarding-persona-words-custom" type="number" class="text_pole" value="${escapeHtml(String(obSettings.onboardingPersonaWordsCustom || ''))}" style="display:${obSettings.onboardingPersonaWords === 'other' ? 'inline-block' : 'none'}; width:65px; font-size:11px; height:22px; padding:2px 4px; margin-left:4px;" placeholder="例如 800" min="50" max="5000" />
                         </div>
                         <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                             <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.88em;">
                                 <input type="checkbox" id="rt-onboarding-st-persona-cb"${obSettings.onboardingCreateSillyTavernPersona !== false ? ' checked' : ''} />
                                 <span>Create ST Persona (Recommended)</span>
                             </label>
-                            <span class="rt-cr-help-icon" title="Creates and selects a SillyTavern persona with the character's name and an empty description. This only makes sent chat messages use the same player name; character details stay in Lorebook Agent so they are not duplicated in prompt context.">?</span>
+                            <span class="rt-cr-help-icon" title="创建并选中一个以角色名为名、描述为空的 SillyTavern 人设。这仅让发出的聊天消息使用相同玩家名；角色详情保留在 Lorebook Agent 中，避免在 prompt 上下文中重复。">?</span>
                         </div>
                     </div>
                 </div>
@@ -2186,8 +2186,8 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                     <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
                         <button id="rt-pc-import-back" style="background:none; border:1px solid rgba(255,255,255,0.2); border-radius:4px; color:inherit; font-size:0.8em; padding:2px 8px; cursor:pointer; opacity:0.75;">← Back</button>
                         <span style="flex:1; display:flex; align-items:center; gap:6px;">
-                            <span style="font-weight:bold; color:var(--rt-accent); font-size:0.95em;">📥 Import Character Card as PC</span>
-                            <button class="rt-edit-pc-sections-btn" style="background:none; border:none; color:var(--rt-accent); cursor:pointer; font-size:1.1em; opacity:0.8; padding:0; margin-top:-2px;" title="Edit PC Formatting Sections">⚙️</button>
+                            <span style="font-weight:bold; color:var(--rt-accent); font-size:0.95em;">📥 导入角色卡作为 PC</span>
+                            <button class="rt-edit-pc-sections-btn" style="background:none; border:none; color:var(--rt-accent); cursor:pointer; font-size:1.1em; opacity:0.8; padding:0; margin-top:-2px;" title="编辑 PC 格式化区块">⚙️</button>
                         </span>
                     </div>
                     <div style="font-size:10px; color:rgba(255,255,255,0.45); line-height:1.4;"><b>Add as is</b> = AI preserves original writing, fixes only era/world impossibilities · <b>Fit into Story</b> = full adaptation to campaign setting.</div>
@@ -2204,7 +2204,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                             style="display:none; width:60px; background:rgba(0,0,0,0.3); color:white; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:3px 6px; font-size:12px; box-sizing:border-box;">
                         <span style="font-size:10px; color:rgba(255,255,255,0.35);">(Fit into Story only)</span>
                     </div>
-                    <input id="rt-pc-import-search" type="text" placeholder="Search characters..." style="width:100%; background:rgba(0,0,0,0.3); color:white; border:1px solid rgba(255,255,255,0.15); border-radius:5px; padding:5px 8px; font-size:12px; box-sizing:border-box;">
+                    <input id="rt-pc-import-search" type="text" placeholder="搜索角色..." style="width:100%; background:rgba(0,0,0,0.3); color:white; border:1px solid rgba(255,255,255,0.15); border-radius:5px; padding:5px 8px; font-size:12px; box-sizing:border-box;">
                     <div id="rt-pc-import-list" style="display:flex; flex-direction:column; gap:4px; max-height:200px; overflow-y:auto; padding-right:2px;"></div>
                 </div>
 
@@ -2213,10 +2213,10 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                     <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
                         <button id="rt-char-roll-back" style="background:none; border:1px solid rgba(255,255,255,0.2); border-radius:4px; color:inherit; font-size:0.8em; padding:2px 8px; cursor:pointer; opacity:0.75;">← Back</button>
                         <span style="flex:1; display:flex; align-items:center; gap:6px;">
-                            <span style="font-weight:bold; color:var(--rt-accent); font-size:0.95em;">🎲 Character Creator</span>
-                            <button class="rt-edit-pc-sections-btn" style="background:none; border:none; color:var(--rt-accent); cursor:pointer; font-size:1.1em; opacity:0.8; padding:0; margin-top:-2px;" title="Edit PC Formatting Sections">⚙️</button>
+                            <span style="font-weight:bold; color:var(--rt-accent); font-size:0.95em;">🎲 角色创建器</span>
+                            <button class="rt-edit-pc-sections-btn" style="background:none; border:none; color:var(--rt-accent); cursor:pointer; font-size:1.1em; opacity:0.8; padding:0; margin-top:-2px;" title="编辑 PC 格式化区块">⚙️</button>
                         </span>
-                        <button id="rt-cr-reset-btn" class="rt-cr-reset-btn" style="background:none; border:1px solid rgba(255,255,255,0.2); border-radius:4px; color:inherit; font-size:0.8em; padding:2px 8px; cursor:pointer; opacity:0.75;" title="Clear all fields">🗑 Reset</button>
+                        <button id="rt-cr-reset-btn" class="rt-cr-reset-btn" style="background:none; border:1px solid rgba(255,255,255,0.2); border-radius:4px; color:inherit; font-size:0.8em; padding:2px 8px; cursor:pointer; opacity:0.75;" title="清空所有字段">🗑 Reset</button>
                     </div>
                     <!-- Presets Bar -->
                     <div id="rt-cr-presets-bar" style="display:flex; align-items:center; gap:5px; padding:4px 0 3px; border-bottom:1px solid rgba(255,255,255,0.08);">
@@ -2225,14 +2225,14 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                             <option value="">— Select preset —</option>
                         </select>
                         <button id="rt-cr-preset-load-btn" style="background:rgba(120,80,220,0.2); border:1px solid rgba(120,80,220,0.5); border-radius:4px; color:inherit; font-size:0.75em; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0;">Load</button>
-                        <button id="rt-cr-preset-delete-btn" style="background:rgba(220,50,50,0.12); border:1px solid rgba(220,50,50,0.4); border-radius:4px; color:rgba(255,100,100,0.9); font-size:0.75em; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0;">Delete</button>
-                        <button id="rt-cr-preset-save-btn" title="Save current fields as a preset" style="background:none; border:1px solid rgba(120,80,220,0.5); border-radius:4px; color:var(--rt-accent); font-size:0.75em; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0;">＋ Save</button>
+                        <button id="rt-cr-preset-delete-btn" style="background:rgba(220,50,50,0.12); border:1px solid rgba(220,50,50,0.4); border-radius:4px; color:rgba(255,100,100,0.9); font-size:0.75em; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0;">删除</button>
+                        <button id="rt-cr-preset-save-btn" title="将当前字段保存为预设" style="background:none; border:1px solid rgba(120,80,220,0.5); border-radius:4px; color:var(--rt-accent); font-size:0.75em; padding:2px 8px; cursor:pointer; white-space:nowrap; flex-shrink:0;">＋ 保存</button>
                     </div>
                     <div class="rt-cr-row">
                         <div class="rt-cr-field">
                             <label class="rt-cr-label" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-                                <span>Name</span>
-                                <button id="rt-cr-random-name" class="interactable" style="background:none; border:none; color:var(--rt-accent); cursor:pointer; padding:0; margin:0; font-size:1.1em; line-height:1;" title="Roll a random name">🎲</button>
+                                <span>名字</span>
+                                <button id="rt-cr-random-name" class="interactable" style="background:none; border:none; color:var(--rt-accent); cursor:pointer; padding:0; margin:0; font-size:1.1em; line-height:1;" title="随机掷名字">🎲</button>
                             </label>
                             <input id="rt-cr-name" class="text_pole rt-cr-input" type="text" />
                         </div>
@@ -2245,7 +2245,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                             <input id="rt-cr-age" class="text_pole rt-cr-input" type="text" />
                         </div>
                         <div class="rt-cr-field" style="flex:1.35 1 0%;">
-                            <label class="rt-cr-label" style="display:inline-flex; align-items:center; gap:3px; white-space:nowrap;">Sexual Orientation <span class="rt-cr-help-icon" style="width:14px;height:14px;font-size:0.65em;" title="Needed for the relationship system and CYOA romantic options — without this, NPC affection/romance targeting is guesswork.">?</span></label>
+                            <label class="rt-cr-label" style="display:inline-flex; align-items:center; gap:3px; white-space:nowrap;">性取向 <span class="rt-cr-help-icon" style="width:14px;height:14px;font-size:0.65em;" title="关系系统与 CYOA 浪漫选项需要此项——缺失时 NPC 好感/恋爱目标全凭猜测。">?</span></label>
                             <input id="rt-cr-orientation" class="text_pole rt-cr-input" type="text" />
                         </div>
                     </div>
@@ -2261,7 +2261,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                     </div>
                     <div class="rt-cr-row">
                         <div class="rt-cr-field">
-                            <label class="rt-cr-label">Genre <span class="rt-cr-help-icon" title="You must select a specific genre to see its related classes in the Class dropdown. Otherwise, only generic classes are shown.">?</span></label>
+                            <label class="rt-cr-label">类型 <span class="rt-cr-help-icon" title="必须先选择具体类型，才能在职业下拉中看到相关职业，否则只显示通用职业。">?</span></label>
                             <select id="rt-cr-genre" class="text_pole rt-cr-input">
                                 <option value="">✨ None — AI decides from context</option>
                                 <option value="fantasy">⚔️ Fantasy RPG</option>
@@ -2271,7 +2271,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                             </select>
                         </div>
                         <div class="rt-cr-field">
-                            <label class="rt-cr-label">Level <span class="rt-cr-help-icon" title="Pick 'N/A' if your system doesn't use numeric character levels — the AI will not invent a level, XP, or D&D-style level indicator.">?</span></label>
+                            <label class="rt-cr-label">等级 <span class="rt-cr-help-icon" title="如果你的系统不使用数字角色等级，请选「N/A」—— AI 不会虚构等级、XP 或 D&D 式等级指示。">?</span></label>
                             <select id="rt-cr-level" class="text_pole rt-cr-input">
                                 <option value="none"${onboardingLevelIsNone ? ' selected' : ''}>N/A — No Levels (Custom System)</option>
                                 ${[...Array(20).keys()].map(i => { const l = i + 1; return `<option value="${l}"${!onboardingLevelIsNone && l === onboardingLevelNum ? ' selected' : ''}>Level ${l}</option>`; }).join('')}
@@ -2280,7 +2280,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                     </div>
                     <div class="rt-cr-row">
                         <div class="rt-cr-field">
-                            <label class="rt-cr-label">Gear Tier <span class="rt-cr-help-icon" title="How well-equipped the character should be — from mundane starter kit to heroic named gear. Auto scales with level. Pick 'None' to skip all gear guidance.">?</span></label>
+                            <label class="rt-cr-label">装备级别 <span class="rt-cr-help-icon" title="角色装备水平——从普通新手装备到英雄级命名装备，随等级自动提升。选「None」跳过所有装备指导。">?</span></label>
                             <select id="rt-cr-gear-tier" class="text_pole rt-cr-input">
                                 ${gearTierOptions}
                             </select>
@@ -2290,56 +2290,56 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                         <div class="rt-cr-field" style="width:100%;">
                             <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.88em; font-weight:normal;">
                                 <input type="checkbox" id="rt-cr-combat-guide-cb" ${obSettings.onboardingUseCombatScalingGuide !== false ? 'checked' : ''} />
-                                <span>Use Combat &amp; Skill Scaling Guide</span>
-                                <span class="rt-cr-help-icon" title="When enabled, the AI is guided by a classic d20/BAB-style combat and skill progression reference. Turn this off if you're using your own homebrew system and don't want D&D-flavored scaling language influencing the result.">?</span>
+                                <span>使用战斗与技能成长指南</span>
+                                <span class="rt-cr-help-icon" title="启用后，AI 会参考经典 d20/BAB 式战斗与技能成长体系。若你使用自创系统、不希望 D&D 风格成长用语影响结果，请关闭。">?</span>
                             </label>
                         </div>
                     </div>
                     <div class="rt-cr-row rt-cr-time-row">
                         <div class="rt-cr-field" style="width:100%;">
-                            <label class="rt-cr-label">Time &amp; Date <span class="rt-cr-help-icon" title="Calendar and clock format for [TIME] tracking in generated memos. Day 1 = narrative day count; DD/MM/YYYY = real calendar dates. The last field sets the initial time of day for the very first [TIME] block.">?</span></label>
+                            <label class="rt-cr-label">时间与日期 <span class="rt-cr-help-icon" title="生成备忘录中 [TIME] 追踪所用的日历与时钟格式。Day 1 = 叙事天数；DD/MM/YYYY = 真实日历日期。最后一个字段设置首个 [TIME] 块的初始时刻。">?</span></label>
                             <div class="rt-cr-time-controls">
-                                <div class="rt-seg-toggle" id="rt-cr-date-seg" role="group" title="Choose the calendar format used for [TIME] tracking.">
-                                    <button type="button" data-value="day" class="${!useDdMmYy ? 'active' : ''}">Day 1</button>
+                                <div class="rt-seg-toggle" id="rt-cr-date-seg" role="group" title="选择 [TIME] 追踪使用的日历格式。">
+                                    <button type="button" data-value="day" class="${!useDdMmYy ? 'active' : ''}">第 1 天</button>
                                     <button type="button" data-value="date" class="${useDdMmYy ? 'active' : ''}">DD/MM/YYYY</button>
                                 </div>
                                 <input type="text" id="rt-cr-start-date" class="text_pole rt-cr-input" value="${startDateInputVal}" placeholder="01/01/2026" style="width: 92px; text-align: center; display: ${useDdMmYy ? 'inline-block' : 'none'};" />
-                                <div class="rt-seg-toggle" id="rt-cr-clock-seg" role="group" title="Choose the clock format used for [TIME] tracking.">
+                                <div class="rt-seg-toggle" id="rt-cr-clock-seg" role="group" title="选择 [TIME] 追踪使用的时钟格式。">
                                     <button type="button" data-value="12" class="${!use24h ? 'active' : ''}">12h</button>
                                     <button type="button" data-value="24" class="${use24h ? 'active' : ''}">24h</button>
                                 </div>
-                                <input type="text" id="rt-cr-start-time" class="text_pole rt-cr-input" value="${startTimeInputVal}" placeholder="${use24h ? '08:00' : '08:00 AM'}" title="Initial time of day for the very first [TIME] block." style="width: 84px; text-align: center;" />
+                                <input type="text" id="rt-cr-start-time" class="text_pole rt-cr-input" value="${startTimeInputVal}" placeholder="${use24h ? '08:00' : '08:00 AM'}" title="首个 [TIME] 块的初始时刻。" style="width: 84px; text-align: center;" />
                             </div>
                         </div>
                     </div>
                     <div class="rt-cr-field" style="width:100%;">
                         <label class="rt-cr-label">Class</label>
                         <select id="rt-cr-class" class="text_pole rt-cr-input" style="width:100%;"></select>
-                        <input id="rt-cr-class-other" class="text_pole rt-cr-input" type="text" placeholder="Describe your custom class…" style="display:none; margin-top:3px; width:100%;" />
+                        <input id="rt-cr-class-other" class="text_pole rt-cr-input" type="text" placeholder="描述你的自定义职业…" style="display:none; margin-top:3px; width:100%;" />
                     </div>
                     <div class="rt-cr-row">
                         <div class="rt-cr-field">
-                            <label class="rt-cr-label">Traits</label>
-                            <textarea id="rt-cr-traits" class="text_pole rt-cr-input" placeholder="Leave blank — AI invents traits" rows="2" style="resize:vertical;"></textarea>
+                            <label class="rt-cr-label">特质</label>
+                            <textarea id="rt-cr-traits" class="text_pole rt-cr-input" placeholder="留空——AI 自行创造特质" rows="2" style="resize:vertical;"></textarea>
                         </div>
                         <div class="rt-cr-field">
-                            <label class="rt-cr-label">Abilities</label>
-                            <textarea id="rt-cr-abilities" class="text_pole rt-cr-input" placeholder="Leave blank — AI generates abilities" rows="2" style="resize:vertical;"></textarea>
+                            <label class="rt-cr-label">能力</label>
+                            <textarea id="rt-cr-abilities" class="text_pole rt-cr-input" placeholder="留空——AI 自行生成能力" rows="2" style="resize:vertical;"></textarea>
                         </div>
                     </div>
                     <div class="rt-cr-row">
                         <div class="rt-cr-field">
-                            <label class="rt-cr-label">Background <span class="rt-cr-help-icon" title="You don't need to write a full backstory. A brief hint guides the AI (e.g. 'grew up on the streets', 'ex-soldier', 'noble exile'). Leave blank and the AI will invent a fitting background.">?</span></label>
+                            <label class="rt-cr-label">背景 <span class="rt-cr-help-icon" title="无需写完整背景故事，简短提示即可引导 AI（例如「街头长大」「退伍士兵」「被放逐的贵族」）。留空则 AI 会创造合适的背景。">?</span></label>
                             <input id="rt-cr-background" class="text_pole rt-cr-input" type="text" />
                         </div>
                         <div class="rt-cr-field">
-                            <label class="rt-cr-label">Appearance <span class="rt-cr-help-icon" title="Just a hint is enough (e.g. 'tall, red hair, scar on cheek'). Leave blank and the AI will create a full appearance description.">?</span></label>
+                            <label class="rt-cr-label">外貌 <span class="rt-cr-help-icon" title="只需一点提示即可（例如「高个、红发、脸颊有疤」）。留空则 AI 会生成完整外貌描述。">?</span></label>
                             <input id="rt-cr-appearance" class="text_pole rt-cr-input" type="text" />
                         </div>
                     </div>
                     <div class="rt-cr-field" style="width:100%;">
-                        <label class="rt-cr-label">Additional Info</label>
-                        <textarea id="rt-cr-additional" class="text_pole rt-cr-input" placeholder="Extra constraints, setting notes…" rows="2" style="resize:vertical; width:100%;"></textarea>
+                        <label class="rt-cr-label">补充信息</label>
+                        <textarea id="rt-cr-additional" class="text_pole rt-cr-input" placeholder="额外限制、设定备注…" rows="2" style="resize:vertical; width:100%;"></textarea>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:5px; flex-shrink:0; padding:4px 0;">
                         <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -2347,8 +2347,8 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                                 <input type="checkbox" id="rt-cr-player-card-cb" />
                                 <span>Create Player Card in Lorebook Agent (Recommended)</span>
                             </label>
-                            <span class="rt-cr-help-icon" title="When checked, the AI writes a rich appearance, personality, habits, and backstory for a Lorebook Agent Player Card. A preview appears so you can edit, regenerate, copy, or add it to this chat.">?</span>
-                            <span style="opacity:0.6; font-size:0.8em; margin-left:4px;">Word count:</span>
+                            <span class="rt-cr-help-icon" title="勾选后，AI 会为 Lorebook Agent 玩家卡撰写丰富的外貌、性格、习惯与背景故事。预览出现后，你可以编辑、重新生成、复制或添加到当前聊天。">?</span>
+                            <span style="opacity:0.6; font-size:0.8em; margin-left:4px;">字数：</span>
                             <select id="rt-cr-persona-words" class="text_pole" style="width:65px; font-size:11px; height:22px; padding:2px 4px;">
                                 <option value="100">100</option>
                                 <option value="150" selected>150</option>
@@ -2360,14 +2360,14 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                                 <option value="1000">1000</option>
                                 <option value="other">Other...</option>
                             </select>
-                            <input id="rt-cr-persona-words-custom" type="number" class="text_pole" style="display:none; width:65px; font-size:11px; height:22px; padding:2px 4px; margin-left:4px;" placeholder="e.g. 800" min="50" max="5000" />
+                            <input id="rt-cr-persona-words-custom" type="number" class="text_pole" style="display:none; width:65px; font-size:11px; height:22px; padding:2px 4px; margin-left:4px;" placeholder="例如 800" min="50" max="5000" />
                         </div>
                         <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                             <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.88em;">
                                 <input type="checkbox" id="rt-cr-st-persona-cb" checked />
                                 <span>Create ST Persona (Recommended)</span>
                             </label>
-                            <span class="rt-cr-help-icon" title="Creates and selects a SillyTavern persona with the character's name and an empty description. This only makes sent chat messages use the same player name; character details stay in Lorebook Agent so they are not duplicated in prompt context.">?</span>
+                            <span class="rt-cr-help-icon" title="创建并选中一个以角色名为名、描述为空的 SillyTavern 人设。这仅让发出的聊天消息使用相同玩家名；角色详情保留在 Lorebook Agent 中，避免在 prompt 上下文中重复。">?</span>
                         </div>
                     </div>
                     <button id="rt-cr-generate-btn" style="width:100%; padding:8px 12px; background:rgba(120,80,220,0.2); border:1px solid rgba(120,80,220,0.6); border-radius:5px; color:var(--rt-text,#eee); font-size:0.92em; font-weight:bold; cursor:pointer; letter-spacing:0.03em;">🎲 Generate Character</button>
@@ -2412,9 +2412,9 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                         <li>Set up your connections in the extension's connection settings. I recommend a lightweight, relatively fast and cheap model for everything but the main narrator/GM. More on that below.</li>
                         <li>Create a narrator character card. Leave the card content empty, as the framework handles all logic via the system/Main ST prompt.
                             <div class="rt-onboarding-gm-create">
-                                <label class="rt-onboarding-gm-label" for="rt-onboarding-gm-name">Narrator card name</label>
-                                <input id="rt-onboarding-gm-name" class="text_pole rt-onboarding-gm-name" type="text" value="Game Master" placeholder="Game Master" maxlength="120" aria-label="Narrator card name">
-                                <button type="button" class="rt-onboarding-open-chat" id="rt-onboarding-create-gm">Create narrator card</button>
+                                <label class="rt-onboarding-gm-label" for="rt-onboarding-gm-name">旁白卡名称</label>
+                                <input id="rt-onboarding-gm-name" class="text_pole rt-onboarding-gm-name" type="text" value="Game Master" placeholder="游戏主持人" maxlength="120" aria-label="旁白卡名称">
+                                <button type="button" class="rt-onboarding-open-chat" id="rt-onboarding-create-gm">创建旁白卡</button>
                             </div>
                             <div class="rt-onboarding-gm-note">Multihog doesn&apos;t use a one-on-one chat format but uses a format written like a book, that seamlessly allows for multiple characters. The messages are attributed to a narrator, not a single character.</div>
                         </li>
@@ -2446,7 +2446,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
 
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
                         <span style="font-size: 0.85em; font-weight: bold; opacity: 0.8;">Pacing/Output Length</span>
-                        <button type="button" class="rt-narrative-pacing-help" style="background: none; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: inherit; font-size: 0.72em; opacity: 0.7; padding: 1px 7px; cursor: pointer;">What are these?</button>
+                        <button type="button" class="rt-narrative-pacing-help" style="background: none; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: inherit; font-size: 0.72em; opacity: 0.7; padding: 1px 7px; cursor: pointer;">这些是什么？</button>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; padding-left: 5px;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;"><input type="radio" name="rt_onboarding_narrative_pacing" value="normal" id="rt_onboarding_narrative_pacing_normal" /><span>Normal (no length instructions)</span></label>
@@ -2457,7 +2457,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                     
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
                         <span style="font-size: 0.85em; font-weight: bold; opacity: 0.8;">RNG</span>
-                        <button class="rt-rng-help-icon" style="background: none; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: inherit; font-size: 0.72em; opacity: 0.7; padding: 1px 7px; cursor: pointer;" title="Open RNG systems explanation">What are these?</button>
+                        <button class="rt-rng-help-icon" style="background: none; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: inherit; font-size: 0.72em; opacity: 0.7; padding: 1px 7px; cursor: pointer;" title="打开 RNG 系统说明">这些是什么？</button>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; padding-left: 5px;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
@@ -2475,8 +2475,8 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                     </div>
 
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px;">
-                        <span style="font-size: 0.85em; font-weight: bold; opacity: 0.8;">Quests</span>
-                        <button class="rt-quests-hardcore-help" style="background: none; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: inherit; font-size: 0.72em; opacity: 0.7; padding: 1px 7px; cursor: pointer;" title="Explain hardcore quest mechanics">What are these?</button>
+                        <span style="font-size: 0.85em; font-weight: bold; opacity: 0.8;">任务</span>
+                        <button class="rt-quests-hardcore-help" style="background: none; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: inherit; font-size: 0.72em; opacity: 0.7; padding: 1px 7px; cursor: pointer;" title="解释硬核任务机制">这些是什么？</button>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; padding-left: 5px;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
@@ -2523,17 +2523,17 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                             <span>⛺ Benched Party (Tracks temporarily separated companions)</span>
                         </label>
                         <div>
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;" title="Builds a hidden location map before exploring a dungeon, ruin, town, or city. New maps need CreateAreaMap (function calling) or the text-command opener below.">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;" title="在探索地下城、遗迹、城镇或城市前构建隐藏地点地图。新地图需要 CreateAreaMap（函数调用）或下方文本命令启动器。">
                             <input type="checkbox" id="rt_onboarding_mod_dungeon_reality_and_hidden_mapping" />
                             <span>🗺️ Persistent Maps</span>
                         </label>
                         <div id="rt_onboarding_map_architect_opener_wrap" style="padding-left: 20px; display: none; flex-direction: column; gap: 4px;">
-                            <span style="font-size: 0.75em; opacity: 0.6; text-transform: uppercase; font-weight: bold; margin-top: 2px;">Map Architect opener</span>
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;" title="Default. The narrator calls CreateAreaMap; SillyTavern pauses the turn until the map is ready.">
+                            <span style="font-size: 0.75em; opacity: 0.6; text-transform: uppercase; font-weight: bold; margin-top: 2px;">地图建筑师启动方式</span>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;" title="默认。叙述者调用 CreateAreaMap；SillyTavern 暂停回合直到地图就绪。">
                                 <input type="radio" name="rt_onboarding_map_architect_opener" value="tool" id="rt_onboarding_map_architect_opener_tool" />
                                 <span>Tool call (CreateAreaMap) — requires function calling</span>
                             </label>
-                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;" title="For models or presets without function calling. The narrator emits a [CREATE_AREA_MAP] block and stops; Map Architect runs, then narration continues.">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;" title="适用于不支持函数调用的模型或预设。叙述者输出 [CREATE_AREA_MAP] 块并停下；Map Architect 运行后叙述继续。">
                                 <input type="radio" name="rt_onboarding_map_architect_opener" value="text" id="rt_onboarding_map_architect_opener_text" />
                                 <span>Text command — no function calling</span>
                             </label>
@@ -2541,8 +2541,8 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;">
                             <input type="checkbox" id="rt_onboarding_mod_cyoa_mode" />
-                            <span>🧭 CYOA Mode (action choices every turn)</span>
-                            <button id="rt_onboarding_cyoa_settings_btn" style="background:none;border:1px solid rgba(255,255,255,0.25);border-radius:4px;color:inherit;font-size:0.75em;padding:1px 6px;cursor:pointer;flex-shrink:0;opacity:0.8;" title="CYOA Settings"><i class="fa-solid fa-gear"></i></button>
+                            <span>🧭 CYOA 模式（每回合行动选项）</span>
+                            <button id="rt_onboarding_cyoa_settings_btn" style="background:none;border:1px solid rgba(255,255,255,0.25);border-radius:4px;color:inherit;font-size:0.75em;padding:1px 6px;cursor:pointer;flex-shrink:0;opacity:0.8;" title="CYOA 设置"><i class="fa-solid fa-gear"></i></button>
                         </div>
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="checkbox" id="rt_onboarding_mod_npc_rel_bars" />
@@ -2550,8 +2550,8 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                         </label>
                     </div>
 
-                    <button id="rt_onboarding_btn_update_sysprompt" style="width: 100%; margin-top: 10px; padding: 7px 12px; background: rgba(0, 200, 140, 0.18); border: 1px solid #00c88c; border-radius: 4px; color: var(--rt-text, #eee); font-size: 0.88em; cursor: pointer;" title="Writes the system prompt to your Quick Prompt Main box based on the options selected above.">
-                        ↑ Apply System Prompt
+                    <button id="rt_onboarding_btn_update_sysprompt" style="width: 100%; margin-top: 10px; padding: 7px 12px; background: rgba(0, 200, 140, 0.18); border: 1px solid #00c88c; border-radius: 4px; color: var(--rt-text, #eee); font-size: 0.88em; cursor: pointer;" title="根据上方所选选项，将系统提示词写入你的 Quick Prompt Main 框。">
+                        ↑ 应用系统提示词
                     </button>
                 </div>
                 </div>
@@ -2627,8 +2627,8 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
         // If main panel context, filter out detached windows
         if (!uiOptions.bodyOnly && !filterTag && detached.has(tag)) {
             return `<div class="rt-detached-placeholder" data-tag="${tag}">
-                <span class="rt-placeholder-icon">⧉</span> ${tag} is detached
-                <button class="rt-reattach-btn-inline" data-tag="${tag}" title="Re-attach">↓</button>
+                <span class="rt-placeholder-icon">⧉</span> ${tag} 已分离
+                <button class="rt-reattach-btn-inline" data-tag="${tag}" title="重新挂载">↓</button>
             </div>`;
         }
 
@@ -2675,21 +2675,21 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
 
         // Don't show detach button if already in detached context (filterTag provided)
         const detachBtn = !filterTag ? `
-            <button class="rt-detach-btn" data-tag="${tag}" title="Detach panel">
+            <button class="rt-detach-btn" data-tag="${tag}" title="分离面板">
                 ⧉
             </button>
         ` : '';
 
         const personaFromCharBtn = tag === 'CHARACTER' ? `
-            <button class="rt-char-to-persona-btn" data-tag="CHARACTER" title="Create a Lorebook Agent Player Card from this CHARACTER sheet (uses the sheet plus the last 3 story messages)">
-                Create PC Card
+            <button class="rt-char-to-persona-btn" data-tag="CHARACTER" title="从该 CHARACTER 角色卡创建 Lorebook Agent 玩家卡（使用角色卡及最近 3 条剧情消息）">
+                创建 PC 卡
             </button>
         ` : '';
 
         const partyCompactBtn = tag === 'PARTY' ? renderPartyCompactButton(isPartyCompact) : '';
 
         const fullViewBtn = NO_PAGINATE.has(renderType) ? '' : `
-            <button class="rt-fullview-btn${isFullView ? ' active' : ''}" data-tag="${tag}" title="${isFullView ? 'Switch to Paged View' : 'Switch to Full List'}">
+            <button class="rt-fullview-btn${isFullView ? ' active' : ''}" data-tag="${tag}" title="${isFullView ? '切换到分页视图' : '切换到完整列表'}">
                 ${isFullView ? '📜' : '📑'}
             </button>
         `;
@@ -2728,7 +2728,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                     ${partyCompactBtn}
                     ${detachBtn}
                     ${fullViewBtn}
-                    ${uiOptions.showCategorySettings === false ? '' : `<button class="rt-category-settings-btn" data-tag="${tag}" title="Category Rendering Options">
+                    ${uiOptions.showCategorySettings === false ? '' : `<button class="rt-category-settings-btn" data-tag="${tag}" title="分类渲染选项">
                         <i class="fa-solid fa-cog"></i>
                     </button>`}
                     <span class="rt-item-count">${items.length} ${items.length === 1 ? 'entry' : 'entries'}</span>
@@ -2824,7 +2824,7 @@ function renderPartyVitalsStrip(blocks) {
         const dispCur = showAsPct ? Math.round(m.pct) : m.cur;
         const dispMax = showAsPct ? 100 : m.max;
         const ringColor = getBarBackground(barId, DEFAULT_HP_COLOR, m.pct);
-        return `<button class="rt-vitals-member" data-jump-tag="PARTY" title="${escapeHtml(m.name)}: ${dispCur}/${dispMax} HP">
+        return `<button class="rt-vitals-member" data-jump-tag="PARTY" title="${escapeHtml(m.name)}：${dispCur}/${dispMax} 生命值">
             <span class="rt-vitals-portrait-wrap" style="--rt-vitals-ring: ${ringColor}; --rt-vitals-pct: ${m.pct}%;">
                 ${renderPortraitHtml(m.name)}
             </span>
@@ -2989,7 +2989,7 @@ export function renderTabModeView(memo, sectionPages, questsCtx = null) {
 
     const tabBadge = (entry) => {
         if (entry.kind === 'group') {
-            return `<span class="rt-tab-badge" title="${entry.tags.length} grouped modules">${entry.tags.length}</span>`;
+            return `<span class="rt-tab-badge" title="${entry.tags.length} 个分组模块">${entry.tags.length}</span>`;
         }
         const tag = entry.tag;
         if (tag === 'QUESTS') {
@@ -3003,7 +3003,7 @@ export function renderTabModeView(memo, sectionPages, questsCtx = null) {
         // PARTY's tab carries a secondary badge for its folded-in benched sub-panel count.
         if (tag === 'PARTY' && blocks['BENCHED PARTY'] !== undefined) {
             const benchedCount = extractBenchedRoster(blocks['BENCHED PARTY']).length;
-            if (benchedCount > 0) badges += `<span class="rt-tab-badge rt-tab-badge-secondary" title="Benched">⛺${benchedCount}</span>`;
+            if (benchedCount > 0) badges += `<span class="rt-tab-badge rt-tab-badge-secondary" title="休息中">⛺${benchedCount}</span>`;
         }
         return badges;
     };
@@ -3068,14 +3068,14 @@ export function renderQuestLog(quests, currentTime, collapsed, detached, filterT
 
     if (!filterTag && detached.has(TAG)) {
         return `<div class="rt-detached-placeholder" data-tag="${TAG}">
-            <span class="rt-placeholder-icon">⧉</span> QUESTS is detached
-            <button class="rt-reattach-btn-inline" data-tag="${TAG}" title="Re-attach">↓</button>
+            <span class="rt-placeholder-icon">⧉</span> QUESTS 已分离
+            <button class="rt-reattach-btn-inline" data-tag="${TAG}" title="重新挂载">↓</button>
         </div>`;
     }
 
     const allQuests = quests || [];
     const isCollapsed = collapsed.has(TAG);
-    const detachBtn = !filterTag ? `<button class="rt-detach-btn" data-tag="${TAG}" title="Detach panel">⧉</button>` : '';
+    const detachBtn = !filterTag ? `<button class="rt-detach-btn" data-tag="${TAG}" title="分离面板">⧉</button>` : '';
 
     if (allQuests.length === 0) {
         return `<div class="rt-section-card${isCollapsed ? ' rt-collapsed' : ''}" data-tag="${TAG}">
@@ -3118,7 +3118,7 @@ export function renderQuestLog(quests, currentTime, collapsed, detached, filterT
         const fillPct      = Math.round((displayFrust + 1) * scale);
 
         const barTitle = showFrustration && moodData.label
-            ? `NPC Mood: ${label} (${frust >= 0 ? '+' : ''}${frust.toFixed(2)})`
+            ? `NPC 情绪：${label} (${frust >= 0 ? '+' : ''}${frust.toFixed(2)})`
             : (hasDeadline && !emergent ? `Time Progress: ${label}` : '');
 
         // Tick mark at the neutral position (33%) and deadline position (67%)
@@ -3198,7 +3198,7 @@ export function renderQuestLog(quests, currentTime, collapsed, detached, filterT
         if (isFailed) cardClass += ' rt-quest-card-failed';
 
         const dismissBtn = dismissible
-            ? `<button type="button" class="rt-quest-dismiss-btn" data-quest-id="${escapeHtml(quest.id)}" title="Remove from log">✕</button>`
+            ? `<button type="button" class="rt-quest-dismiss-btn" data-quest-id="${escapeHtml(quest.id)}" title="从日志中移除">✕</button>`
             : '';
 
         return `<div class="${cardClass}" data-quest-id="${escapeHtml(quest.id)}">
@@ -3277,7 +3277,7 @@ export function renderQuestLog(quests, currentTime, collapsed, detached, filterT
             <span>📋 QUESTS</span>
             <div class="rt-section-header-right">
                 ${detachBtn}
-                <button class="rt-category-settings-btn" data-tag="${TAG}" title="Category Rendering Options">
+                <button class="rt-category-settings-btn" data-tag="${TAG}" title="分类渲染选项">
                     <i class="fa-solid fa-cog"></i>
                 </button>
                 <span class="rt-item-count">${activeQuests.length} active</span>
@@ -3299,14 +3299,14 @@ export function renderQuestLog(quests, currentTime, collapsed, detached, filterT
             const time = new Date(step.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
             let icon = 'fa-brain';
             let color = 'var(--rt-custom-text-muted)';
-            let title = 'Thought';
+            let title = '思考';
 
             switch (step.type) {
-                case 'tool': icon = 'fa-screwdriver-wrench'; color = '#3498db'; title = 'Tool'; break;
-                case 'result': icon = 'fa-list-ul'; color = '#9b59b6'; title = 'Result'; break;
-                case 'error': icon = 'fa-circle-exclamation'; color = '#e74c3c'; title = 'Error'; break;
-                case 'finish': icon = 'fa-circle-check'; color = '#2ecc71'; title = 'Finished'; break;
-                case 'start': icon = 'fa-play'; color = '#f1c40f'; title = 'Starting'; break;
+                case 'tool': icon = 'fa-screwdriver-wrench'; color = '#3498db'; title = '工具'; break;
+                case 'result': icon = 'fa-list-ul'; color = '#9b59b6'; title = '结果'; break;
+                case 'error': icon = 'fa-circle-exclamation'; color = '#e74c3c'; title = '错误'; break;
+                case 'finish': icon = 'fa-circle-check'; color = '#2ecc71'; title = '已完成'; break;
+                case 'start': icon = 'fa-play'; color = '#f1c40f'; title = '进行中'; break;
             }
 
             const content = escapeHtml(step.content);

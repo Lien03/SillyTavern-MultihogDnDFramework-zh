@@ -279,7 +279,7 @@ function nodeClass(node) {
 export function renderDungeonMapGraphSvg(graph, { compact = true, siteRoot = '' } = {}) {
     const layout = layoutDungeonMapGraph(graph, { compact });
     if (!layout.nodes.length) {
-        return '<div class="rt-dungeon-graph-empty">No revealed rooms yet.</div>';
+        return '<div class="rt-dungeon-graph-empty">尚未发现房间</div>';
     }
     const fontSize = compact ? MAP_NODE_FONT.compact : MAP_NODE_FONT.expanded;
     const edges = layout.edges.map(edge => {
@@ -297,7 +297,7 @@ export function renderDungeonMapGraphSvg(graph, { compact = true, siteRoot = '' 
             node.fog ? 'data-fog="1" aria-hidden="true"' : `data-area-id="${escapeXml(node.id)}" data-area-path="${escapeXml(path)}" role="button" tabindex="0"`,
         ];
         const here = node.current
-            ? (graph.currentInteriorName ? ` (in ${graph.currentInteriorName})` : ' (you are here)')
+            ? (graph.currentInteriorName ? ` (位于${graph.currentInteriorName})` : ' (你在这里)')
             : '';
         if (!node.fog) attrs.push(`aria-label="${escapeXml(`${node.name}${here}`)}"`);
         const shape = node.fog
@@ -309,7 +309,7 @@ export function renderDungeonMapGraphSvg(graph, { compact = true, siteRoot = '' 
             : renderAreaAssetIconsSvg(node.icons, { cx: node.cx, y: node.iconY, compact });
         return `<g ${attrs.join(' ')}>${shape}<text x="${node.cx}" y="${textY}" text-anchor="middle" dominant-baseline="middle" font-size="${fontSize}">${escapeXml(label)}</text>${icons}</g>`;
     }).join('');
-    return `<svg xmlns="http://www.w3.org/2000/svg" class="rt-dungeon-graph-svg" viewBox="0 0 ${layout.width} ${layout.height}" width="${layout.width}" height="${layout.height}" role="img" draggable="false" aria-label="${escapeXml(graph.site || 'Site map')}">${edges}${nodes}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="rt-dungeon-graph-svg" viewBox="0 0 ${layout.width} ${layout.height}" width="${layout.width}" height="${layout.height}" role="img" draggable="false" aria-label="${escapeXml(graph.site || '地图')}">${edges}${nodes}</svg>`;
 }
 
 /**
@@ -319,37 +319,37 @@ export function renderDungeonMapGraphSvg(graph, { compact = true, siteRoot = '' 
  */
 export function renderDungeonMapEmbedHtml(graph, { detached = false, siteRoot = '' } = {}) {
     if (!graph?.nodes?.length) return '';
-    const site = escapeXml(graph.site || 'Mapped site');
+    const site = escapeXml(graph.site || '已记录地点');
     if (detached) {
         return `<div class="rt-immersion-map rt-immersion-map-popped">
-            <div class="rt-immersion-section-label"><span>Site map</span></div>
+            <div class="rt-immersion-section-label"><span>地图</span></div>
             <div class="rt-immersion-map-popped-body">
-                <span>${site} is open in a separate window.</span>
+                <span>${site} 已在独立窗口中打开。</span>
                 <span class="rt-dungeon-map-label-actions">
-                    <button type="button" class="rt-dungeon-map-details" title="Open map details" aria-label="Open map details">Map Details</button>
-                    <button type="button" class="rt-dungeon-map-reattach rpg-tracker-icon-btn" title="Reattach site map">Reattach</button>
+                    <button type="button" class="rt-dungeon-map-details" title="打开地图详情" aria-label="打开地图详情">地图详情</button>
+                    <button type="button" class="rt-dungeon-map-reattach rpg-tracker-icon-btn" title="重新附加地图">重新附加</button>
                 </span>
             </div>
         </div>`;
     }
     return `<div class="rt-immersion-map">
         <div class="rt-immersion-section-label">
-            <span>Site map</span>
+            <span>地图</span>
             <span class="rt-dungeon-map-label-actions">
-                <button type="button" class="rt-map-updater-direct-toggle rpg-tracker-icon-btn" title="Direct prompt for Map Updater" aria-expanded="false">💬</button>
-                <button type="button" class="rt-dungeon-map-details" title="Open map details" aria-label="Open map details">Map Details</button>
-                <button type="button" class="rt-dungeon-map-detach rpg-tracker-icon-btn" title="Open map in a separate window" aria-label="Open map in a separate window">⧉</button>
+                <button type="button" class="rt-map-updater-direct-toggle rpg-tracker-icon-btn" title="为地图更新器直接下达指令" aria-expanded="false">💬</button>
+                <button type="button" class="rt-dungeon-map-details" title="打开地图详情" aria-label="打开地图详情">地图详情</button>
+                <button type="button" class="rt-dungeon-map-detach rpg-tracker-icon-btn" title="在独立窗口中打开地图" aria-label="在独立窗口中打开地图">⧉</button>
             </span>
         </div>
         <div class="rt-map-updater-direct-panel" hidden>
             <div class="rt-map-updater-direct-bar">
-                <textarea class="rt-map-updater-direct-input text_pole" rows="2" placeholder="Instruct Map Updater for this run only… (Enter to run, Shift+Enter for newline)"></textarea>
+                <textarea class="rt-map-updater-direct-input text_pole" rows="2" placeholder="仅本次运行指示地图更新器…(回车运行,Shift+回车换行)"></textarea>
                 <div class="rt-map-updater-direct-actions">
-                    <label class="rt-lookback-field rt-map-updater-direct-lookback-label" title="Recent story lookback for this manual Map Updater run">
-                        <span class="rt-lookback-field-label">Lookback:</span>
+                    <label class="rt-lookback-field rt-map-updater-direct-lookback-label" title="本次手动运行地图更新器时的故事回溯范围">
+                        <span class="rt-lookback-field-label">回溯:</span>
                         <input type="text" inputmode="numeric" pattern="[0-9]*" class="rt-lookback-field-input rt-map-updater-direct-lookback" min="0" max="100" value="10">
                     </label>
-                    <button type="button" class="rt-map-updater-direct-run menu_button interactable"><i class="fa-solid fa-play"></i> Run</button>
+                    <button type="button" class="rt-map-updater-direct-run menu_button interactable"><i class="fa-solid fa-play"></i> 运行</button>
                 </div>
             </div>
             <span class="rt-map-updater-direct-status" role="status" aria-live="polite"></span>
@@ -371,7 +371,7 @@ function areaDisplayName(id, revealAll, visibleIds, areasById) {
     if (revealAll || visibleIds.has(id)) {
         return areasById.get(id)?.name || id;
     }
-    return 'Unexplored';
+    return '未探索';
 }
 
 /**
@@ -399,20 +399,20 @@ export function renderDungeonMapReadableHtml(mapDocument, { revealAll = true } =
         const nested = new Set(ancestors);
         if (id) nested.add(id);
         const metadata = [];
-        if (asset.behavior) metadata.push(`<b>Behavior:</b> ${escapeHtml(asset.behavior)}`);
+        if (asset.behavior) metadata.push(`<b>行为:</b> ${escapeHtml(asset.behavior)}`);
         if (asset.route?.length) {
-            metadata.push(`<b>Route:</b> ${asset.route.map(routeId => escapeHtml(areaDisplayName(routeId, revealAll, visibleIds, areasById))).join(' &rarr; ')}`);
+            metadata.push(`<b>路线:</b> ${asset.route.map(routeId => escapeHtml(areaDisplayName(routeId, revealAll, visibleIds, areasById))).join(' &rarr; ')}`);
         }
-        if (asset.faction) metadata.push(`<b>Faction:</b> ${escapeHtml(asset.faction)}`);
-        if (Number.isInteger(asset.count)) metadata.push(`<b>Count:</b> ${escapeHtml(String(asset.count))}`);
-        if (asset.owner) metadata.push(`<b>Owner:</b> ${escapeHtml(asset.owner)}`);
-        if (asset.duration) metadata.push(`<b>Duration:</b> ${escapeHtml(asset.duration)}`);
-        if (asset.origin && asset.origin !== 'INITIAL_MAP') metadata.push(`<b>Origin:</b> ${escapeHtml(asset.origin)}`);
-        if (asset.actor) metadata.push(`<b>Actor:</b> ${escapeHtml(asset.actor)}`);
-        if (asset.cause) metadata.push(`<b>Cause:</b> ${escapeHtml(asset.cause)}`);
-        if (asset.changed_at) metadata.push(`<b>Since:</b> ${escapeHtml(asset.changed_at)}`);
+        if (asset.faction) metadata.push(`<b>阵营:</b> ${escapeHtml(asset.faction)}`);
+        if (Number.isInteger(asset.count)) metadata.push(`<b>数量:</b> ${escapeHtml(String(asset.count))}`);
+        if (asset.owner) metadata.push(`<b>所有者:</b> ${escapeHtml(asset.owner)}`);
+        if (asset.duration) metadata.push(`<b>持续时间:</b> ${escapeHtml(asset.duration)}`);
+        if (asset.origin && asset.origin !== 'INITIAL_MAP') metadata.push(`<b>来源:</b> ${escapeHtml(asset.origin)}`);
+        if (asset.actor) metadata.push(`<b>行动者:</b> ${escapeHtml(asset.actor)}`);
+        if (asset.cause) metadata.push(`<b>原因:</b> ${escapeHtml(asset.cause)}`);
+        if (asset.changed_at) metadata.push(`<b>变更于:</b> ${escapeHtml(asset.changed_at)}`);
         if (asset.last_location) {
-            metadata.push(`<b>Last location:</b> ${escapeHtml(areaDisplayName(asset.last_location, revealAll, visibleIds, areasById))}`);
+            metadata.push(`<b>最后位置:</b> ${escapeHtml(areaDisplayName(asset.last_location, revealAll, visibleIds, areasById))}`);
         }
         const children = id
             ? visibleAssets.filter((candidate) => {
@@ -433,9 +433,9 @@ export function renderDungeonMapReadableHtml(mapDocument, { revealAll = true } =
         const showGeometry = revealAll || area.knowledge === 'VISITED';
         const geometry = showGeometry && area.geometry?.length
             ? `<ul class="rt-dungeon-map-geometry">${area.geometry.map(fact => `<li>${escapeHtml(fact)}</li>`).join('')}</ul>`
-            : `<div class="rt-dungeon-map-empty">${showGeometry ? 'No structural notes.' : 'Not yet entered.'}</div>`;
+            : `<div class="rt-dungeon-map-empty">${showGeometry ? '暂无结构描述。' : '尚未进入。'}</div>`;
         const connections = (area.connections || []).length
-            ? `<div class="rt-dungeon-map-connections"><span class="rt-dungeon-map-section-label">Routes</span>${area.connections.map(connection => {
+            ? `<div class="rt-dungeon-map-connections"><span class="rt-dungeon-map-section-label">路线</span>${area.connections.map(connection => {
                 const name = areaDisplayName(connection.to, revealAll, visibleIds, areasById);
                 const detail = connection.detail || '';
                 return `<span class="rt-dungeon-map-route"><i class="fa-solid fa-arrow-right"></i>${escapeHtml(name)}${renderTag(connection.state)}${detail ? `<span class="rt-dungeon-map-route-detail">${escapeHtml(detail)}</span>` : ''}</span>`;
@@ -443,10 +443,10 @@ export function renderDungeonMapReadableHtml(mapDocument, { revealAll = true } =
             : '';
         return `<section class="rt-dungeon-map-area">
                     <div class="rt-dungeon-map-area-head"><i class="fa-solid fa-location-dot"></i><strong>${escapeHtml(area.name)}</strong>${renderTag(area.knowledge, 'rt-dungeon-map-knowledge')}</div>
-                    <div class="rt-dungeon-map-section-label">Geometry &amp; prose</div>
+                    <div class="rt-dungeon-map-section-label">结构与描述</div>
                     ${geometry}
                     ${connections}
-                    ${areaAssets.length ? `<div class="rt-dungeon-map-assets"><span class="rt-dungeon-map-section-label">Assets (${areaAssets.length})</span>${areaAssets.map(asset => renderAsset(asset)).join('')}</div>` : ''}
+                    ${areaAssets.length ? `<div class="rt-dungeon-map-assets"><span class="rt-dungeon-map-section-label">资源 (${areaAssets.length})</span>${areaAssets.map(asset => renderAsset(asset)).join('')}</div>` : ''}
                 </section>`;
     };
     const unplaced = visibleAssets.filter((asset) => {
@@ -457,12 +457,12 @@ export function renderDungeonMapReadableHtml(mapDocument, { revealAll = true } =
         return !assets.some(parent => String(parent.id || '').trim() === loc && String(parent.id || '').trim() !== id);
     });
     if (!visibleAreas.length && !unplaced.length) {
-        return '<div class="rt-dungeon-map-empty">No revealed rooms yet.</div>';
+        return '<div class="rt-dungeon-map-empty">尚未发现房间</div>';
     }
     return `<div class="rt-dungeon-map-summary">
-                    <span>${renderTag(`${visibleAreas.length} areas`)}</span>
-                    <span>${renderTag(`${visibleAssets.length} assets`)}</span>
+                    <span>${renderTag(`${visibleAreas.length} 个区域`)}</span>
+                    <span>${renderTag(`${visibleAssets.length} 个资源`)}</span>
                 </div>
                 <div class="rt-dungeon-map-area-list">${visibleAreas.map(renderArea).join('')}</div>
-                ${unplaced.length ? `<section class="rt-dungeon-map-area rt-dungeon-map-unplaced"><div class="rt-dungeon-map-area-head"><i class="fa-solid fa-box-archive"></i><strong>Removed / unplaced assets</strong></div>${unplaced.map(asset => renderAsset(asset)).join('')}</section>` : ''}`;
+                ${unplaced.length ? `<section class="rt-dungeon-map-area rt-dungeon-map-unplaced"><div class="rt-dungeon-map-area-head"><i class="fa-solid fa-box-archive"></i><strong>移除/未放置的资源</strong></div>${unplaced.map(asset => renderAsset(asset)).join('')}</section>` : ''}`;
 }

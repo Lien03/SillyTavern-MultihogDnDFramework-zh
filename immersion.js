@@ -330,12 +330,12 @@ export function renderImmersionViewHtml(scene) {
 
     const locTitle = resolvedPath
         ? escapeHtml(locationLeaf || resolvedPath)
-        : escapeHtml(rawLocationText || 'Unknown Location');
+        : escapeHtml(rawLocationText || '未知地点');
 
     const breadcrumbHtml = resolvedPath && locationBreadcrumb
         ? `<div class="rt-immersion-breadcrumb">${escapeHtml(locationBreadcrumb)}</div>`
         : (rawLocationText
-            ? `<div class="rt-immersion-breadcrumb rt-immersion-breadcrumb-unresolved" title="No matching lore path">${escapeHtml(rawLocationText)}</div>`
+            ? `<div class="rt-immersion-breadcrumb rt-immersion-breadcrumb-unresolved" title="未找到匹配的资料库路径">${escapeHtml(rawLocationText)}</div>`
             : '');
 
     const locDataAttrs = scene.storagePath
@@ -351,7 +351,7 @@ export function renderImmersionViewHtml(scene) {
             const dataAttrs = npc.isPlayerCharacter
                 ? 'data-is-pc="1"'
                 : `data-npc-entry-id="${escapeHtml(npc.entryId)}"`;
-            return `<button type="button" class="rt-immersion-npc-tile${pcClass}" ${dataAttrs} title="${escapeHtml(npc.label)}${npc.isPlayerCharacter ? ' (Player Character)' : ''}">
+            return `<button type="button" class="rt-immersion-npc-tile${pcClass}" ${dataAttrs} title="${escapeHtml(npc.label)}${npc.isPlayerCharacter ? ' (玩家角色)' : ''}">
                 <div class="rt-immersion-npc-thumb">${thumb}</div>
                 <div class="rt-immersion-npc-name">${escapeHtml(npc.label)}</div>
             </button>`;
@@ -372,7 +372,7 @@ export function renderImmersionViewHtml(scene) {
 
     return `<div class="rt-immersion-root">
         ${locationImagesEnabled ? `
-        <div class="rt-immersion-hero-wrap${isLocationGenerating ? ' rt-immersion-hero-generating' : ''}" ${locDataAttrs} role="button" tabindex="0" title="${isLocationGenerating ? 'Generating scene art…' : (locationImage ? 'Manage location image' : 'Set location image')}">
+        <div class="rt-immersion-hero-wrap${isLocationGenerating ? ' rt-immersion-hero-generating' : ''}" ${locDataAttrs} role="button" tabindex="0" title="${isLocationGenerating ? '正在生成场景图…' : (locationImage ? '管理地点图片' : '设置地点图片')}">
             ${heroInner}
             ${generatingOverlay}
             <div class="rt-immersion-hero-overlay">

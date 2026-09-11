@@ -39,7 +39,9 @@ Rules:
 - Use narrator output and scene context for moment-to-moment mood and staging.
 - Do not include game stats, quests, or non-visual information.`;
 
-/** @typedef {{ id: string, name: string, description: string, wordTarget?: number, portraitArtStyle: string, sceneArtStyle: string }} FactoryPortraitPromptPreset */
+/**
+ * @typedef {{ id: string, name: string, label: string, description: string, wordTarget?: number, portraitArtStyle: string, sceneArtStyle: string }} FactoryPortraitPromptPreset
+ */
 
 export const DEFAULT_PORTRAIT_PROMPT_PRESET_ID = 'fantasy';
 
@@ -51,8 +53,12 @@ export const DEFAULT_PORTRAIT_PROMPT_PRESET_ID = 'fantasy';
 export const FACTORY_PORTRAIT_PROMPT_PRESETS = [
     {
         id: 'fantasy',
+        // Internal English name — used by getFactoryPortraitPromptPresetNameSet() to
+        // reserve factory names so user saves cannot collide. Keep it English.
         name: 'Fantasy (Default)',
-        description: 'High-quality fantasy art with dramatic lighting — the Multihog factory default.',
+        // Chinese UI display name.
+        label: '奇幻（默认）',
+        description: '高品质奇幻美术，戏剧性光照 — Multihog 出厂默认。',
         wordTarget: 200,
         portraitArtStyle: 'high-quality fantasy portrait, dramatic lighting, detailed',
         sceneArtStyle: 'high-quality fantasy scene, cinematic wide shot',
@@ -60,7 +66,8 @@ export const FACTORY_PORTRAIT_PROMPT_PRESETS = [
     {
         id: 'anime',
         name: 'Anime',
-        description: 'Clean anime/illustration look with expressive features and vibrant color.',
+        label: '动漫',
+        description: '干净利落的动漫/插画风格，表情生动，色彩鲜艳。',
         wordTarget: 200,
         portraitArtStyle: 'anime style portrait, clean linework, expressive eyes, vibrant color, detailed',
         sceneArtStyle: 'anime style scene, cinematic wide shot, clean linework, vibrant color',
@@ -68,7 +75,8 @@ export const FACTORY_PORTRAIT_PROMPT_PRESETS = [
     {
         id: 'photorealistic',
         name: 'Photorealistic',
-        description: 'Photographic realism with natural lighting and fine detail.',
+        label: '写实摄影',
+        description: '摄影写实风格，自然光照，细节丰富。',
         wordTarget: 200,
         portraitArtStyle: 'photorealistic portrait, natural lighting, highly detailed skin and fabric, cinematic',
         sceneArtStyle: 'photorealistic cinematic wide shot, natural lighting, highly detailed environment',
@@ -76,7 +84,8 @@ export const FACTORY_PORTRAIT_PROMPT_PRESETS = [
     {
         id: 'oil_painting',
         name: 'Oil Painting',
-        description: 'Classical oil-painting look with rich brushwork and museum finish.',
+        label: '油画',
+        description: '古典油画质感，笔触丰富，博物馆级完成度。',
         wordTarget: 200,
         portraitArtStyle: 'classical oil painting portrait, rich brushwork, museum quality, dramatic lighting',
         sceneArtStyle: 'classical oil painting landscape, rich brushwork, museum quality, cinematic wide shot',
@@ -84,7 +93,8 @@ export const FACTORY_PORTRAIT_PROMPT_PRESETS = [
     {
         id: 'comic',
         name: 'Comic Book',
-        description: 'Bold comic/graphic-novel illustration with strong inks and dynamic shading.',
+        label: '漫画书',
+        description: '大胆的漫画/图像小说插画，墨线强烈，光影动态。',
         wordTarget: 200,
         portraitArtStyle: 'comic book illustration portrait, bold inks, dynamic shading, detailed',
         sceneArtStyle: 'comic book illustration scene, bold inks, dynamic composition, cinematic wide shot',
@@ -92,7 +102,8 @@ export const FACTORY_PORTRAIT_PROMPT_PRESETS = [
     {
         id: 'watercolor',
         name: 'Watercolor',
-        description: 'Soft watercolor washes with atmospheric edges and delicate color.',
+        label: '水彩',
+        description: '柔和水彩晕染，氛围感边缘，色彩细腻。',
         wordTarget: 200,
         portraitArtStyle: 'soft watercolor portrait, delicate washes, atmospheric, detailed',
         sceneArtStyle: 'soft watercolor landscape, delicate washes, atmospheric, cinematic wide shot',
@@ -100,7 +111,8 @@ export const FACTORY_PORTRAIT_PROMPT_PRESETS = [
     {
         id: 'dark_fantasy',
         name: 'Dark Fantasy',
-        description: 'Grim, gothic fantasy with muted palette and heavy chiaroscuro.',
+        label: '黑暗奇幻',
+        description: '阴郁哥特奇幻，色调低沉，强烈的明暗对比。',
         wordTarget: 200,
         portraitArtStyle: 'dark fantasy portrait, grim atmosphere, muted palette, dramatic chiaroscuro, detailed',
         sceneArtStyle: 'dark fantasy scene, grim atmosphere, muted palette, cinematic wide shot',
@@ -230,6 +242,7 @@ export function resolveFactoryPortraitPromptBundle(presetOrId = DEFAULT_PORTRAIT
     return {
         id: preset.id,
         name: preset.name,
+        label: preset.label || preset.name,
         wordTarget: preset.wordTarget ?? 200,
         npcSystemPrompt: buildNpcPortraitSystemPrompt(preset.portraitArtStyle),
         characterSystemPrompt: buildCharacterPortraitSystemPrompt(preset.portraitArtStyle),
