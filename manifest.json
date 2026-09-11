@@ -1,6 +1,6 @@
 {
 
-    "display_name": "Multihog D&D Framework",
+    "display_name": "Multihog D&D Framework（简体中文）",
 
     "version": "2026.8.86",
 
@@ -14,7 +14,7 @@
 
     "generate_interceptor": "rpgTrackerInterceptor",
 
-    "homePage": "https://github.com/MultihogAurelius/SillyTavern-MultihogDnDFramework",
+    "homePage": "https://github.com/Lien03/SillyTavern-MultihogDnDFramework-zh",
 
     "auto_update": true
 

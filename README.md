@@ -1,3 +1,18 @@
+# 简体中文汉化版
+
+本仓库基于 [Multihog D&D Framework](https://github.com/MultihogAurelius/SillyTavern-MultihogDnDFramework)，提供简体中文界面。下方保留原作者的项目介绍和使用说明。
+
+## 安装汉化版
+
+1. 打开 SillyTavern 的扩展菜单，点击“安装扩展”。
+2. 仓库地址填写：`https://github.com/Lien03/SillyTavern-MultihogDnDFramework-zh`
+3. 分支填写 `main`，或留空使用默认分支。**不要填写 `Multihog`：本仓库不存在这个分支。**
+4. 安装完成后刷新页面，扩展名称为“Multihog D&D Framework（简体中文）”。
+
+如果出现 `Remote branch Multihog not found in upstream origin`，请清空分支输入框或改为 `main` 后重新安装。
+
+---
+
 # The Future
 This project is entering maintenance mode. I am winding down the development of the extension version of this program (as in, this repo) in favor of a private fork of SillyTavern. Why am I not going public with it? Because I have no interest in becoming a full-on frontend maintainer, responsible for ongoing compatibility of the parent program itself as well as its security.
 
