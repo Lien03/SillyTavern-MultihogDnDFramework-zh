@@ -22,14 +22,14 @@ import {
 
 /** @type {{ id: string, icon: string, label: string, match: RegExp }[]} */
 const TAB_DEFS = [
-    { id: 'general', icon: 'fa-gears', label: '通用与视觉', match: /General\s*&\s*Visuals/i },
-    { id: 'connections', icon: 'fa-plug', label: '连接', match: /Connections/i },
-    { id: 'gamesystems', icon: 'fa-dice-d20', label: '游戏系统', match: /Game Systems/i },
-    { id: 'statetracker', icon: 'fa-brain', label: '状态追踪器', match: /State Tracker/i },
-    { id: 'agent', icon: 'fa-route', label: '世界书代理', match: /Lorebook Agent/i },
-    { id: 'maparchitect', icon: 'fa-map', label: '持久地图', match: /Persistent Maps/i },
-    { id: 'worldprog', icon: 'fa-globe', label: '世界进展', match: /World Progression/i },
-    { id: 'companion', icon: 'fa-comments', label: '冒险伙伴', match: /Adventure Companion/i },
+    { id: 'general', icon: 'fa-gears', label: '通用与视觉', match: /General\s*&\s*Visuals|常规与外观/i },
+    { id: 'connections', icon: 'fa-plug', label: '连接', match: /Connections|连接与模型/i },
+    { id: 'gamesystems', icon: 'fa-dice-d20', label: '游戏系统', match: /Game Systems|游戏系统与自定义/i },
+    { id: 'statetracker', icon: 'fa-brain', label: '状态追踪器', match: /State Tracker|状态追踪器与模块/i },
+    { id: 'agent', icon: 'fa-route', label: '世界书代理', match: /Lorebook Agent|世界书代理/i },
+    { id: 'maparchitect', icon: 'fa-map', label: '持久地图', match: /Persistent Maps|持久地图/i },
+    { id: 'worldprog', icon: 'fa-globe', label: '世界进展', match: /World Progression|世界进程/i },
+    { id: 'companion', icon: 'fa-comments', label: '冒险伙伴', match: /Adventure Companion|冒险伙伴/i },
 ];
 
 let _lastTab = 'general';

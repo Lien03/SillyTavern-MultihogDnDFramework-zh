@@ -75,7 +75,12 @@ describe('settings overlay', () => {
 
         expect(overlaySource).toContain("label: '通用与视觉'");
         expect(overlaySource).toContain("label: '持久地图'");
-        expect(overlaySource).toContain('match: /Persistent Maps/i');
+        const tabDefs = Function(`return ${overlaySource.match(/const TAB_DEFS = (\[[\s\S]*?\]);/)[1]}`)();
+        const titles = ['常规与外观', '连接与模型', '游戏系统与自定义', '状态追踪器与模块', '世界书代理', '持久地图', '世界进程', '冒险伙伴'];
+        for (const [index, title] of titles.entries()) {
+            expect(settingsMarkup).toContain(`<b>${title}</b>`);
+            expect(tabDefs.filter(tab => tab.match.test(title)).map(tab => tab.id)).toEqual([tabDefs[index].id]);
+        }
         expect(indexSource).toContain('initSettingsOverlay(settingsHtml');
         expect(indexSource).toContain("settings-stub");
         expect(indexSource).toContain("openSettingsOverlay('connections')");
