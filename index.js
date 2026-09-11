@@ -5306,7 +5306,7 @@ export function syncMemoView() {
     btnFwd.disabled = currentPos <= 0;
 
     if (counter) {
-        counter.textContent = `~${Math.round(textarea.value.length / 2.62)} 词元`;
+        counter.textContent = `~${Math.round(textarea.value.length / 2.62)} token`;
     }
 
     // Update delta panel: always show the diff that created the currently-viewed state
@@ -5351,7 +5351,7 @@ function updateUIMemo(text) {
     const textarea = /** @type {HTMLTextAreaElement|null} */ (document.getElementById('rpg-tracker-memo'));
     if (textarea) textarea.value = text;
     const counter = document.getElementById('rpg-tracker-count');
-    if (counter) counter.textContent = `~${Math.round(text.length / 2.62)} 词元`;
+    if (counter) counter.textContent = `~${Math.round(text.length / 2.62)} token`;
 }
 
 function updateAgentStatusIndicator(running) {

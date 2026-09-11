@@ -2488,7 +2488,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                     <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; padding-left: 5px;">
                         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                             <input type="checkbox" id="rt_onboarding_quests_enabled" />
-                            <span>Enable Quests</span>
+                            <span>启用任务</span>
                         </label>
                         <div id="rt_onboarding_quest_options" style="padding-left: 20px; display: none; flex-direction: column; gap: 4px;">
                             <div style="margin-top: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px;">
@@ -2989,7 +2989,7 @@ export function renderTabModeView(memo, sectionPages, questsCtx = null) {
     const tabMeta = (entry) => {
         if (entry.kind === 'group') return { icon: entry.group.icon, label: entry.group.name };
         const tag = entry.tag;
-        if (tag === 'QUESTS') return { icon: BLOCK_ICONS.QUESTS || '📋', label: 'Quests' };
+        if (tag === 'QUESTS') return { icon: BLOCK_ICONS.QUESTS || '📋', label: '任务' };
         const customField = (s.customFields || []).find(f => f.tag.toUpperCase() === tag);
         return { icon: customField?.icon || BLOCK_ICONS[tag] || '📄', label: stateLabelZh(tag, customField?.label) };
     };
@@ -3075,7 +3075,7 @@ export function renderQuestLog(quests, currentTime, collapsed, detached, filterT
 
     if (!filterTag && detached.has(TAG)) {
         return `<div class="rt-detached-placeholder" data-tag="${TAG}">
-            <span class="rt-placeholder-icon">⧉</span> QUESTS 已分离
+            <span class="rt-placeholder-icon">⧉</span> 任务 已分离
             <button class="rt-reattach-btn-inline" data-tag="${TAG}" title="重新挂载">↓</button>
         </div>`;
     }
@@ -3087,14 +3087,14 @@ export function renderQuestLog(quests, currentTime, collapsed, detached, filterT
     if (allQuests.length === 0) {
         return `<div class="rt-section-card${isCollapsed ? ' rt-collapsed' : ''}" data-tag="${TAG}">
             <div class="rt-section-header" data-tag="${TAG}">
-                <span>📋 QUESTS</span>
+                <span>📋 任务</span>
                 <div class="rt-section-header-right">
                     ${detachBtn}
-                    <span class="rt-item-count">0 entries</span>
+                    <span class="rt-item-count">0 项</span>
                     <span class="rt-collapse-icon">${isCollapsed ? '&#9656;' : '&#9662;'}</span>
                 </div>
             </div>
-            <div class="rt-section-body"><div class="rt-card-line" style="opacity:0.6;">No active quests.</div></div>
+            <div class="rt-section-body"><div class="rt-card-line" style="opacity:0.6;">暂无进行中的任务。</div></div>
         </div>`;
     }
 
@@ -3235,16 +3235,16 @@ export function renderQuestLog(quests, currentTime, collapsed, detached, filterT
     const completedCardsHtml = completedQuests.map(q => renderQuestCard(q, { dismissible: true })).join('');
     const failedCardsHtml = failedQuests.map(q => renderQuestCard(q, { dismissible: true })).join('');
 
-    let bodyHtml = activeCardsHtml || '<div class="rt-card-line" style="opacity:0.6; padding: 10px;">No active quests.</div>';
+    let bodyHtml = activeCardsHtml || '<div class="rt-card-line" style="opacity:0.6; padding: 10px;">暂无进行中的任务。</div>';
 
     if (completedQuests.length > 0) {
         const isCompletedCollapsed = collapsed.has(TAG + '_COMPLETED');
         bodyHtml += `
         <div class="rt-section-card rt-sub-section${isCompletedCollapsed ? ' rt-collapsed' : ''}" data-tag="${TAG}_COMPLETED" style="margin-top: 10px; background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.05); border-radius: 6px;">
             <div class="rt-section-header" data-tag="${TAG}_COMPLETED" style="padding: 6px 10px; font-size: 0.9em; background: rgba(0,0,0,0.2); border-top-left-radius: 6px; border-top-right-radius: 6px;">
-                <span style="opacity:0.8;">✅ COMPLETED</span>
+                <span style="opacity:0.8;">✅ 已完成</span>
                 <div class="rt-section-header-right">
-                    <span class="rt-item-count" style="opacity:0.6;">${completedQuests.length} ${completedQuests.length === 1 ? 'entry' : 'entries'}</span>
+                    <span class="rt-item-count" style="opacity:0.6;">${completedQuests.length} 项</span>
                     <span class="rt-collapse-icon" style="opacity:0.6;">${isCompletedCollapsed ? '&#9656;' : '&#9662;'}</span>
                 </div>
             </div>
@@ -3257,9 +3257,9 @@ export function renderQuestLog(quests, currentTime, collapsed, detached, filterT
         bodyHtml += `
         <div class="rt-section-card rt-sub-section${isFailedCollapsed ? ' rt-collapsed' : ''}" data-tag="${TAG}_FAILED" style="margin-top: 10px; background: rgba(0,0,0,0.2); border-color: rgba(255,80,80,0.12); border-radius: 6px;">
             <div class="rt-section-header" data-tag="${TAG}_FAILED" style="padding: 6px 10px; font-size: 0.9em; background: rgba(80,0,0,0.15); border-top-left-radius: 6px; border-top-right-radius: 6px;">
-                <span style="opacity:0.8;">❌ FAILED</span>
+                <span style="opacity:0.8;">❌ 已失败</span>
                 <div class="rt-section-header-right">
-                    <span class="rt-item-count" style="opacity:0.6;">${failedQuests.length} ${failedQuests.length === 1 ? 'entry' : 'entries'}</span>
+                    <span class="rt-item-count" style="opacity:0.6;">${failedQuests.length} 项</span>
                     <span class="rt-collapse-icon" style="opacity:0.6;">${isFailedCollapsed ? '&#9656;' : '&#9662;'}</span>
                 </div>
             </div>
@@ -3281,13 +3281,13 @@ export function renderQuestLog(quests, currentTime, collapsed, detached, filterT
 
     return `<div class="rt-section-card${isCollapsed ? ' rt-collapsed' : ''}" data-tag="${TAG}">
         <div class="rt-section-header" data-tag="${TAG}">
-            <span>📋 QUESTS</span>
+            <span>📋 任务</span>
             <div class="rt-section-header-right">
                 ${detachBtn}
                 <button class="rt-category-settings-btn" data-tag="${TAG}" title="分类渲染选项">
                     <i class="fa-solid fa-cog"></i>
                 </button>
-                <span class="rt-item-count">${activeQuests.length} active</span>
+                <span class="rt-item-count">${activeQuests.length} 项进行中</span>
                 <span class="rt-collapse-icon">${isCollapsed ? '&#9656;' : '&#9662;'}</span>
             </div>
         </div>
