@@ -4,6 +4,7 @@ import { escapeHtml, decodeHtml, highlightParens, highlightNumbers, parseInWorld
 import { BLOCK_ICONS, BLOCK_ORDER, PAGE_SIZE, NO_PAGINATE, renderStartingGearTierOptions } from './constants.js';
 import { isResolvedCombatantStatusLine, parseCombatSideHeader } from './src/state/combat-persistence.js';
 import { buildDisplayGroupRenderPlan } from './src/features/display-groups.js';
+import { localizeStateHtml, stateLabelZh } from './src/ui/state-labels-zh.js';
 
 // ── Renderer module: pure HTML string producers, localStorage helpers ──
 // No live DOM mutations. All functions return strings or void (localStorage).
@@ -1426,6 +1427,12 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
 }
 
     export function blockToItems(tag, content, renderTypeOverride = null) {
+        const items = blockToItemsRaw(tag, content, renderTypeOverride);
+        for (let i = 0; i < items.length; i++) items[i] = localizeStateHtml(items[i]);
+        return items;
+    }
+
+    function blockToItemsRaw(tag, content, renderTypeOverride = null) {
         const rawLines = content.split('\n').map(l => l.trim()).filter(Boolean);
         const lines = rawLines.map(line => {
             // Strip leading bullet markers (-, *, +, •, en-dash, em-dash)
@@ -2634,7 +2641,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
 
         const customField = (getSettings().customFields || []).find(f => f.tag.toUpperCase() === tag);
         const icon = customField?.icon || BLOCK_ICONS[tag] || '📄';
-        const displayName = customField?.label || tag;
+        const displayName = stateLabelZh(tag, customField?.label);
         const items = blockToItems(tag, content);
         const isCollapsed = !uiOptions.bodyOnly && collapsed.has(tag);
         const isPartyCompact = tag === 'PARTY' && loadPartyCompact();
@@ -2731,7 +2738,7 @@ function formatValueToCurrency(totalCp, detectedCurrency) {
                     ${uiOptions.showCategorySettings === false ? '' : `<button class="rt-category-settings-btn" data-tag="${tag}" title="分类渲染选项">
                         <i class="fa-solid fa-cog"></i>
                     </button>`}
-                    <span class="rt-item-count">${items.length} ${items.length === 1 ? 'entry' : 'entries'}</span>
+                    <span class="rt-item-count">${items.length} 项</span>
                     <span class="rt-collapse-icon">${isCollapsed ? '&#9656;' : '&#9662;'}</span>
                 </div>
             </div>
@@ -2984,7 +2991,7 @@ export function renderTabModeView(memo, sectionPages, questsCtx = null) {
         const tag = entry.tag;
         if (tag === 'QUESTS') return { icon: BLOCK_ICONS.QUESTS || '📋', label: 'Quests' };
         const customField = (s.customFields || []).find(f => f.tag.toUpperCase() === tag);
-        return { icon: customField?.icon || BLOCK_ICONS[tag] || '📄', label: customField?.label || tag };
+        return { icon: customField?.icon || BLOCK_ICONS[tag] || '📄', label: stateLabelZh(tag, customField?.label) };
     };
 
     const tabBadge = (entry) => {
