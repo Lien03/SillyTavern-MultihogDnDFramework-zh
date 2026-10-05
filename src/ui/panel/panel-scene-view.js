@@ -1,5 +1,6 @@
 import { runtimeState } from '../../app/runtime-state.js';
-import { canCommitPassForChat } from '../../state/pass-affinity.js';
+import { createChatCommitGuard } from '../../state/pass-affinity.js';
+import { getActiveChatId } from '../../../state-manager.js';
 import { canUseSceneMemo } from '../../state/scene-affinity.js';
 import { isLocationMappingEnabled } from '../../state/section-enabled.js';
 import {
@@ -25,7 +26,9 @@ export function createSceneViewController({
     showLocationImageSettingsMenu,
 }) {
         const openMappedLocation = async (path) => {
+            const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
             const item = await loadLocationEntryByPath(path);
+            if (!ownsChat()) return;
             const opener = globalThis._rpgAgentOpenLocationDetail;
             if (item && typeof opener === 'function') {
                 await opener(item, path);
@@ -36,23 +39,29 @@ export function createSceneViewController({
             }
         };
 
-        const mapHandlers = () => ({
-            onAreaClick: openMappedLocation,
-            onDetach: () => { void runtimeState.refreshImmersionView(); },
-            onReattach: () => { void runtimeState.refreshImmersionView(); },
-        });
+        const mapHandlers = () => {
+            const ownsView = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+            return {
+                onAreaClick: (path) => { if (ownsView()) return openMappedLocation(path); },
+                onDetach: () => { void runtimeState.refreshImmersionView(); },
+                onReattach: () => { void runtimeState.refreshImmersionView(); },
+            };
+        };
 
         const bindImmersionViewEvents = (scene) => {
+            const ownsView = createChatCommitGuard(getActiveChatId(), getActiveChatId);
             const root = agentPanel.querySelector('#rt-agent-immersion-view');
             if (!root) return;
 
             const hero = root.querySelector('.rt-immersion-hero-wrap');
             if (hero) {
                 const activateHero = async () => {
+                    if (!ownsView()) return;
                     const path = hero.getAttribute('data-loc-path');
                     const raw = hero.getAttribute('data-loc-raw');
                     if (path) {
                         const item = await loadLocationEntryByPath(path);
+                        if (!ownsView()) return;
                         await showLocationImageSettingsMenu(
                             path,
                             () => runtimeState.refreshImmersionView(),
@@ -75,10 +84,12 @@ export function createSceneViewController({
                 tile.addEventListener('click', (e) => {
                     e.stopPropagation();
                     void (async () => {
+                        if (!ownsView()) return;
                         if (tile.getAttribute('data-is-pc') === '1') {
                             let opener = globalThis._rpgAgentOpenPcDetail;
                             if (typeof opener !== 'function' && typeof globalThis._rpgRefreshAgentManifest === 'function') {
                                 await globalThis._rpgRefreshAgentManifest();
+                                if (!ownsView()) return;
                                 opener = globalThis._rpgAgentOpenPcDetail;
                             }
                             if (typeof opener === 'function') {
@@ -89,11 +100,13 @@ export function createSceneViewController({
                         const entryId = tile.getAttribute('data-npc-entry-id');
                         if (!entryId) return;
                         const item = await loadNpcEntryByKey(entryId);
+                        if (!ownsView()) return;
                         let opener = globalThis._rpgAgentOpenNpcDetail;
                         let parseRel = globalThis._rpgAgentParseRelationship;
                         if (typeof opener !== 'function' || typeof parseRel !== 'function') {
                             if (typeof globalThis._rpgRefreshAgentManifest === 'function') {
                                 await globalThis._rpgRefreshAgentManifest();
+                                if (!ownsView()) return;
                             }
                             opener = globalThis._rpgAgentOpenNpcDetail;
                             parseRel = globalThis._rpgAgentParseRelationship;
@@ -135,6 +148,7 @@ export function createSceneViewController({
         globalThis._rpgSyncAgentImmersionUi = syncAgentImmersionUi;
 
         const performImmersionRefresh = async () => {
+            const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
             const s = getSettings();
             // Pin before lorebook await — a mid-refresh chat switch must not
             // render the departing chat's scene or queue Real-Time gen into the
@@ -151,11 +165,11 @@ export function createSceneViewController({
             const memoAtStart = s.currentMemo;
             if (!canUseSceneMemo(s, passChatId, memoAtStart)) return;
             try {
-                const scene = await buildImmersionSceneState(memoAtStart, s);
-                if (!canCommitPassForChat(passChatId, runtimeState.currentChatId)) return;
+                const scene = await buildImmersionSceneState(memoAtStart, s, { chatId: passChatId });
+                if (!ownsChat()) return;
                 if (!canUseSceneMemo(getSettings(), passChatId, memoAtStart)) return;
                 runtimeState.hasActiveDungeonMap = !!scene.dungeonMap;
-                maybeAutoGenerateImmersionSceneArt(scene, () => { void runtimeState.refreshImmersionView(); });
+                maybeAutoGenerateImmersionSceneArt(scene, () => { void runtimeState.refreshImmersionView(); }, { chatId: passChatId });
                 syncAgentImmersionUi();
                 if (isDungeonMapDetached()) {
                     if (scene.dungeonMap) {
@@ -178,7 +192,7 @@ export function createSceneViewController({
                 restoreDungeonMapViewport(container, mapViewport);
                 bindImmersionViewEvents(scene);
             } catch (err) {
-                if (!canCommitPassForChat(passChatId, runtimeState.currentChatId)) return;
+                if (!ownsChat()) return;
                 if (!canUseSceneMemo(getSettings(), passChatId, memoAtStart)) return;
                 console.error('[RPG Tracker] runtimeState.refreshImmersionView failed:', err);
                 runtimeState.hasActiveDungeonMap = false;

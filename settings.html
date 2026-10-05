@@ -36,6 +36,13 @@
                                 title="按聊天保存并恢复控制室与模块设置。独立模块与代码片段可为全局或聊天绑定；向导组件继承其游戏系统的范围。关闭此选项会临时绕过这些范围，并在聊天之间携带当前设置，而不会更改任何已保存的范围选择。"></i>
                         </label>
                         <button id="rpg_tracker_clear_chat_states" class="menu_button interactable" style="margin-top: 4px; margin-left: 4px; width: calc(100% - 4px); font-size: 0.9em;"><i class="fa-solid fa-trash-can"></i> 移除所有聊天关联</button>
+                        <button id="rpg_tracker_clean_deleted_chat" class="menu_button interactable" style="margin-top: 4px; margin-left: 4px; width: calc(100% - 4px); font-size: 0.9em;" title="Find all Multihog data whose chat no longer exists in SillyTavern and clean it up after confirmation."><i class="fa-solid fa-broom"></i> 清理已删除聊天的残留数据</button>
+                        <div style="font-size: 0.75em; opacity: 0.6; line-height: 1.35; padding: 4px 4px 0 4px;">Finds all deleted chats with leftover memo, map, portrait, or other Multihog data. Review the matches before cleanup; eligible lorebooks are confirmed separately.</div>
+
+                        <small style="display: block; margin-top: 10px; margin-bottom: 2px; font-weight: bold; opacity: 0.65; text-transform: uppercase; font-size: 0.7em; letter-spacing: 0.4px;">History Storage</small>
+                        <button id="rpg_tracker_migrate_histories" class="menu_button interactable" style="margin-top: 2px; margin-left: 4px; width: calc(100% - 4px); font-size: 0.9em;"><i class="fa-solid fa-file-arrow-up"></i> Check and migrate memo/map/Evolution histories</button>
+                        <div style="font-size: 0.75em; opacity: 0.6; line-height: 1.35; padding: 4px 4px 0 4px;">Checks for older histories and Map Evolution records still stored in settings.json and explains the migration before starting it.</div>
+                        <div id="rpg_tracker_migration_status" role="status" style="font-size: 0.75em; opacity: 0.75; line-height: 1.35; padding: 4px 4px 0 4px;"></div>
 
                         <small style="display: block; margin-top: 10px; margin-bottom: 2px; font-weight: bold; opacity: 0.65; text-transform: uppercase; font-size: 0.7em; letter-spacing: 0.4px;">分支</small>
                         <button id="rpg_tracker_branch_campaign_btn" class="menu_button interactable" style="margin-top: 2px; margin-left: 4px; width: calc(100% - 4px); font-size: 0.9em;" title="创建一个 SillyTavern 分支聊天，复制所有 Multihog 战役数据，并在新聊天前缀下克隆世界书。原聊天保持不变。"><i class="fa-solid fa-code-branch"></i> 分支战役</button>

@@ -1,3 +1,5 @@
+import { getActiveChatId } from '../../../state-manager.js';
+import { createChatCommitGuard, chatCommitResult, ignoreChatCancellation } from '../../state/pass-affinity.js';
 import { runtimeState } from '../../app/runtime-state.js';
 import { evolutionIntervalHoursForSettings, summarizeMapEvolutionSchedule } from '../../../map-evolution-lib.js';
 
@@ -195,10 +197,11 @@ export function wireAgentMapEvolution({
 
     const fireNowBtn = agentPanel.querySelector('#rt-agent-map-evo-fire-now');
     if (fireNowBtn) {
-        fireNowBtn.addEventListener('click', async () => {
-            const { isMapEvolutionRunning, runMapEvolutionPass } = await import('../../../map-evolution.js');
-            const { isMapUpdaterRunning } = await import('../../../map-updater.js');
-            const { isRouterRunning } = await import('../../../router.js');
+        fireNowBtn.addEventListener('click', ignoreChatCancellation(async () => {
+            const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+            const { isMapEvolutionRunning, runMapEvolutionPass } = chatCommitResult(ownsChat, await import('../../../map-evolution.js'));
+            const { isMapUpdaterRunning } = chatCommitResult(ownsChat, await import('../../../map-updater.js'));
+            const { isRouterRunning } = chatCommitResult(ownsChat, await import('../../../router.js'));
             if (isRouterRunning() || isMapUpdaterRunning() || isMapEvolutionRunning()) {
                 toastr.warning('已有代理在运行。', '地图演化');
                 return;
@@ -207,8 +210,8 @@ export function wireAgentMapEvolution({
             fireNowBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 演化中…';
             try {
                 const result = typeof runtimeState.runMapEvolutionPassRef === 'function'
-                    ? await runtimeState.runMapEvolutionPassRef({ trigger: 'manual', isManual: true })
-                    : await runMapEvolutionPass({ trigger: 'manual', isManual: true });
+                    ? chatCommitResult(ownsChat, await runtimeState.runMapEvolutionPassRef({ trigger: 'manual', isManual: true }))
+                    : chatCommitResult(ownsChat, await runMapEvolutionPass({ trigger: 'manual', isManual: true }));
                 updateAgentMapEvolutionStatus();
                 if (typeof runtimeState.updateMapEvolutionScheduleDisplayRef === 'function') {
                     runtimeState.updateMapEvolutionScheduleDisplayRef();
@@ -234,12 +237,13 @@ export function wireAgentMapEvolution({
                     toastr.error('无法应用有效的演化更新。', 'Map Evolution');
                 }
             } catch (e) {
+                if (!ownsChat()) return;
                 toastr.error(`Map Evolution error: ${e.message}`, 'Map Evolution');
             } finally {
                 /** @type {HTMLButtonElement} */ (fireNowBtn).disabled = false;
                 fireNowBtn.innerHTML = '<i class="fa-solid fa-map-location-dot"></i> 立即演化';
             }
-        });
+        }));
     }
 
     const resetBtn = agentPanel.querySelector('#rt-agent-map-evo-reset-timeline');
@@ -259,10 +263,11 @@ export function wireAgentMapEvolution({
 
     const testingGroundBtn = agentPanel.querySelector('#rt-agent-map-evo-testing-ground');
     if (testingGroundBtn) {
-        testingGroundBtn.addEventListener('click', async () => {
-            const { openMapEvolutionTestingGround } = await import('./panel-map-evolution-debug.js');
-            await openMapEvolutionTestingGround();
-        });
+        testingGroundBtn.addEventListener('click', ignoreChatCancellation(async () => {
+            const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+            const { openMapEvolutionTestingGround } = chatCommitResult(ownsChat, await import('./panel-map-evolution-debug.js'));
+            chatCommitResult(ownsChat, await openMapEvolutionTestingGround());
+        }));
     }
 
     return { updateStatus: updateAgentMapEvolutionStatus };

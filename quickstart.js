@@ -1,4 +1,4 @@
-import { getSettings } from './state-manager.js';
+import { getSettings, getActiveChatId } from './state-manager.js';
 import {
     getArchetypesForGenre,
     generateQuickStartCharacter,
@@ -16,6 +16,7 @@ import {
     resolveInstantActionPlayerCardWords,
     resolveInstantActionStartingLevel,
 } from './src/state/instant-action-instructions.js';
+import { createChatCommitGuard } from './src/state/pass-affinity.js';
 
 /** @type {boolean} */
 let _quickStartRunning = false;
@@ -75,9 +76,10 @@ function setQuickStartBusy(rootEl, disabled) {
 /**
  * Apply the player's current Narrator Configuration before Instant Action begins.
  */
-async function applyQuickStartConfiguration() {
+async function applyQuickStartConfiguration(canCommit) {
     saveSettings();
-    await autoApplySysprompt(true);
+    await autoApplySysprompt(true, { canCommit });
+    if (!canCommit()) return;
 
     if (typeof globalThis._rpgRenderAgentModules === 'function') {
         globalThis._rpgRenderAgentModules();
@@ -116,13 +118,16 @@ export async function runQuickStart(genre, rootEl = null, selectedName = '', ins
     const root = rootEl || /** @type {HTMLElement|null} */ (document.querySelector('.rt-empty'));
     const nameVal = String(selectedName || '').trim();
     const instantActionInstructions = normalizeInstantActionInstructions(instructionText);
+    const passChatId = getActiveChatId();
+    const ownsChat = createChatCommitGuard(passChatId, getActiveChatId);
 
     _quickStartRunning = true;
     setQuickStartBusy(root, true);
 
     try {
         setQuickStartStatus(root, '正在启用系统…');
-        await applyQuickStartConfiguration();
+        await applyQuickStartConfiguration(ownsChat);
+        if (!ownsChat()) throw new Error('Quick Start stopped because the active chat changed.');
 
         const s = getSettings();
         s.onboardingGenre = validGenre;
@@ -156,6 +161,7 @@ export async function runQuickStart(genre, rootEl = null, selectedName = '', ins
 
         setQuickStartStatus(root, `正在创建角色(${creationDetails})…`);
         const { charName } = await generateQuickStartCharacter({
+            chatId: passChatId, canCommit: ownsChat,
             genre: validGenre,
             className,
             level,
@@ -163,6 +169,9 @@ export async function runQuickStart(genre, rootEl = null, selectedName = '', ins
             nameVal,
             instantActionInstructions,
         });
+        if (!ownsChat()) {
+            throw new Error('Quick Start stopped because the active chat changed.');
+        }
 
         setQuickStartStatus(root, '正在创建 Lorebook Agent 玩家卡…');
         const bio = await generatePersonaBio(
@@ -170,17 +179,30 @@ export async function runQuickStart(genre, rootEl = null, selectedName = '', ins
             wordCount,
             buildInstantActionPromptSection(instantActionInstructions),
         );
+        if (!ownsChat()) {
+            throw new Error('Quick Start stopped because the active chat changed.');
+        }
         if (!bio) {
             throw new Error('Persona generation returned empty.');
         }
-        const ok = await addPlayerCardToLorebookAgent(charName, bio, wordCount);
+        const ok = await addPlayerCardToLorebookAgent(charName, bio, wordCount, { chatId: passChatId, canCommit: ownsChat });
         if (!ok) {
-            throw new Error('Could not add Player Card — no active chat.');
+            throw new Error(
+                ownsChat()
+                    ? 'Could not add Player Card — no active chat.'
+                    : 'Quick Start stopped because the active chat changed.',
+            );
         }
 
+        if (!ownsChat()) {
+            throw new Error('Quick Start stopped because the active chat changed.');
+        }
         setQuickStartStatus(root, '正在创建仅名字聊天人设…');
-        await activateSillyTavernPersona(charName);
+        await activateSillyTavernPersona(charName, { chatId: passChatId, canCommit: ownsChat });
 
+        if (!ownsChat()) {
+            throw new Error('Quick Start stopped because the active chat changed.');
+        }
         const readyDetail = instantActionInstructions ? '自定义指示' : className;
         if (s.onboardingSendStarterMessage !== false) {
             setQuickStartStatus(root, '正在开始冒险…');

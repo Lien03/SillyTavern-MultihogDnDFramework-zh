@@ -7,7 +7,7 @@ import { MODULE_NAME, DEFAULT_PC_SECTIONS, DEFAULT_NPC_SECTIONS } from './schema
 import { DEFAULT_MODULES } from './default-modules.js';
 import { buildDefaultSettings, FACTORY_SETTINGS_VERSION } from './defaults.js';
 import { isOlderThan } from './versions.js';
-import { buildNpcInstruction, buildLocInstruction, buildFacInstruction } from './module-instructions.js';
+import { buildNpcInstruction, buildLocInstruction, buildFacInstruction, upgradeNpcCreationGuidance } from './module-instructions.js';
 import {
     getDefaultPortraitLocationSystemPrompt,
     isShippedPortraitLocationSystemPrompt,
@@ -15,6 +15,8 @@ import {
     PORTRAIT_LOCATION_SYSTEM_PROMPT_WITH_NPCS_V1,
 } from './portrait-prompts.js';
 import { bindGetSettings } from './settings-ref.js';
+import { repairChatLinkMemoHistory } from '../features/chat/chat-link-conflict.js';
+import { trimStoredHistories } from './history-retention.js';
 import {
     enforceRealtimeVisualizationDisabled,
     setRealtimeVisualizationDisabled,
@@ -84,6 +86,22 @@ function getSettingsInternal(extensionSettings) {
     }
     
     const s = extensionSettings[MODULE_NAME];
+
+    if (s.chatLinkObjectHistoryVersion !== 1) {
+        for (const snapshot of [s, ...Object.values(s.chatStates || {}), ...Object.values(s.profiles || {})]) {
+            repairChatLinkMemoHistory(snapshot);
+        }
+        s.chatLinkObjectHistoryVersion = 1;
+    }
+
+    // Bound existing inactive chats too: their snapshots all share settings.json.
+    // Run once for this retention version, before any history view is opened.
+    if (s.memoHistoryRetentionVersion !== 3) {
+        for (const snapshot of [s, ...Object.values(s.chatStates || {}), ...Object.values(s.profiles || {})]) {
+            trimStoredHistories(snapshot);
+        }
+        s.memoHistoryRetentionVersion = 3;
+    }
 
     // Custom tracker definitions are framework configuration, not chat state.
     // Older Chat Link snapshots kept a separate customFields list per chat, so a
@@ -1126,6 +1144,12 @@ function getSettingsInternal(extensionSettings) {
         s.mapEvolutionOtherMapsInterval8Applied = true;
     }
 
+    // Existing installs store the NPC instruction as text. Refresh only the exact
+    // shipped creation paragraph, preserving all other edits to that prompt.
+    if (s.routerModules?.npc) {
+        s.routerModules.npc.instruction = upgradeNpcCreationGuidance(s.routerModules.npc.instruction);
+    }
+
     // Stamp factory version even when a release has no field rewrites
     // (8.28.0 mapped-site index is prompt/injection only).
     if (isOlderThan(s.settingsVersion, FACTORY_SETTINGS_VERSION)) {
@@ -1412,7 +1436,9 @@ export function sanitizeCampaignPrefixString(raw) {
 }
 
 /**
- * Prefix used for world activation and router: optional user override, else from chat id.
+ * Prefix used for world activation and router: applicable user override, explicit
+ * per-chat rename pin, then chat id. Ordinary saved routerCampaignPrefix remains
+ * untrusted because old versions could store another chat's projected prefix.
  *
  * When `routerCampaignPrefixOverride` is set, it applies only to the anchored chat
  * (`routerCampaignPrefixOverrideAnchorChatId`). Legacy settings with an override but
@@ -1426,20 +1452,27 @@ export function getEffectiveRouterCampaignPrefix(chatId) {
     const s = getSettings();
     const ov = (s.routerCampaignPrefixOverride || '').trim();
     const id = String(chatId || '');
-    if (!ov) return sanitizeCampaignPrefixString(id);
+    const renamePin = sanitizeCampaignPrefixString(s.chatStates?.[id]?.renamedCampaignPrefix || '');
+    const fallback = renamePin || sanitizeCampaignPrefixString(id);
+    if (!ov) return fallback;
 
     const sanitizedOv = sanitizeCampaignPrefixString(ov);
     const anchor = (s.routerCampaignPrefixOverrideAnchorChatId || '').trim();
     if (anchor) {
-        return id && id === anchor ? sanitizedOv : sanitizeCampaignPrefixString(id);
+        return id && id === anchor ? sanitizedOv : fallback;
     }
+
+    // An explicit per-chat link is stronger evidence than a legacy global
+    // override with no recorded owner. Modern manual edits always set an anchor.
+    if (renamePin) return renamePin;
 
     // Legacy unanchored override: only while evaluating the active chat.
     try {
         const ctx = SillyTavern.getContext();
-        const activeId = String(ctx?.getCurrentChatId?.() || ctx?.chatId || '');
+        const trackedId = typeof globalThis._rpgCurrentChatId === 'function' ? globalThis._rpgCurrentChatId() : null;
+        const activeId = String(trackedId || ctx?.getCurrentChatId?.() || ctx?.chatId || '');
         if (id && activeId && id !== activeId) {
-            return sanitizeCampaignPrefixString(id);
+            return fallback;
         }
     } catch (_) { /* fall through */ }
 
@@ -1502,6 +1535,7 @@ export const CHAT_STATE_GLOBAL_UI_KEYS = [
     'portraitAutoGenerateNpcs',
     'portraitAutoGenerateLocations',
     'portraitAutoGenerateSceneView',
+    'portraitAutoApplyLocationBackground',
     'portraitRealtimeTriggerMode',
     'portraitRealtimeEveryNOutputs',
     'portraitRegenerateVisitedLocations',

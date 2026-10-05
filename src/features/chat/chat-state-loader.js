@@ -1,6 +1,7 @@
 import { runtimeState } from '../../app/runtime-state.js';
 import { applyChatSetup, resetChatSetupToStock } from '../../state/chat-setup.js';
-import { ensureDungeonMapHistory } from '../../state/dungeon-map-history.js';
+import { ensureDungeonMapHistory, trimMemoAndMapHistory } from '../../state/dungeon-map-history.js';
+import { repairChatLinkMemoHistory } from './chat-link-conflict.js';
 import { summarizeMapEvolutionSchedule } from '../../../map-evolution-lib.js';
 import { isLorebookAgentRuntimeActive } from '../../state/section-enabled.js';
 
@@ -36,6 +37,8 @@ export function createChatStateLoader({
     const s = getSettings();
     const saved = s.chatStates?.[chatId];
     if (!saved) return false;
+    repairChatLinkMemoHistory(saved);
+    trimMemoAndMapHistory(saved);
 
     // Every successful projection records its owner before any later extension
     // can ask SillyTavern to save the shared extensionSettings object.

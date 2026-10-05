@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { getEffectiveRouterCampaignPrefix, getSettings, sanitizeCampaignPrefixString } from '../state-manager.js';
+import { getEffectiveRouterCampaignPrefix, getSettings, saveChatState, sanitizeCampaignPrefixString } from '../state-manager.js';
 import { preserveCampaignPrefixAfterRename } from '../src/features/chat/chat-rename-migrate.js';
 import { testExtensionSettings } from './setup.js';
 
@@ -37,6 +37,49 @@ describe('getEffectiveRouterCampaignPrefix', () => {
 
         expect(getEffectiveRouterCampaignPrefix('Active Chat')).toBe('SharedStack');
         expect(getEffectiveRouterCampaignPrefix('Other Chat')).toBe('Other_Chat');
+    });
+
+    it('uses explicit rename pins but never trusts an ordinary saved projected prefix', () => {
+        const s = getSettings();
+        s.chatStates = {
+            'Renamed Chat': { renamedCampaignPrefix: 'Original_Campaign', routerCampaignPrefix: 'Wrong_Live_Prefix' },
+            'Other Chat': { routerCampaignPrefix: 'Stale_Prefix' },
+        };
+        expect(getEffectiveRouterCampaignPrefix('Renamed Chat')).toBe('Original_Campaign');
+        expect(getEffectiveRouterCampaignPrefix('Other Chat')).toBe('Other_Chat');
+    });
+
+    it('uses the tracked chat for legacy overrides while the host context is stale', () => {
+        const previousTracker = globalThis._rpgCurrentChatId;
+        globalThis._rpgCurrentChatId = () => 'Tracked Chat';
+        try {
+            const s = getSettings();
+            s.routerCampaignPrefixOverride = 'Tracked_Campaign';
+            s.routerCampaignPrefixOverrideAnchorChatId = '';
+            expect(getEffectiveRouterCampaignPrefix('Tracked Chat')).toBe('Tracked_Campaign');
+            expect(getEffectiveRouterCampaignPrefix('Active Chat')).toBe('Active_Chat');
+        } finally {
+            if (previousTracker === undefined) delete globalThis._rpgCurrentChatId;
+            else globalThis._rpgCurrentChatId = previousTracker;
+        }
+    });
+
+    it('lets an explicitly anchored manual override supersede a rename pin', () => {
+        const s = getSettings();
+        s.chatStates = { 'Renamed Chat': { renamedCampaignPrefix: 'Original_Campaign' } };
+        s.routerCampaignPrefixOverride = 'Manual_Campaign';
+        s.routerCampaignPrefixOverrideAnchorChatId = 'Renamed Chat';
+        expect(getEffectiveRouterCampaignPrefix('Renamed Chat')).toBe('Manual_Campaign');
+        s.routerCampaignPrefixOverrideAnchorChatId = 'Active Chat';
+        expect(getEffectiveRouterCampaignPrefix('Renamed Chat')).toBe('Original_Campaign');
+    });
+
+    it('preserves rename pins across normal saves and a settings reload', () => {
+        const s = getSettings();
+        s.chatStates = { 'Renamed Chat': { renamedCampaignPrefix: 'Original_Campaign' } };
+        saveChatState('Renamed Chat', { skipDiskWrite: true });
+        s.chatStates = JSON.parse(JSON.stringify(s.chatStates));
+        expect(getEffectiveRouterCampaignPrefix('Renamed Chat')).toBe('Original_Campaign');
     });
 });
 
@@ -97,6 +140,32 @@ describe('preserveCampaignPrefixAfterRename', () => {
         expect(preserveCampaignPrefixAfterRename(s, 'Old Chat', 'Renamed Chat')).toBe(false);
         expect(s.routerCampaignPrefixOverride).toBe('');
         expect(s.routerCampaignPrefixOverrideAnchorChatId).toBe('');
+    });
+
+    it.each(['', 'Open Chat'])('keeps the open chat override with anchor "%s" while preserving an inactive campaign', anchor => {
+        const s = getSettings();
+        s.routerCampaignPrefix = 'Open_Campaign';
+        s.routerCampaignPrefixOverride = 'Open_Campaign';
+        s.routerCampaignPrefixOverrideAnchorChatId = anchor;
+        s.chatStates = { 'Renamed Chat': { routerCampaignPrefix: 'Old_Chat', campaignBooks: ['Old_Chat_NPCs'] } };
+        expect(preserveCampaignPrefixAfterRename(s, 'Old Chat', 'Renamed Chat', { activeChatId: 'Open Chat' })).toBe(true);
+        expect(s.routerCampaignPrefix).toBe('Open_Campaign');
+        expect(s.routerCampaignPrefixOverride).toBe('Open_Campaign');
+        expect(s.routerCampaignPrefixOverrideAnchorChatId).toBe(anchor);
+        const base = SillyTavern.getContext();
+        SillyTavern.getContext = () => ({ ...base, chatId: 'Renamed Chat', getCurrentChatId: () => 'Renamed Chat' });
+        expect(getEffectiveRouterCampaignPrefix('Renamed Chat')).toBe('Old_Chat');
+    });
+
+    it('retains the original stack across successive inactive renames', () => {
+        const s = getSettings();
+        const part = { routerCampaignPrefix: 'Original_Stack', campaignBooks: ['Original_Stack_NPCs'] };
+        s.chatStates = { Second: part };
+        preserveCampaignPrefixAfterRename(s, 'First', 'Second', { activeChatId: 'Open' });
+        s.chatStates.Third = part;
+        delete s.chatStates.Second;
+        preserveCampaignPrefixAfterRename(s, 'Second', 'Third', { activeChatId: 'Open' });
+        expect(getEffectiveRouterCampaignPrefix('Third')).toBe('Original_Stack');
     });
 });
 

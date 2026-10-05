@@ -28,7 +28,7 @@ describe('State Tracker chat-switch affinity', () => {
     });
 
     it('guards runStateModelPass commits against a post-await chat switch', () => {
-        expect(indexSource).toContain("import { canCommitPassForChat } from './src/state/pass-affinity.js';");
+        expect(indexSource).toMatch(/import \{[^}]*\bcanCommitPassForChat\b[^}]*\} from '\.\/src\/state\/pass-affinity\.js';/);
         expect(indexSource).toContain('const passChatId = runtimeState.currentChatId;');
         expect(indexSource).toContain('Stopped because the active chat changed.');
         expect(indexSource).toContain('if (settings.chatLinkEnabled && passChatId) saveChatState(passChatId);');
@@ -48,7 +48,7 @@ describe('State Tracker chat-switch affinity', () => {
     });
 
     it('guards State Tracker relationship applies against a post-await chat switch', () => {
-        expect(narrativeSource).toContain("import { canCommitPassForChat } from './src/state/pass-affinity.js';");
+        expect(narrativeSource).toMatch(/import \{[^}]*\bcreateChatCommitGuard\b[^}]*\} from '\.\/src\/state\/pass-affinity\.js';/);
         const relIdx = narrativeSource.indexOf('export async function applyStateTrackerRelationshipCommands');
         expect(relIdx).toBeGreaterThanOrEqual(0);
         const relSlice = narrativeSource.slice(relIdx, relIdx + 9000);
@@ -83,5 +83,39 @@ describe('State Tracker chat-switch affinity', () => {
         expect(regexSlice).toMatch(
             /await fuzzyResolveNpcName\([\s\S]*?canCommitPassForChat\(passChatId, runtimeState\.currentChatId\)/,
         );
+    });
+});
+
+describe('World Progression / Lorebook Agent chat-switch affinity', () => {
+    const routerSource = readFileSync(new URL('../router.js', import.meta.url), 'utf8');
+
+    it('aborts in-flight Lorebook Agent and World Progression on a real chat switch', () => {
+        expect(indexSource).toContain('stopRouterPass()');
+        expect(indexSource).toContain('stopWorldProgressionPass()');
+        expect(indexSource).toMatch(
+            /Drop in-flight State Tracker work for the departing chat[\s\S]*stopRouterPass\(\)[\s\S]*stopWorldProgressionPass\(\)[\s\S]*stopRealtimeLocationGeneration\(\{ disable: false \}\)/,
+        );
+    });
+
+    it('pins World Progression chat ownership before lorebook/LLM awaits', () => {
+        expect(routerSource).toMatch(/import \{[^}]*\bcreateChatCommitGuard\b[^}]*\} from '\.\/src\/state\/pass-affinity\.js'/);
+        expect(routerSource).toContain('export function stopWorldProgressionPass()');
+        const wpIdx = routerSource.indexOf('export async function runWorldProgressionPass');
+        expect(wpIdx).toBeGreaterThanOrEqual(0);
+        const wpSlice = routerSource.slice(wpIdx, wpIdx + 45000);
+        expect(wpSlice.indexOf('const passChatId = getActiveChatId()')).toBeGreaterThan(-1);
+        expect(wpSlice.indexOf('createChatCommitGuard(passChatId, getActiveChatId')).toBeGreaterThan(
+            wpSlice.indexOf('const passChatId = getActiveChatId()'),
+        );
+        expect(wpSlice.indexOf('await getWorldInfoNamesSafe()')).toBeGreaterThan(
+            wpSlice.indexOf('const passChatId = getActiveChatId()'),
+        );
+        expect(wpSlice.indexOf("error: 'chat_changed'")).toBeGreaterThan(-1);
+        expect(wpSlice).toContain(
+            'await sendStateRequest(routerSettings, systemPrompt, userPrompt, signal, { stream: true, debugSource: \'World Progression\' })',
+        );
+        const firstOwnsGuard = wpSlice.indexOf('if (!ownsChat()) return abortForChatChange()');
+        expect(firstOwnsGuard).toBeGreaterThan(-1);
+        expect(wpSlice.lastIndexOf('persistWorldProgressionTimer()')).toBeGreaterThan(firstOwnsGuard);
     });
 });

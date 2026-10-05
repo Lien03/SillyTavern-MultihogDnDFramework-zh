@@ -1,6 +1,6 @@
 import { runtimeState } from '../../app/runtime-state.js';
 import { getActiveChatId } from '../../state/chat-persistence.js';
-import { canCommitPassForChat } from '../../state/pass-affinity.js';
+import { canCommitPassForChat, createChatCommitGuard, chatCommitResult, ignoreChatCancellation } from '../../state/pass-affinity.js';
 import { createRouterViewRenderer } from './panel-router-view.js';
 import { wireAgentWorldProgression } from './panel-world-progression.js';
 import { wireAgentMapEvolution } from './panel-map-evolution.js';
@@ -187,6 +187,8 @@ async function populateMapCreationContextOptions(root, ctx) {
 }
 
 async function promptAndRunLorebookAgentMap(siteRoot, locationContent, escapeHtml, { runMapArchitect, inferMapArchitectArgs, listMappedEvolutionSites, lookbackDefault } = {}) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
     const site = String(siteRoot || '').trim();
     if (!site) return { ok: false, error: '没有可地图化的地点根。' };
     const ctx = SillyTavern.getContext();
@@ -199,7 +201,7 @@ async function promptAndRunLorebookAgentMap(siteRoot, locationContent, escapeHtm
     const briefDescriptionDefault = briefDescriptionFromPrompt(premiseDefault, site);
     const lookbackValue = Math.max(0, Math.min(100, Number(lookbackDefault) || 12));
     const mappedSites = typeof listMappedEvolutionSites === 'function'
-        ? await listMappedEvolutionSites().catch(() => [])
+        ? chatCommitResult(ownsChat, await listMappedEvolutionSites().catch(() => []))
         : [];
     const eligibleIncludes = mappedSites.filter(item => ['DUNGEON', 'INTERIOR'].includes(item.kind) && !item.hostSite && item.siteRoot !== site);
     const includeOptions = eligibleIncludes.length
@@ -269,7 +271,7 @@ async function promptAndRunLorebookAgentMap(siteRoot, locationContent, escapeHtm
     `;
 
     let form = null;
-    const choice = await Popup.show.confirm('创建地图', html, {
+    const choice = chatCommitResult(ownsChat, await Popup.show.confirm('创建地图', html, {
         okButton: '生成地图',
         cancelButton: '取消',
         onClosing: (popup) => {
@@ -297,13 +299,13 @@ async function promptAndRunLorebookAgentMap(siteRoot, locationContent, escapeHtm
             return true;
         },
         onOpen: (popup) => { void populateMapCreationContextOptions(popup?.dlg, ctx); },
-    });
+    }));
     if (!choice) return { ok: false, cancelled: true };
     if (!form) return { ok: false, error: '无法读取地图表单。' };
 
     try {
         if (form.mode === 'manual') {
-            await runMapArchitect({
+            chatCommitResult(ownsChat, await runMapArchitect({
                 site,
                 entrance: form.entrance,
                 kind: form.kind,
@@ -315,33 +317,36 @@ async function promptAndRunLorebookAgentMap(siteRoot, locationContent, escapeHtm
                 allowOffsite: true,
                 lorebookNames: form.lorebookNames,
                 characterCards: form.characterCards,
-            });
+            }));
             return { ok: true, siteRoot: site };
         }
 
         if (typeof inferMapArchitectArgs !== 'function') {
             return { ok: false, error: 'Map Architect 自动填充不可用。' };
         }
-        try { globalThis.toastr?.info?.(`正在为 ${site} 填充地图简报…`, 'Map Architect', { timeOut: 4000 }); } catch (_) { /* best effort */ }
-        const inferred = await inferMapArchitectArgs({
+        try { globalThis.toastr?.info?.(`正在为 ${site} 填充地图简报…`, '地图架构师', { timeOut: 4000 }); } catch (_) { /* best effort */ }
+        const inferred = chatCommitResult(ownsChat, await inferMapArchitectArgs({
             site,
             loreEntry: loreEntry || premiseDefault,
             lookback: form.lookback,
             lorebookNames: form.lorebookNames,
             characterCards: form.characterCards,
-        });
-        await runMapArchitect({
+        }));
+        chatCommitResult(ownsChat, await runMapArchitect({
             ...inferred,
             site,
             lookback: form.lookback,
             allowOffsite: true,
             lorebookNames: form.lorebookNames,
             characterCards: form.characterCards,
-        });
+        }));
         return { ok: true, siteRoot: site };
     } catch (error) {
+        if (!ownsChat()) return;
+
         return { ok: false, error: error?.message || String(error) };
     }
+
 }
 
 function parseKeywordInput(value) {
@@ -349,12 +354,14 @@ function parseKeywordInput(value) {
 }
 
 async function promptAndCreateMappedLocation({ runMapArchitect, inferMapArchitectArgs, listMappedEvolutionSites, escapeHtml, lookbackDefault } = {}) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
     const ctx = SillyTavern.getContext();
     const { Popup } = ctx || {};
     if (!Popup?.show?.confirm) return { ok: false, error: 'Popup API 不可用。' };
     const lookbackValue = Math.max(0, Math.min(100, Number(lookbackDefault) || 12));
     const mappedSites = typeof listMappedEvolutionSites === 'function'
-        ? await listMappedEvolutionSites().catch(() => [])
+        ? chatCommitResult(ownsChat, await listMappedEvolutionSites().catch(() => []))
         : [];
     const eligibleIncludes = mappedSites.filter(item => ['DUNGEON', 'INTERIOR'].includes(item.kind) && !item.hostSite);
     const safe = typeof escapeHtml === 'function' ? escapeHtml : value => String(value || '');
@@ -435,7 +442,7 @@ async function promptAndCreateMappedLocation({ runMapArchitect, inferMapArchitec
     `;
 
     let form = null;
-    const choice = await Popup.show.confirm('添加已映射地点', html, {
+    const choice = chatCommitResult(ownsChat, await Popup.show.confirm('添加已映射地点', html, {
         okButton: '创建地点和地图',
         cancelButton: '取消',
         onClosing: (popup) => {
@@ -466,7 +473,7 @@ async function promptAndCreateMappedLocation({ runMapArchitect, inferMapArchitec
             return true;
         },
         onOpen: (popup) => { void populateMapCreationContextOptions(popup?.dlg, ctx); },
-    });
+    }));
     if (!choice) return { ok: false, cancelled: true };
     if (!form) return { ok: false, error: '无法读取已映射地点表单。' };
 
@@ -477,7 +484,7 @@ async function promptAndCreateMappedLocation({ runMapArchitect, inferMapArchitec
     try {
         if (form.mode === 'manual') {
             if (!form.prompt || !form.briefDescription) return { ok: false, error: '地图生成提示和简要描述是必填项。' };
-            await runMapArchitect({
+            chatCommitResult(ownsChat, await runMapArchitect({
                 site,
                 entrance: form.entrance,
                 kind: form.kind,
@@ -492,7 +499,7 @@ async function promptAndCreateMappedLocation({ runMapArchitect, inferMapArchitec
                 locationCore: form.briefDescription,
                 lorebookNames: form.lorebookNames,
                 characterCards: form.characterCards,
-            });
+            }));
             return { ok: true, siteRoot: site };
         }
 
@@ -500,14 +507,14 @@ async function promptAndCreateMappedLocation({ runMapArchitect, inferMapArchitec
             return { ok: false, error: '地图架构师自动填充不可用。' };
         }
         try { globalThis.toastr?.info?.(`正在为 ${site} 填充地图简报…`, '地图架构师', { timeOut: 4000 }); } catch (_) { /* best effort */ }
-        const inferred = await inferMapArchitectArgs({
+        const inferred = chatCommitResult(ownsChat, await inferMapArchitectArgs({
             site,
             userBrief: form.userBrief,
             lookback: form.lookback,
             lorebookNames: form.lorebookNames,
             characterCards: form.characterCards,
-        });
-        await runMapArchitect({
+        }));
+        chatCommitResult(ownsChat, await runMapArchitect({
             ...inferred,
             site,
             lookback: form.lookback,
@@ -517,11 +524,14 @@ async function promptAndCreateMappedLocation({ runMapArchitect, inferMapArchitec
             locationCore: inferred.brief_description,
             lorebookNames: form.lorebookNames,
             characterCards: form.characterCards,
-        });
+        }));
         return { ok: true, siteRoot: site };
     } catch (error) {
+        if (!ownsChat()) return;
+
         return { ok: false, error: error?.message || String(error) };
     }
+
 }
 
 /** CHAT always owns the integrated tracker pane while it is open. */
@@ -1749,19 +1759,21 @@ export function createPanel(dependencies) {
             });
         };
 
-        const performManifestRefresh = async (source = 'auto') => {
+        const performManifestRefresh = ignoreChatCancellation(async (source = 'auto') => {
+            const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
             if (source === 'auto' && agentPanel.style.display === 'none') return;
             const s = getSettings();
             const dungeonRealityEnabled = isLocationMappingEnabled(s);
             if (!_manifestBypassImmersion && (dungeonRealityEnabled || !s.locationImages || s.agentImmersionMode)) {
-                await runtimeState.refreshImmersionView();
+                chatCommitResult(ownsChat, await runtimeState.refreshImmersionView());
             }
             const visualsOpen = !!(s.agentImmersionMode && (s.locationImages || runtimeState.hasActiveDungeonMap));
             if (visualsOpen && !_manifestBypassImmersion) {
                 if (!areAgentCharacterDetailHandlersReady()) {
                     _manifestBypassImmersion = true;
                     try {
-                        await performManifestRefresh(source);
+                        chatCommitResult(ownsChat, await performManifestRefresh(source));
                     } finally {
                         _manifestBypassImmersion = false;
                     }
@@ -1818,19 +1830,24 @@ export function createPanel(dependencies) {
 
                     const portraitWrap = pcDiv.querySelector('.rt-npc-portrait-wrap');
                     if (portraitWrap) {
-                        portraitWrap.addEventListener('click', async (e) => {
+                        portraitWrap.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
                             if (typeof showPortraitSettingsMenu === 'function') {
                                 const refreshBoth = () => {
                                     if (typeof refreshManifest === 'function') refreshManifest();
                                     if (typeof refreshRenderedView === 'function') refreshRenderedView();
                                 };
-                                await showPortraitSettingsMenu(pc.name, refreshBoth, pc.bio || '');
+                                chatCommitResult(ownsChat, await showPortraitSettingsMenu(pc.name, refreshBoth, pc.bio || ''));
                             }
-                        });
+
+                        }));
                     }
 
-                    const openPcPopup = async (startInEditMode = false) => {
+                    const openPcPopup = ignoreChatCancellation(async (startInEditMode = false) => {
+
+                        if (!ownsChat()) return;
                         const ctx = SillyTavern.getContext();
                         if (!ctx.callGenericPopup) return;
                         const popupPortraitSrc = resolvePortraitSrcForPlayerCharacter(s, pc.name);
@@ -1923,18 +1940,22 @@ export function createPanel(dependencies) {
 
                         editBtn.addEventListener('click', startEdit);
 
-                        libraryBtn?.addEventListener('click', async () => {
-                            await saveCampaignNpcToLibrary({
+                        libraryBtn?.addEventListener('click', ignoreChatCancellation(async () => {
+
+                            if (!ownsChat()) return;
+                            chatCommitResult(ownsChat, await saveCampaignNpcToLibrary({
                                 name: pc.name,
                                 label: pc.name,
                                 content: pc.bio || '',
                                 keys: [pc.name],
-                            });
-                        });
+                            }));
+
+                        }));
 
                         cancelBtn.addEventListener('click', () => showPane(viewPane));
 
                         saveBtn.addEventListener('click', async () => {
+                            if (!ownsChat()) return;
                             pc.bio = textarea.value;
                             if (typeof saveChatState === 'function') saveChatState(runtimeState.currentChatId);
                             const newHtml = renderSectionsHtml(pc.bio, true) || `<div style="font-size:14px;color:var(--SmartThemeBodyColor, inherit);opacity:0.5;font-style:italic;padding:16px 0;">未找到结构化段落。</div>`;
@@ -1947,6 +1968,7 @@ export function createPanel(dependencies) {
 
                         // ── AI Edit ────────────────────────────────────────────
                         aiEditBtn.addEventListener('click', () => {
+                            if (!ownsChat()) return;
                             aiPreviewPane.style.display = 'none';
                             aiInstructionsEl.value = '';
                             showPane(aiEditPane);
@@ -1955,7 +1977,9 @@ export function createPanel(dependencies) {
 
                         aiCancelBtn.addEventListener('click', () => showPane(viewPane));
 
-                        const runAiEdit = async () => {
+                        const runAiEdit = ignoreChatCancellation(async () => {
+
+                            if (!ownsChat()) return;
                             const instructions = aiInstructionsEl.value.trim();
                             if (!instructions) { toastr['warning']('请描述你想要修改的内容。', 'AI编辑'); return; }
                             aiGenerateBtn.disabled = true; aiRegenBtn.disabled = true;
@@ -1976,7 +2000,7 @@ export function createPanel(dependencies) {
                             const sysPrompt = `You are a persona editor for a roleplay system. The user wants to make specific changes to an existing character persona. Output the ENTIRE revised persona with the requested changes applied — keep everything else identical. Do not add preambles or commentary. Output only the revised persona text.`;
                             const userMsg = `CURRENT PERSONA:\n${pc.bio || ''}\n\nREQUESTED CHANGES:\n${instructions}\n\nOutput the full revised persona now.`;
                             try {
-                                const result = await sendStateRequest(aiSettings, sysPrompt, userMsg);
+                                const result = chatCommitResult(ownsChat, await sendStateRequest(aiSettings, sysPrompt, userMsg));
                                 const trimmed = (result || '').trim();
                                 if (trimmed) {
                                     aiPreviewText.value = trimmed;
@@ -1985,16 +2009,19 @@ export function createPanel(dependencies) {
                                     toastr['warning']('AI返回了空结果，请重试。', 'AI编辑');
                                 }
                             } catch (err) {
-                                toastr['error'](`AI编辑失败：${String(err.message || err).substring(0, 120)}`, 'AI编辑');
+                                if (!ownsChat()) return;
+
+                                toastr['error'](`AI 编辑失败：${String(err.message || err).substring(0, 120)}`, 'AI编辑');
                             }
                             aiGenerateBtn.disabled = false; aiRegenBtn.disabled = false;
                             aiGenerateBtn.textContent = '✨ 生成';
-                        };
+                        });
 
                         aiGenerateBtn.addEventListener('click', runAiEdit);
                         aiRegenBtn.addEventListener('click', runAiEdit);
 
                         aiApplyBtn.addEventListener('click', async () => {
+                            if (!ownsChat()) return;
                             pc.bio = aiPreviewText.value;
                             if (typeof saveChatState === 'function') saveChatState(runtimeState.currentChatId);
                             const newHtml = renderSectionsHtml(pc.bio, true) || `<div style="font-size:14px;color:var(--SmartThemeBodyColor, inherit);opacity:0.5;font-style:italic;padding:16px 0;">未找到结构化段落。</div>`;
@@ -2008,7 +2035,7 @@ export function createPanel(dependencies) {
                         if (startInEditMode) startEdit();
 
                         const popupOpts = { okButton: '关闭', cancelButton: false, wide: true, large: true };
-                        await ctx.callGenericPopup(popupDom, ctx.POPUP_TYPE?.TEXT ?? 1, '', popupOpts);
+                        chatCommitResult(ownsChat, await ctx.callGenericPopup(popupDom, ctx.POPUP_TYPE?.TEXT ?? 1, '', popupOpts));
                         // Close while Edit Text is open should persist (Cancel discards; Close keeps).
                         if (editPane.style.display !== 'none' && textarea.value !== (pc.bio || '')) {
                             pc.bio = textarea.value;
@@ -2017,48 +2044,60 @@ export function createPanel(dependencies) {
                             // @ts-ignore
                             if (typeof toastr !== 'undefined') toastr.success('玩家角色已保存。', '战役记录');
                         }
-                    };
+                    });
                     globalThis._rpgAgentOpenPcDetail = openPcPopup;
 
                     const viewBtn = pcDiv.querySelector('.rt-npc-view');
                     if (viewBtn) {
-                        viewBtn.addEventListener('click', async (e) => {
+                        viewBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
-                            await openPcPopup(false);
-                        });
+                            chatCommitResult(ownsChat, await openPcPopup(false));
+
+                        }));
                     }
 
                     const libBtn = pcDiv.querySelector('.rt-npc-library');
                     if (libBtn) {
-                        libBtn.addEventListener('click', async (e) => {
+                        libBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
-                            await saveCampaignNpcToLibrary({
+                            chatCommitResult(ownsChat, await saveCampaignNpcToLibrary({
                                 name: pc.name,
                                 label: pc.name,
                                 content: pc.bio || '',
                                 keys: [pc.name],
-                            });
-                        });
+                            }));
+
+                        }));
                     }
 
                     const extEditBtn = pcDiv.querySelector('.rt-npc-edit');
                     if (extEditBtn) {
-                        extEditBtn.addEventListener('click', async (e) => {
+                        extEditBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
-                            await openPcPopup(true);
-                        });
+                            chatCommitResult(ownsChat, await openPcPopup(true));
+
+                        }));
                     }
 
                     const delBtn = pcDiv.querySelector('.rt-npc-delete');
                     if (delBtn) {
-                        delBtn.addEventListener('click', async (e) => {
+                        delBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
                             if (confirm('从当前聊天中解除关联此玩家角色？')) {
                                 delete s.chatStates[runtimeState.currentChatId].playerCharacter;
                                 if (typeof saveChatState === 'function') saveChatState(runtimeState.currentChatId);
-                                if (typeof refreshAgentManifestNow === 'function') await refreshAgentManifestNow();
+                                if (typeof refreshAgentManifestNow === 'function') chatCommitResult(ownsChat, await refreshAgentManifestNow());
                             }
-                        });
+
+                        }));
                     }
 
                     list.appendChild(pcDiv);
@@ -2076,11 +2115,13 @@ export function createPanel(dependencies) {
 
                 // ── DECOUPLED LOREBOOK RENDER ──
                 // Let the browser paint the PC card and "Loading..." immediately.
-                const lorebookRenderTask = async () => {
+                const lorebookRenderTask = ignoreChatCancellation(async () => {
+
+                    if (!ownsChat()) return;
                     try {
                         if (gen !== _manifestRenderGen) return;
                         console.time('[RPG Tracker] getLorebookManifest');
-                        const manifest = prefix ? await getLorebookManifest(!forceFullRefresh) : [];
+                        const manifest = prefix ? chatCommitResult(ownsChat, await getLorebookManifest(!forceFullRefresh)) : [];
                         console.timeEnd('[RPG Tracker] getLorebookManifest');
 
                         if (gen !== _manifestRenderGen) return;
@@ -2172,6 +2213,7 @@ export function createPanel(dependencies) {
                             folderBody.style.cssText = `display:${isOpen ? 'flex' : 'none'}; flex-direction:column; ${useNpcCardView ? 'padding:4px 0;' : 'border-left:1px solid rgba(255,255,255,0.07); margin-left:10px; padding-left:6px;'} gap:${useNpcCardView ? '4' : '1'}px; padding-top:3px; padding-bottom:3px;`;
 
                             folderHdr.addEventListener('click', () => {
+                                if (!ownsChat()) return;
                                 const opening = folderBody.style.display === 'none';
                                 folderBody.style.display = opening ? 'flex' : 'none';
                                 folderHdr.querySelector('.rt-mf-icon').textContent = opening ? '▼' : '▶';
@@ -2184,13 +2226,16 @@ export function createPanel(dependencies) {
                                 const managerBtn = folderHdr.querySelector('.rt-npc-manager-btn');
                                 if (managerBtn) {
                                     managerBtn.addEventListener('click', (e) => {
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
                                         openNpcCreatorDialog(bookName, prefix);
                                     });
                                 }
                                 const settingsBtn = folderHdr.querySelector('.rt-npc-settings-btn');
                                 if (settingsBtn) {
-                                    settingsBtn.addEventListener('click', async (e) => {
+                                    settingsBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
                                         const ctx = SillyTavern.getContext();
                                         if (!ctx.callGenericPopup) return;
@@ -2298,6 +2343,7 @@ export function createPanel(dependencies) {
                                         let newRelMax = getNpcRelationshipMax(curS);
 
                                         setTimeout(() => {
+                                            if (!ownsChat()) return;
                                             const majorEl = document.getElementById('rt-npc-major-words');
                                             const minorEl = document.getElementById('rt-npc-minor-words');
                                             const relMaxEl = document.getElementById('rt-npc-rel-max');
@@ -2306,6 +2352,7 @@ export function createPanel(dependencies) {
 
                                             if (majorEl) {
                                                 majorEl.addEventListener('input', () => {
+                                                    if (!ownsChat()) return;
                                                     const parsed = parseInt(majorEl.value, 10);
                                                     // Only update if it's a real number — don't clobber on
                                                     // partial input (e.g. empty field while user is typing)
@@ -2314,24 +2361,28 @@ export function createPanel(dependencies) {
                                             }
                                             if (minorEl) {
                                                 minorEl.addEventListener('input', () => {
+                                                    if (!ownsChat()) return;
                                                     const parsed = parseInt(minorEl.value, 10);
                                                     if (!isNaN(parsed) && parsed > 0) newMinor = parsed;
                                                 });
                                             }
                                             if (relMaxEl) {
                                                 relMaxEl.addEventListener('input', () => {
+                                                    if (!ownsChat()) return;
                                                     const parsed = parseInt(relMaxEl.value, 10);
                                                     if (!isNaN(parsed) && parsed >= 10) newRelMax = parsed;
                                                 });
                                             }
                                             if (relEl) {
                                                 relEl.addEventListener('change', () => {
+                                                    if (!ownsChat()) return;
                                                     newRel = relEl.checked;
                                                     if (relEl.nextElementSibling) relEl.nextElementSibling.textContent = newRel ? '已启用' : '已禁用';
                                                 });
                                             }
                                             if (ignoreEl) {
                                                 ignoreEl.addEventListener('change', () => {
+                                                    if (!ownsChat()) return;
                                                     newIgnoreLimits = ignoreEl.checked;
                                                     if (ignoreEl.nextElementSibling) ignoreEl.nextElementSibling.textContent = newIgnoreLimits ? '已启用' : '已禁用';
                                                 });
@@ -2339,6 +2390,7 @@ export function createPanel(dependencies) {
                                             const relToastEl = document.getElementById('rt-npc-rel-toast');
                                             if (relToastEl) {
                                                 relToastEl.addEventListener('change', () => {
+                                                    if (!ownsChat()) return;
                                                     newRelToast = relToastEl.checked;
                                                     if (relToastEl.nextElementSibling) relToastEl.nextElementSibling.textContent = newRelToast ? '已启用' : '已禁用';
                                                 });
@@ -2346,6 +2398,7 @@ export function createPanel(dependencies) {
                                             const portraitsEl = document.getElementById('rt-npc-portraits');
                                             if (portraitsEl) {
                                                 portraitsEl.addEventListener('change', () => {
+                                                    if (!ownsChat()) return;
                                                     newNpcPortraits = portraitsEl.checked;
                                                     if (portraitsEl.nextElementSibling) portraitsEl.nextElementSibling.textContent = newNpcPortraits ? '已启用' : '已禁用';
                                                 });
@@ -2353,26 +2406,29 @@ export function createPanel(dependencies) {
                                             // Wire up the add-as-is mode radio buttons
                                             document.querySelectorAll('input[name="rt-npc-add-as-is-mode"]').forEach(radio => {
                                                 radio.addEventListener('change', () => {
+                                                    if (!ownsChat()) return;
                                                     if (radio.checked) newAddAsIsMode = radio.value;
                                                 });
                                             });
                                             const editNpcBtn = document.getElementById('rt-btn-edit-npc-sections-inline');
                                             if (editNpcBtn) {
                                                 editNpcBtn.addEventListener('click', () => {
+                                                    if (!ownsChat()) return;
                                                     openNpcSectionEditor();
                                                 });
                                             }
                                             const editPcBtn = document.getElementById('rt-btn-edit-pc-sections-inline');
                                             if (editPcBtn) {
                                                 editPcBtn.addEventListener('click', () => {
+                                                    if (!ownsChat()) return;
                                                     openPcSectionEditor();
                                                 });
                                             }
                                         }, 0);
 
-                                        const result = await ctx.callGenericPopup(popupHtml, ctx.POPUP_TYPE?.CONFIRM ?? 3, '', {
+                                        const result = chatCommitResult(ownsChat, await ctx.callGenericPopup(popupHtml, ctx.POPUP_TYPE?.CONFIRM ?? 3, '', {
                                             okButton: '保存', cancelButton: '取消', wide: false,
-                                        });
+                                        }));
 
                                         if (result) {
                                             const finalMajor = Math.max(1, Math.min(5000, newMajor));
@@ -2412,9 +2468,10 @@ export function createPanel(dependencies) {
                                             if (typeof globalThis._rpgRenderAgentModules === 'function') {
                                                 globalThis._rpgRenderAgentModules();
                                             }
-                                            await refreshLorebookAgentViewsNow({ forceLayoutRefresh: true });
+                                            chatCommitResult(ownsChat, await refreshLorebookAgentViewsNow({ forceLayoutRefresh: true }));
                                         }
-                                    });
+
+                                    }));
                                 }
                             }
 
@@ -2422,38 +2479,46 @@ export function createPanel(dependencies) {
                             if (isLocBook) {
                                 const mapsGuideBtn = folderHdr.querySelector('.rt-loc-maps-guide-btn');
                                 if (mapsGuideBtn) {
-                                    mapsGuideBtn.addEventListener('click', async (e) => {
+                                    mapsGuideBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
-                                        await openMapsGuide();
-                                    });
+                                        chatCommitResult(ownsChat, await openMapsGuide());
+
+                                    }));
                                 }
                                 const addMappedBtn = folderHdr.querySelector('.rt-loc-add-mapped-btn');
                                 if (addMappedBtn) {
-                                    addMappedBtn.addEventListener('click', async (e) => {
+                                    addMappedBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
                                         addMappedBtn.disabled = true;
                                         try {
-                                            const choice = await promptAndCreateMappedLocation({
+                                            const choice = chatCommitResult(ownsChat, await promptAndCreateMappedLocation({
                                                  runMapArchitect,
                                                  inferMapArchitectArgs,
                                                  listMappedEvolutionSites,
                                                  escapeHtml,
                                                  lookbackDefault: getSettings()?.mapArchitectLookback,
-                                            });
+                                            }));
                                             if (choice?.cancelled) return;
                                             if (choice?.ok) {
-                                                await refreshManifest();
+                                                chatCommitResult(ownsChat, await refreshManifest());
                                             } else {
                                                 toastr.error(choice?.error || '无法创建该映射位置。', '持久地图');
                                             }
                                         } finally {
                                             addMappedBtn.disabled = false;
                                         }
-                                    });
+
+                                    }));
                                 }
                                 const locSettingsBtn = folderHdr.querySelector('.rt-loc-settings-btn');
                                 if (locSettingsBtn) {
-                                    locSettingsBtn.addEventListener('click', async (e) => {
+                                    locSettingsBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
                                         const ctx = SillyTavern.getContext();
                                         if (!ctx.callGenericPopup) return;
@@ -2473,27 +2538,30 @@ export function createPanel(dependencies) {
 
                                         let newLocImages = !!curS.locationImages;
                                         setTimeout(() => {
+                                            if (!ownsChat()) return;
                                             const locEl = document.getElementById('rt-loc-images');
                                             if (locEl) {
                                                 locEl.addEventListener('change', () => {
+                                                    if (!ownsChat()) return;
                                                     newLocImages = locEl.checked;
                                                     if (locEl.nextElementSibling) locEl.nextElementSibling.textContent = newLocImages ? '已启用' : '未启用';
                                                 });
                                             }
                                         }, 0);
 
-                                        const result = await ctx.callGenericPopup(popupHtml, ctx.POPUP_TYPE?.CONFIRM ?? 3, '', {
+                                        const result = chatCommitResult(ownsChat, await ctx.callGenericPopup(popupHtml, ctx.POPUP_TYPE?.CONFIRM ?? 3, '', {
                                             okButton: '保存', cancelButton: '取消', wide: false,
-                                        });
+                                        }));
 
                                         if (result) {
                                             const updS = getSettings();
                                             applyLocationImageSetting(updS, newLocImages);
                                             saveSettings();
                                             toastr['success']('位置设置已保存。', '位置设置');
-                                            await refreshLorebookAgentViewsNow({ forceLayoutRefresh: true });
+                                            chatCommitResult(ownsChat, await refreshLorebookAgentViewsNow({ forceLayoutRefresh: true }));
                                         }
-                                    });
+
+                                    }));
                                 }
                             }
 
@@ -2583,7 +2651,9 @@ export function createPanel(dependencies) {
                                 getNpcDescription = getCardAppearanceSynopsis;
 
                                 // Helper: Open the full NPC popup
-                                openNpcDetailPopup = async (item, rel) => {
+                                openNpcDetailPopup = ignoreChatCancellation(async (item, rel) => {
+
+                                    if (!ownsChat()) return;
                                     const ctx = SillyTavern.getContext();
                                     if (!ctx.callGenericPopup) return;
 
@@ -2754,7 +2824,9 @@ export function createPanel(dependencies) {
                                     // Portrait click/generate overlay — same behavior as the small NPC card thumbnail.
                                     const popupPortraitWrap = popupDom.querySelector('.rt-npc-popup-portrait-wrap');
                                     if (popupPortraitWrap) {
-                                        popupPortraitWrap.addEventListener('click', async (e) => {
+                                        popupPortraitWrap.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                            if (!ownsChat()) return;
                                             e.stopPropagation();
                                             const refreshPopupPortrait = () => {
                                                 const newSrc = lookupCustomPortraitSrc(getSettings(), item.label);
@@ -2762,8 +2834,9 @@ export function createPanel(dependencies) {
                                                 if (typeof refreshManifest === 'function') refreshManifest();
                                                 if (typeof refreshRenderedView === 'function') refreshRenderedView();
                                             };
-                                            await showPortraitSettingsMenu(item.label, refreshPopupPortrait, item.content || '');
-                                        });
+                                            chatCommitResult(ownsChat, await showPortraitSettingsMenu(item.label, refreshPopupPortrait, item.content || ''));
+
+                                        }));
                                     }
 
                                     const npcShowPane = (pane) => {
@@ -2774,19 +2847,24 @@ export function createPanel(dependencies) {
                                     };
 
                                     editBtn.addEventListener('click', () => {
+                                        if (!ownsChat()) return;
                                         textarea.value = item.content || '';
                                         npcShowPane(editPane);
                                         textarea.focus();
                                     });
 
-                                    libraryBtn?.addEventListener('click', async () => {
-                                        await saveCampaignNpcToLibrary(item);
-                                    });
+                                    libraryBtn?.addEventListener('click', ignoreChatCancellation(async () => {
+
+                                        if (!ownsChat()) return;
+                                        chatCommitResult(ownsChat, await saveCampaignNpcToLibrary(item));
+
+                                    }));
 
                                     cancelBtn.addEventListener('click', () => npcShowPane(viewPane));
 
                                     // ── AI Edit ─────────────────────────────────────────
                                     aiEditBtn.addEventListener('click', () => {
+                                        if (!ownsChat()) return;
                                         aiPreviewPane.style.display = 'none';
                                         aiInstructionsEl.value = '';
                                         npcShowPane(aiEditPane);
@@ -2795,7 +2873,9 @@ export function createPanel(dependencies) {
 
                                     aiCancelBtn.addEventListener('click', () => npcShowPane(viewPane));
 
-                                    const runNpcAiEdit = async () => {
+                                    const runNpcAiEdit = ignoreChatCancellation(async () => {
+
+                                        if (!ownsChat()) return;
                                         const instructions = aiInstructionsEl.value.trim();
                                         if (!instructions) { toastr['warning']('请描述您想要修改的内容。', 'AI 编辑'); return; }
                                         aiGenerateBtn.disabled = true; aiRegenBtn.disabled = true;
@@ -2816,7 +2896,7 @@ export function createPanel(dependencies) {
                                         const sysPrompt = `You are a character editor for a roleplay lorebook system. The user wants to make specific changes to an existing NPC entry. Output the ENTIRE revised entry with the requested changes applied — keep the same format and everything else identical. Do not add preambles or commentary. Output only the revised entry text.`;
                                         const userMsg = `CURRENT NPC ENTRY:\n${item.content || ''}\n\nREQUESTED CHANGES:\n${instructions}\n\nOutput the full revised entry now.`;
                                         try {
-                                            const result = await sendStateRequest(aiSettings, sysPrompt, userMsg);
+                                            const result = chatCommitResult(ownsChat, await sendStateRequest(aiSettings, sysPrompt, userMsg));
                                             const trimmed = (result || '').trim();
                                             if (trimmed) {
                                                 aiPreviewText.value = trimmed;
@@ -2825,16 +2905,20 @@ export function createPanel(dependencies) {
                                                 toastr['warning']('AI返回了空结果，请重试。', 'AI编辑');
                                             }
                                         } catch (err) {
+                                            if (!ownsChat()) return;
+
                                             toastr['error'](`AI 编辑失败：${String(err.message || err).substring(0, 120)}`, 'AI编辑');
                                         }
                                         aiGenerateBtn.disabled = false; aiRegenBtn.disabled = false;
                                         aiGenerateBtn.textContent = '✨ 生成';
-                                    };
+                                    });
 
                                     aiGenerateBtn.addEventListener('click', runNpcAiEdit);
                                     aiRegenBtn.addEventListener('click', runNpcAiEdit);
 
-                                    aiApplyBtn.addEventListener('click', async () => {
+                                    aiApplyBtn.addEventListener('click', ignoreChatCancellation(async () => {
+
+                                        if (!ownsChat()) return;
                                         if (isRouterRunning()) {
                                             // @ts-ignore
                                             toastr.warning('Agent 正在运行——请等待其完成后再保存。', 'Lorebook Agent');
@@ -2842,16 +2926,16 @@ export function createPanel(dependencies) {
                                         }
                                         aiApplyBtn.disabled = true;
                                         aiApplyBtn.textContent = '…';
-                                        const ok = await updateLorebookEntry(item.id, {
+                                        const ok = chatCommitResult(ownsChat, await updateLorebookEntry(item.id, {
                                             content: aiPreviewText.value,
                                             key: item.keys,
                                             comment: item.label,
-                                        });
+                                        }));
                                         if (ok) {
                                             item.content = aiPreviewText.value;
                                             _dirtyEntries.delete(item.id);
                                             document.dispatchEvent(new CustomEvent('rt_lore_agent_updated'));
-                                            await refreshManifest();
+                                            chatCommitResult(ownsChat, await refreshManifest());
                                             const newHtml = renderSectionsHtml(item.content);
                                             sectionsDiv.innerHTML = newHtml || `<div style="font-size:14px;color:var(--SmartThemeBodyColor, inherit);opacity:0.5;font-style:italic;padding:16px 0;">未找到结构化段落。</div>`;
                                             npcShowPane(viewPane);
@@ -2863,11 +2947,13 @@ export function createPanel(dependencies) {
                                         }
                                         aiApplyBtn.disabled = false;
                                         aiApplyBtn.textContent = '✅ 应用';
-                                    });
+
+                                    }));
 
                                     const clearLogBtn = popupDom.querySelector('.rt-npc-log-clear-btn');
                                     if (clearLogBtn) {
                                         clearLogBtn.addEventListener('click', () => {
+                                            if (!ownsChat()) return;
                                             if (confirm('确定清除此 NPC 的关系历史记录吗？（此操作无法撤销）')) {
                                                 const cleanS = getSettings();
                                                 if (cleanS.npcRelationshipLog) {
@@ -2896,6 +2982,7 @@ export function createPanel(dependencies) {
                                         let originalValue = parseInt(slider.value, 10) || 0;
 
                                         slider.addEventListener('input', () => {
+                                            if (!ownsChat()) return;
                                             const val = parseInt(slider.value, 10) || 0;
                                             const relMax = getNpcRelationshipMax(s);
                                             const pct = relationshipBarPct(val, relMax);
@@ -2916,6 +3003,7 @@ export function createPanel(dependencies) {
                                         });
 
                                         slider.addEventListener('change', () => {
+                                            if (!ownsChat()) return;
                                             const val = clampRelationshipValue(parseInt(slider.value, 10) || 0, getNpcRelationshipMax(s));
                                             slider.value = String(val);
                                             input.value = String(val);
@@ -2969,6 +3057,7 @@ export function createPanel(dependencies) {
                                         });
 
                                         input.addEventListener('input', () => {
+                                            if (!ownsChat()) return;
                                             const typed = Number(input.value);
                                             if (!Number.isFinite(typed)) return;
                                             const val = clampRelationshipValue(Math.trunc(typed), getNpcRelationshipMax(s));
@@ -2977,6 +3066,7 @@ export function createPanel(dependencies) {
                                         });
 
                                         input.addEventListener('change', () => {
+                                            if (!ownsChat()) return;
                                             const typed = Number(input.value);
                                             const val = Number.isFinite(typed)
                                                 ? clampRelationshipValue(Math.trunc(typed), getNpcRelationshipMax(s))
@@ -2993,7 +3083,9 @@ export function createPanel(dependencies) {
                                         bindSlider('affection');
                                     }
 
-                                    saveBtn.addEventListener('click', async () => {
+                                    saveBtn.addEventListener('click', ignoreChatCancellation(async () => {
+
+                                        if (!ownsChat()) return;
                                         if (isRouterRunning()) {
                                             // @ts-ignore
                                             toastr.warning('Agent 正在运行——请等待其完成后再保存。', 'Lorebook Agent');
@@ -3001,16 +3093,16 @@ export function createPanel(dependencies) {
                                         }
                                         saveBtn.disabled = true;
                                         saveBtn.textContent = '…';
-                                        const ok = await updateLorebookEntry(item.id, {
+                                        const ok = chatCommitResult(ownsChat, await updateLorebookEntry(item.id, {
                                             content: textarea.value,
                                             key: item.keys,
                                             comment: item.label,
-                                        });
+                                        }));
                                         if (ok) {
                                             item.content = textarea.value;
                                             _dirtyEntries.delete(item.id);
                                             document.dispatchEvent(new CustomEvent('rt_lore_agent_updated'));
-                                            await refreshManifest();
+                                            chatCommitResult(ownsChat, await refreshManifest());
                                             // @ts-ignore
                                             toastr.success('条目已保存。', 'Lorebook Agent');
                                             const newHtml = renderSectionsHtml(item.content);
@@ -3023,31 +3115,32 @@ export function createPanel(dependencies) {
                                         }
                                         saveBtn.disabled = false;
                                         saveBtn.textContent = '💾 保存';
-                                    });
+
+                                    }));
 
                                     // Show popup with DOM element (upstream approach)
 
                                     const popupOpts = { okButton: '关闭', cancelButton: false, wide: true, large: true };
-                                    await ctx.callGenericPopup(popupDom, ctx.POPUP_TYPE?.TEXT ?? 1, '', popupOpts);
+                                    chatCommitResult(ownsChat, await ctx.callGenericPopup(popupDom, ctx.POPUP_TYPE?.TEXT ?? 1, '', popupOpts));
                                     // Close while Edit Text is open should persist (Cancel discards; Close keeps).
                                     if (editPane.style.display !== 'none' && textarea.value !== (item.content || '')) {
                                         if (!isRouterRunning()) {
-                                            const ok = await updateLorebookEntry(item.id, {
+                                            const ok = chatCommitResult(ownsChat, await updateLorebookEntry(item.id, {
                                                 content: textarea.value,
                                                 key: item.keys,
                                                 comment: item.label,
-                                            });
+                                            }));
                                             if (ok) {
                                                 item.content = textarea.value;
                                                 _dirtyEntries.delete(item.id);
                                                 document.dispatchEvent(new CustomEvent('rt_lore_agent_updated'));
-                                                await refreshManifest();
+                                                chatCommitResult(ownsChat, await refreshManifest());
                                                 // @ts-ignore
                                                 toastr.success('条目已保存。', 'Lorebook Agent');
                                             }
                                         }
                                     }
-                                };
+                                });
                                 globalThis._rpgAgentOpenNpcDetail = openNpcDetailPopup;
                                 globalThis._rpgAgentParseRelationship = parseRelationship;
 
@@ -3086,7 +3179,9 @@ export function createPanel(dependencies) {
                                     return substituteDisplayMacros(lines.slice(0, 2).join(' ').substring(0, 260));
                                 };
 
-                                openLocationDetailPopup = async (item, fullPath) => {
+                                openLocationDetailPopup = ignoreChatCancellation(async (item, fullPath) => {
+
+                                    if (!ownsChat()) return;
                                     const ctx = SillyTavern.getContext();
                                     if (!ctx.callGenericPopup) return;
 
@@ -3148,38 +3243,45 @@ export function createPanel(dependencies) {
                                     const saveBtn = /** @type {HTMLButtonElement} */ (popupDom.querySelector('.rt-loc-popup-save-btn'));
 
                                     if (heroWrap) {
-                                        heroWrap.addEventListener('click', async (e) => {
+                                        heroWrap.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                            if (!ownsChat()) return;
                                             e.stopPropagation();
                                             const refreshPopupHero = () => {
                                                 const meta = resolveLocationImageWithMeta(normPath);
                                                 heroWrap.innerHTML = renderLocPopupHeroInner(meta.src);
                                                 if (typeof refreshManifest === 'function') refreshManifest();
                                             };
-                                            await showLocationImageSettingsMenu(normPath, refreshPopupHero, stripDungeonMapSection(item.content || ''));
-                                        });
+                                            chatCommitResult(ownsChat, await showLocationImageSettingsMenu(normPath, refreshPopupHero, stripDungeonMapSection(item.content || '')));
+
+                                        }));
                                     }
 
                                     if (editBtn && viewPane && editPane && textarea) {
                                         editBtn.addEventListener('click', () => {
+                                            if (!ownsChat()) return;
                                             textarea.value = item.content || '';
                                             viewPane.style.display = 'none';
                                             editPane.style.display = 'flex';
                                         });
                                         cancelBtn?.addEventListener('click', () => {
+                                            if (!ownsChat()) return;
                                             editPane.style.display = 'none';
                                             viewPane.style.display = 'block';
                                         });
-                                        saveBtn?.addEventListener('click', async () => {
+                                        saveBtn?.addEventListener('click', ignoreChatCancellation(async () => {
+
+                                            if (!ownsChat()) return;
                                             if (isRouterRunning()) {
                                                 toastr.warning('Agent 正在运行——请等待其完成后再保存。', 'Lorebook Agent');
                                                 return;
                                             }
                                             saveBtn.disabled = true;
-                                            const ok = await updateLorebookEntry(item.id, {
+                                            const ok = chatCommitResult(ownsChat, await updateLorebookEntry(item.id, {
                                                 content: textarea.value,
                                                 key: item.keys,
                                                 comment: item.label,
-                                            });
+                                            }));
                                             if (ok) {
                                                 item.content = textarea.value;
                                                 editPane.style.display = 'none';
@@ -3190,18 +3292,19 @@ export function createPanel(dependencies) {
                                                         || `<div style="font-size:13px;opacity:0.55;font-style:italic;">${escapeHtml(getLocationDescription(item.content))}</div>`;
                                                 }
                                                 toastr.success('位置条目已保存。', 'Lorebook Agent');
-                                                await refreshManifest();
+                                                chatCommitResult(ownsChat, await refreshManifest());
                                             } else {
                                                 toastr.error('保存失败。', 'Lorebook Agent');
                                             }
                                             saveBtn.disabled = false;
-                                        });
+
+                                        }));
                                     }
 
-                                    await ctx.callGenericPopup(popupDom, ctx.POPUP_TYPE?.TEXT ?? 1, '', {
+                                    chatCommitResult(ownsChat, await ctx.callGenericPopup(popupDom, ctx.POPUP_TYPE?.TEXT ?? 1, '', {
                                         okButton: '关闭', cancelButton: false, wide: true, large: true,
+                                    }));
                                     });
-                                };
                                 globalThis._rpgAgentOpenLocationDetail = openLocationDetailPopup;
                             }
 
@@ -3288,6 +3391,7 @@ export function createPanel(dependencies) {
 
                                     // Click card body → toggle inline view
                                     card.addEventListener('click', (e) => {
+                                        if (!ownsChat()) return;
                                         if (/** @type {HTMLElement} */ (e.target).closest('.rt-npc-portrait-wrap, .rt-npc-portrait-gen-overlay, .rt-npc-action-btn, .rt-npc-view, .rt-npc-library, .rt-npc-edit, .rt-npc-clean, .rt-npc-delete, textarea, input, button, select')) return;
                                         const body = ensureEntryBody();
                                         const opening = body.style.display === 'none';
@@ -3305,31 +3409,39 @@ export function createPanel(dependencies) {
                                     // Portrait click/generate overlay handlers
                                     const portraitWrap = card.querySelector('.rt-npc-portrait-wrap');
                                     if (portraitWrap) {
-                                        portraitWrap.addEventListener('click', async (e) => {
+                                        portraitWrap.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                            if (!ownsChat()) return;
                                             e.stopPropagation();
                                             const refreshBoth = () => {
                                                 if (typeof refreshManifest === 'function') refreshManifest();
                                                 if (typeof refreshRenderedView === 'function') refreshRenderedView();
                                             };
-                                            await showPortraitSettingsMenu(item.label, refreshBoth, item.content || '');
-                                        });
+                                            chatCommitResult(ownsChat, await showPortraitSettingsMenu(item.label, refreshBoth, item.content || ''));
+
+                                        }));
                                     }
 
                                     // Action button handlers
                                     const viewBtn = card.querySelector('.rt-npc-view');
                                     if (viewBtn) viewBtn.addEventListener('click', (e) => {
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
                                         openNpcDetailPopup(item, parseRelationship(item.id));
                                     });
 
                                     const libBtn = card.querySelector('.rt-npc-library');
-                                    if (libBtn) libBtn.addEventListener('click', async (e) => {
+                                    if (libBtn) libBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
-                                        await saveCampaignNpcToLibrary(item);
-                                    });
+                                        chatCommitResult(ownsChat, await saveCampaignNpcToLibrary(item));
+
+                                    }));
 
                                     const editBtn = card.querySelector('.rt-npc-edit');
                                     if (editBtn) editBtn.addEventListener('click', (e) => {
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
                                         const body = ensureEntryBody();
                                         // Always open the entry body
@@ -3350,35 +3462,43 @@ export function createPanel(dependencies) {
                                     });
 
                                     const cleanBtn = card.querySelector('.rt-npc-clean');
-                                    if (cleanBtn) cleanBtn.addEventListener('click', async (e) => {
+                                    if (cleanBtn) cleanBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
                                         if (isRouterRunning()) { toastr['warning']('Agent 正在运行中。'); return; }
                                         const [bk, uid] = item.id.split('::');
-                                        await runRouterPass(null, `__CLEANUP__::${bk}::${uid}`, null, true);
-                                        await refreshManifest();
-                                    });
+                                        chatCommitResult(ownsChat, await runRouterPass(null, `__CLEANUP__::${bk}::${uid}`, null, true));
+                                        chatCommitResult(ownsChat, await refreshManifest());
+
+                                    }));
 
                                     const pinBtn = card.querySelector('.rt-npc-pin');
-                                    if (pinBtn) pinBtn.addEventListener('click', async (e) => {
+                                    if (pinBtn) pinBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
                                         const nextPinned = !item.is_pinned;
                                         const ok = setLorebookEntryPinned(item.id, nextPinned);
                                         if (ok) {
                                             item.is_pinned = nextPinned;
                                             if (nextPinned) item.is_active = true;
-                                            await refreshManifest();
+                                            chatCommitResult(ownsChat, await refreshManifest());
                                             if (typeof runtimeState.renderRouterUI === 'function') runtimeState.renderRouterUI();
                                             toastr['info'](nextPinned
                                                 ? `已固定“${item.label}”——始终生效`
                                                 : `已取消固定“${item.label}”`, 'Lorebook Agent');
                                         }
-                                    });
+
+                                    }));
 
                                     const delBtn = card.querySelector('.rt-npc-delete');
-                                    if (delBtn) delBtn.addEventListener('click', async (e) => {
+                                    if (delBtn) delBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                        if (!ownsChat()) return;
                                         e.stopPropagation();
                                         if (confirm(`确认删除 NPC“${item.label}”？`)) {
-                                            const ok = await deleteLorebookEntry(item.id);
+                                            const ok = chatCommitResult(ownsChat, await deleteLorebookEntry(item.id));
                                             if (ok) {
                                                 _dirtyEntries.delete(item.id);
                                                 _openEntries.delete(item.id);
@@ -3387,16 +3507,19 @@ export function createPanel(dependencies) {
                                                 if (delSettings.npcRelationshipValues) {
                                                     delete delSettings.npcRelationshipValues[item.id];
                                                 }
-                                                await refreshManifest();
+                                                chatCommitResult(ownsChat, await refreshManifest());
                                                 toastr['success'](`已删除“${item.label}”`, 'NPCs');
                                             }
                                         }
-                                    });
+
+                                    }));
 
                                     // Portrait drag-and-drop
                                     if (portraitWrap) {
-                                        portraitWrap.addEventListener('dragover', (e) => { e.preventDefault(); portraitWrap.style.borderColor = '#d4a940'; });
-                                        portraitWrap.addEventListener('dragleave', () => { portraitWrap.style.borderColor = ''; });
+                                        portraitWrap.addEventListener('dragover', (e) => {
+                                            if (!ownsChat()) return; e.preventDefault(); portraitWrap.style.borderColor = '#d4a940'; });
+                                        portraitWrap.addEventListener('dragleave', () => {
+                                            if (!ownsChat()) return; portraitWrap.style.borderColor = ''; });
                                         portraitWrap.addEventListener('drop', async (e) => {
                                             e.preventDefault();
                                             portraitWrap.style.borderColor = '';
@@ -3701,6 +3824,7 @@ export function createPanel(dependencies) {
                                     const viewNpcBtn = entryHdr.querySelector('.rt-agent-entry-view-npc');
                                     if (viewNpcBtn && node.item && openNpcDetailPopup && parseRelationship) {
                                         viewNpcBtn.addEventListener('click', (e) => {
+                                            if (!ownsChat()) return;
                                             e.stopPropagation();
                                             openNpcDetailPopup(node.item, parseRelationship(node.item.id));
                                         });
@@ -3708,15 +3832,19 @@ export function createPanel(dependencies) {
 
                                     const saveNpcBtn = entryHdr.querySelector('.rt-agent-entry-save-npc');
                                     if (saveNpcBtn && node.item) {
-                                        saveNpcBtn.addEventListener('click', async (e) => {
+                                        saveNpcBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                            if (!ownsChat()) return;
                                             e.stopPropagation();
-                                            await saveCampaignNpcToLibrary(node.item);
-                                        });
+                                            chatCommitResult(ownsChat, await saveCampaignNpcToLibrary(node.item));
+
+                                        }));
                                     }
 
                                     const viewLocBtn = entryHdr.querySelector('.rt-agent-entry-view-loc');
                                     if (viewLocBtn && node.item && openLocationDetailPopup && locFullPath) {
                                         viewLocBtn.addEventListener('click', (e) => {
+                                            if (!ownsChat()) return;
                                             e.stopPropagation();
                                             openLocationDetailPopup(node.item, locFullPath);
                                         });
@@ -3724,37 +3852,45 @@ export function createPanel(dependencies) {
 
                                     const dungeonMapBtn = entryHdr.querySelector('.rt-dungeon-map-badge');
                                     if (dungeonMapBtn && node.item) {
-                                        dungeonMapBtn.addEventListener('click', async (e) => {
+                                        dungeonMapBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                            if (!ownsChat()) return;
                                             e.stopPropagation();
-                                            await openDungeonMapPopup(node.item);
-                                        });
+                                            chatCommitResult(ownsChat, await openDungeonMapPopup(node.item));
+
+                                        }));
                                     }
 
                                     const dungeonMapDeleteBtn = entryHdr.querySelector('.rt-dungeon-map-delete');
                                     if (dungeonMapDeleteBtn && node.item) {
-                                        dungeonMapDeleteBtn.addEventListener('click', async (e) => {
+                                        dungeonMapDeleteBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                            if (!ownsChat()) return;
                                             e.stopPropagation();
                                             const label = node.item.label || node.name;
                                             if (!confirm(`从“${label}”移除私人地图？\n\n地点条目与 CORE 保留，此场地的地图演进历史将被清除。`)) return;
-                                            const result = await deleteDungeonMapFromLocationEntry(node.item.id);
+                                            const result = chatCommitResult(ownsChat, await deleteDungeonMapFromLocationEntry(node.item.id));
                                             if (result?.ok) {
-                                                await refreshManifest();
+                                                chatCommitResult(ownsChat, await refreshManifest());
                                                 toastr.success(`已从“${label}”移除地图。`, 'Lorebook Agent');
                                             } else {
                                                 toastr.error(result?.error || '无法移除该地图。', 'Lorebook Agent');
                                             }
-                                        });
+
+                                        }));
                                     }
 
                                     const dungeonMapCreateBtn = entryHdr.querySelector('.rt-dungeon-map-create');
                                     if (dungeonMapCreateBtn) {
-                                        dungeonMapCreateBtn.addEventListener('click', async (e) => {
+                                        dungeonMapCreateBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                            if (!ownsChat()) return;
                                             e.stopPropagation();
                                             const siteRoot = String(node.name || '').trim();
                                             if (!siteRoot) return;
                                             dungeonMapCreateBtn.disabled = true;
                                             try {
-                                                const choice = await promptAndRunLorebookAgentMap(
+                                                const choice = chatCommitResult(ownsChat, await promptAndRunLorebookAgentMap(
                                                     siteRoot,
                                                     node.item?.content || '',
                                                     escapeHtml,
@@ -3764,27 +3900,33 @@ export function createPanel(dependencies) {
                                                         listMappedEvolutionSites,
                                                         lookbackDefault: getSettings()?.mapArchitectLookback,
                                                     },
-                                                );
+                                                ));
                                                 if (choice?.cancelled) return;
                                                 if (choice?.ok) {
-                                                    await refreshManifest();
+                                                    chatCommitResult(ownsChat, await refreshManifest());
                                                 } else {
                                                     toastr.error(choice?.error || '无法创建该地图。', 'Persistent Maps');
                                                 }
                                             } finally {
                                                 dungeonMapCreateBtn.disabled = false;
                                             }
-                                        });
+
+                                        }));
                                     }
 
                                     const locThumbWrap = entryHdr.querySelector('.rt-loc-thumb-wrap');
                                     if (locThumbWrap && node.item && locFullPath) {
-                                        locThumbWrap.addEventListener('click', async (e) => {
+                                        locThumbWrap.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                                            if (!ownsChat()) return;
                                             e.stopPropagation();
-                                            await showLocationImageSettingsMenu(locFullPath, () => refreshManifest(), stripDungeonMapSection(node.item.content || ''));
-                                        });
-                                        locThumbWrap.addEventListener('dragover', (ev) => { ev.preventDefault(); locThumbWrap.classList.add('rt-loc-thumb-drag'); });
-                                        locThumbWrap.addEventListener('dragleave', () => { locThumbWrap.classList.remove('rt-loc-thumb-drag'); });
+                                            chatCommitResult(ownsChat, await showLocationImageSettingsMenu(locFullPath, () => refreshManifest(), stripDungeonMapSection(node.item.content || '')));
+
+                                        }));
+                                        locThumbWrap.addEventListener('dragover', (ev) => {
+                                            if (!ownsChat()) return; ev.preventDefault(); locThumbWrap.classList.add('rt-loc-thumb-drag'); });
+                                        locThumbWrap.addEventListener('dragleave', () => {
+                                            if (!ownsChat()) return; locThumbWrap.classList.remove('rt-loc-thumb-drag'); });
                                         locThumbWrap.addEventListener('drop', async (ev) => {
                                             ev.preventDefault();
                                             ev.stopPropagation();
@@ -3846,6 +3988,7 @@ export function createPanel(dependencies) {
 
                                     if (node.item) {
                                         entryHdr.addEventListener('click', (e) => {
+                                            if (!ownsChat()) return;
                                             if (/** @type {HTMLElement} */ (e.target).closest('.rt-agent-subfolder-toggle, .rt-agent-entry-delete, .rt-agent-entry-clean, .rt-agent-entry-edit, .rt-agent-entry-pin, .rt-agent-entry-view-npc, .rt-agent-entry-save-npc, .rt-agent-entry-view-loc, .rt-dungeon-map-badge, .rt-dungeon-map-delete, .rt-dungeon-map-create, .rt-dungeon-map-actions, .rt-loc-thumb-wrap')) return;
                                             const opening = entryBody.style.display === 'none';
                                             entryBody.style.display = opening ? 'flex' : 'none';
@@ -3888,23 +4031,28 @@ export function createPanel(dependencies) {
                             list.appendChild(folder);
                         }
                     } catch (e) {
+                        if (!ownsChat()) return;
+
                         if (gen !== _manifestRenderGen) return;
                         console.error('[RPG Tracker] getLorebookManifest decoupled failed:', e);
                         const existingLoading = list.querySelector('#rt-agent-manifest-loading');
                         if (existingLoading) existingLoading.innerHTML = '<span style="color:#ff5555;">加载清单失败。</span>';
                     }
-                };
+                });
                 if (_manifestBypassImmersion) {
-                    await lorebookRenderTask();
+                    chatCommitResult(ownsChat, await lorebookRenderTask());
                 } else {
-                    setTimeout(() => { void lorebookRenderTask(); }, 10);
+                    setTimeout(() => {
+                        if (!ownsChat()) return; void lorebookRenderTask(); }, 10);
                 }
             } catch (e) {
+                if (!ownsChat()) return;
+
                 if (gen !== _manifestRenderGen) return;
                 console.error('[RPG Tracker] refreshManifest failed:', e);
                 list.innerHTML = '<div style="text-align: center; color: #ff5555; font-size: 0.769em; padding: 10px;">渲染玩家角色失败。</div>';
             }
-        };
+        });
 
         const fullRefreshSources = new Set(['manual-button', 'layout-toggle', 'rollback', 'redo']);
         refreshManifest = createCoalescedRefresh(performManifestRefresh, {
@@ -3947,12 +4095,14 @@ export function createPanel(dependencies) {
          * @param {string} bookName - Target lorebook book name
          * @param {string|null} adaptedContent - If provided, use this instead of raw card data
          */
-        const createNpcFromCharCard = async (charCard, bookName, adaptedContent = null) => {
+        const createNpcFromCharCard = ignoreChatCancellation(async (charCard, bookName, adaptedContent = null) => {
             const ctx = SillyTavern.getContext();
             const s = getSettings();
             // Pin before lorebook save / portrait fetch awaits so a mid-import
             // chat switch cannot embed the portrait into the arriving chat.
             const passChatId = getActiveChatId();
+            const ownsChat = createChatCommitGuard(passChatId, getActiveChatId);
+
             let name = charCard.name || 'Unnamed NPC';
             let keys = [name];
 
@@ -4022,7 +4172,8 @@ export function createPanel(dependencies) {
 
             // Load or create the book
             let bookData = null;
-            try { bookData = await ctx.loadWorldInfo(bookName); } catch (_) { }
+            try { bookData = chatCommitResult(ownsChat, await ctx.loadWorldInfo(bookName)); } catch (_) { }
+            if (!ownsChat()) return false;
             if (!bookData) {
                 try {
                     const res = await fetch('/api/worldinfo/get', {
@@ -4036,6 +4187,7 @@ export function createPanel(dependencies) {
                 bookData = { entries: {}, name: bookName, scan_depth: 4, token_budget: 400, recursive: false, extensions: {} };
             }
 
+            if (!ownsChat()) return false;
             // Check for duplicate
             const cleanLabel = name.toLowerCase().trim();
             for (const [, entry] of Object.entries(bookData.entries)) {
@@ -4084,7 +4236,7 @@ export function createPanel(dependencies) {
 
             // The lorebook write belongs to the captured book, but activation and
             // relationship state belong to the live chat only while it still owns this import.
-            if (canCommitPassForChat(passChatId, getActiveChatId())) {
+            if ((ownsChat() && canCommitPassForChat(passChatId, getActiveChatId()))) {
                 rememberCampaignBook(bookName, s);
 
                 // Activate the new entry key
@@ -4104,11 +4256,11 @@ export function createPanel(dependencies) {
             }
 
             // Select the book in ST so native WI (and /world-dependent paths) can see it.
-            if (canCommitPassForChat(passChatId, getActiveChatId()) && typeof ctx.executeSlashCommandsWithOptions === 'function') {
+            if ((ownsChat() && canCommitPassForChat(passChatId, getActiveChatId())) && typeof ctx.executeSlashCommandsWithOptions === 'function') {
                 if (typeof ctx.updateWorldInfoList === 'function') {
                     try { await ctx.updateWorldInfoList(); } catch (_) {}
                 }
-                if (canCommitPassForChat(passChatId, getActiveChatId())) {
+                if ((ownsChat() && canCommitPassForChat(passChatId, getActiveChatId()))) {
                     await ctx.executeSlashCommandsWithOptions(`/world state=on silent=true "${bookName}"`);
                 }
             }
@@ -4138,12 +4290,12 @@ export function createPanel(dependencies) {
 
             // Manual NPC/PC Manager writes do not produce a Lorebook Agent
             // finish event, so enqueue this newly saved entry directly.
-            if (canCommitPassForChat(passChatId, getActiveChatId()) && !appliedPortrait && s.enablePortraits !== false && s.npcPortraits !== false && s.portraitAutoGenerateNpcs) {
+            if ((ownsChat() && canCommitPassForChat(passChatId, getActiveChatId())) && !appliedPortrait && s.enablePortraits !== false && s.npcPortraits !== false && s.portraitAutoGenerateNpcs) {
                 triggerBackgroundPortraitGeneration(name, refreshAll, content);
             }
 
             return true;
-        };
+        });
 
         /**
          * Sends character card data + campaign context to the AI for adaptation.
@@ -4504,7 +4656,9 @@ ${namingRule}`;
             delete document.body.dataset.rtNpcCreatorLoading;
         };
 
-        const openNpcCreatorDialog = async (bookName, prefix) => {
+        const openNpcCreatorDialog = ignoreChatCancellation(async (bookName, prefix) => {
+            const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
             const existingOverlay = document.getElementById(NPC_CREATOR_OVERLAY_ID);
             if (existingOverlay || document.body.dataset.rtNpcCreatorLoading) {
                 existingOverlay?.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -4521,27 +4675,29 @@ ${namingRule}`;
             let existingNpcNames = [];
             let targetBookData = null;
             try {
-                targetBookData = await ctx.loadWorldInfo(bookName);
+                targetBookData = chatCommitResult(ownsChat, await ctx.loadWorldInfo(bookName));
                 if (targetBookData && targetBookData.entries) {
                     existingNpcNames = Object.values(targetBookData.entries)
                         .map(e => (e.comment || '').replace(/^\[.*?\]\s*/i, '').trim())
                         .filter(Boolean);
                 }
-            } catch (_) { }
+            } catch (_) {
+                if (!ownsChat()) return;
+            }
 
             // Fetch character list with timeout to prevent UI hang
             let allChars = [];
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 15000);
-                const res = await fetch('/api/characters/all', {
+                const res = chatCommitResult(ownsChat, await fetch('/api/characters/all', {
                     method: 'POST', headers: getRequestHeaders(),
                     body: JSON.stringify({}),
                     signal: controller.signal,
-                });
+                }));
                 clearTimeout(timeoutId);
                 if (res.ok) {
-                    const raw = await res.json();
+                    const raw = chatCommitResult(ownsChat, await res.json());
                     // Strip heavy fields to reduce memory — keep only what we need
                     allChars = (Array.isArray(raw) ? raw : []).map(c => ({
                         name: c.name || '',
@@ -4555,6 +4711,8 @@ ${namingRule}`;
                     allChars.sort((a, b) => (b.date_added || 0) - (a.date_added || 0));
                 }
             } catch (err) {
+                if (!ownsChat()) return;
+
                 if (err.name === 'AbortError') {
                     toastr['error']('角色列表请求超时，请重试。', 'NPC 导入');
                 } else {
@@ -4622,6 +4780,7 @@ ${namingRule}`;
                 }
             };
             tabBar.addEventListener('click', (e) => {
+                if (!ownsChat()) return;
                 const tgt = /** @type {HTMLElement} */ (e.target).closest('[data-tab]');
                 if (tgt) switchTab(tgt.dataset.tab);
             });
@@ -4630,10 +4789,13 @@ ${namingRule}`;
             popup.appendChild(tabBar);
             for (const { id } of tabDefs) popup.appendChild(tabPanels[id]);
             overlay.appendChild(popup);
-            overlay.addEventListener('click', (e) => { if (e.target === overlay) dismissOverlay(); });
+            overlay.addEventListener('click', (e) => {
+                if (!ownsChat()) return; if (e.target === overlay) dismissOverlay(); });
 
             // ── Helper: AI preview + add flow ──────────────────────────────
-            const showNpcPreviewAndAdd = async (generatedTag, defaultName, toastLabel, originalAvatar = null, portraitSrc = null) => {
+            const showNpcPreviewAndAdd = ignoreChatCancellation(async (generatedTag, defaultName, toastLabel, originalAvatar = null, portraitSrc = null) => {
+
+                if (!ownsChat()) return;
                 if (!ctx.callGenericPopup) return;
                 const parsed = parseNpcTag(generatedTag);
                 const nameToAdd = parsed ? parsed.name : defaultName;
@@ -4641,7 +4803,9 @@ ${namingRule}`;
                 // Check for duplicate
                 let isDuplicate = false;
                 let bookData = null;
-                try { bookData = await ctx.loadWorldInfo(bookName); } catch (_) { }
+                try { bookData = chatCommitResult(ownsChat, await ctx.loadWorldInfo(bookName)); } catch (_) {
+                    if (!ownsChat()) return;
+                }
                 if (bookData && bookData.entries) {
                     const cleanLabel = nameToAdd.toLowerCase().trim();
                     for (const [, entry] of Object.entries(bookData.entries)) {
@@ -4666,19 +4830,23 @@ ${namingRule}`;
 
                 let finalContent = generatedTag;
                 setTimeout(() => {
+                    if (!ownsChat()) return;
                     const ta = document.getElementById(taId);
-                    if (ta) { ta.addEventListener('input', () => { finalContent = ta.value; }); ta.focus(); }
+                    if (ta) { ta.addEventListener('input', () => {
+                        if (!ownsChat()) return; finalContent = ta.value; }); ta.focus(); }
                 }, 0);
-                const result = await ctx.callGenericPopup(previewHtml, ctx.POPUP_TYPE?.CONFIRM ?? 1, '', {
+                const result = chatCommitResult(ownsChat, await ctx.callGenericPopup(previewHtml, ctx.POPUP_TYPE?.CONFIRM ?? 1, '', {
                     okButton: '✅ 添加 NPC', cancelButton: '取消', wide: false,
-                });
+                }));
                 if (result) {
                     const finalParsed = parseNpcTag(finalContent);
                     const finalName = finalParsed ? finalParsed.name : nameToAdd;
 
                     // Final duplicate verification
                     let finalBookData = null;
-                    try { finalBookData = await ctx.loadWorldInfo(bookName); } catch (_) { }
+                    try { finalBookData = chatCommitResult(ownsChat, await ctx.loadWorldInfo(bookName)); } catch (_) {
+                        if (!ownsChat()) return;
+                    }
                     if (finalBookData && finalBookData.entries) {
                         const cleanLabel = finalName.toLowerCase().trim();
                         for (const [, entry] of Object.entries(finalBookData.entries)) {
@@ -4691,14 +4859,14 @@ ${namingRule}`;
                     }
 
                     const fakeCard = { name: finalName, avatar: originalAvatar, portraitSrc };
-                    const ok = await createNpcFromCharCard(fakeCard, bookName, finalContent);
+                    const ok = chatCommitResult(ownsChat, await createNpcFromCharCard(fakeCard, bookName, finalContent));
                     if (ok) {
                         toastr['success'](`已将 "${finalName}" 添加为 NPC。`, toastLabel);
                         dismissOverlay();
-                        await refreshManifest();
+                        chatCommitResult(ownsChat, await refreshManifest());
                     }
                 }
-            };
+            });
 
             // ── Tab 1: Import from Character Card ──────────────────────────
             {
@@ -4770,50 +4938,60 @@ ${namingRule}`;
                         directBtn.title = getSettings().npcAddAsIsMode === 'ai_review'
                             ? 'AI 审查模式：添加前将角色卡发送给 AI 进行最小逻辑审查（仅处理时代/世界观冲突）。'
                             : '逐字模式：按原样将角色卡内容包入 [CORE][/CORE]，不涉及 AI。';
-                        directBtn.addEventListener('click', async () => {
+                        directBtn.addEventListener('click', ignoreChatCancellation(async () => {
+
+                            if (!ownsChat()) return;
                             const mode = getSettings().npcAddAsIsMode ?? 'ai_review';
                             directBtn.disabled = true;
                             directBtn.textContent = mode === 'ai_review' ? '⏳ 审查中...' : '⏳ 添加中...';
                             try {
                                 if (mode === 'ai_review') {
                                     // Minimal AI review pass — fix only world/era impossibilities
-                                    const reviewed = await minimalReviewNpcWithAI(char);
+                                    const reviewed = chatCommitResult(ownsChat, await minimalReviewNpcWithAI(char));
                                     if (!reviewed) { directBtn.disabled = false; directBtn.textContent = '+ 原样添加'; return; }
-                                    await showNpcPreviewAndAdd(reviewed, char.name, 'NPC 创建器', char.avatar);
+                                    chatCommitResult(ownsChat, await showNpcPreviewAndAdd(reviewed, char.name, 'NPC 创建器', char.avatar));
                                 } else {
                                     // Literal — wrap verbatim, no AI
-                                    const ok = await createNpcFromCharCard(char, bookName);
+                                    const ok = chatCommitResult(ownsChat, await createNpcFromCharCard(char, bookName));
                                     if (ok) {
                                         toastr['success'](`已将 "${char.name}" 添加为 NPC。`, 'NPC 创建器');
                                         dismissOverlay();
-                                        await refreshManifest();
+                                        chatCommitResult(ownsChat, await refreshManifest());
                                     }
                                 }
                             } catch (err) {
+                                if (!ownsChat()) return;
+
                                 toastr['error'](`失败：${String(err.message || err).substring(0, 100)}`, 'NPC 创建器');
                             } finally {
                                 directBtn.disabled = false;
                                 directBtn.textContent = '+ 原样添加';
                             }
-                        });
+
+                        }));
 
                         const aiBtn = document.createElement('button');
                         aiBtn.className = 'rt-charpicker-add-btn ai-adapt';
-                        aiBtn.textContent = '🤖 融入剧情';
-                        aiBtn.addEventListener('click', async () => {
+                        aiBtn.textContent = '🤖 融入故事';
+                        aiBtn.addEventListener('click', ignoreChatCancellation(async () => {
+
+                            if (!ownsChat()) return;
                             aiBtn.disabled = true;
                             aiBtn.textContent = '⏳ 适配中...';
                             try {
-                                const adapted = await adaptNpcWithAI(char);
-                                if (!adapted) { aiBtn.disabled = false; aiBtn.textContent = '🤖 融入剧情'; return; }
-                                await showNpcPreviewAndAdd(adapted, char.name, 'NPC Creator', char.avatar);
+                                const adapted = chatCommitResult(ownsChat, await adaptNpcWithAI(char));
+                                if (!adapted) { aiBtn.disabled = false; aiBtn.textContent = '🤖 融入故事'; return; }
+                                chatCommitResult(ownsChat, await showNpcPreviewAndAdd(adapted, char.name, 'NPC 创建器', char.avatar));
                             } catch (err) {
-                                toastr['error'](`适配失败：${String(err.message || err).substring(0, 100)}`, 'NPC Creator');
+                                if (!ownsChat()) return;
+
+                                toastr['error'](`适配失败：${String(err.message || err).substring(0, 100)}`, 'NPC 创建器');
                             } finally {
                                 aiBtn.disabled = false;
                                 aiBtn.textContent = '🤖 融入剧情';
                             }
-                        });
+
+                        }));
 
                         btnsDiv.appendChild(aiBtn);
                         btnsDiv.appendChild(directBtn);
@@ -4826,14 +5004,17 @@ ${namingRule}`;
                         const loadMore = document.createElement('div');
                         loadMore.className = 'rt-charpicker-load-more';
                         loadMore.textContent = `显示更多（${visible.length}/${filtered.length}）`;
-                        loadMore.addEventListener('click', () => { displayCount += 10; renderList(); });
+                        loadMore.addEventListener('click', () => {
+                            if (!ownsChat()) return; displayCount += 10; renderList(); });
                         listContainer.appendChild(loadMore);
                     }
                 };
                 let searchTimeout = null;
                 searchInput.addEventListener('input', () => {
+                    if (!ownsChat()) return;
                     clearTimeout(searchTimeout);
-                    searchTimeout = setTimeout(() => { currentFilter = searchInput.value.trim(); displayCount = 10; renderList(); }, 200);
+                    searchTimeout = setTimeout(() => {
+                        if (!ownsChat()) return; currentFilter = searchInput.value.trim(); displayCount = 10; renderList(); }, 200);
                 });
                 renderList();
             }
@@ -4868,21 +5049,24 @@ ${namingRule}`;
                 const genBtn = document.createElement('button');
                 genBtn.className = 'rt-npc-generate-btn';
                 genBtn.textContent = '🤖 生成 NPC';
-                genBtn.addEventListener('click', async () => {
+                genBtn.addEventListener('click', ignoreChatCancellation(async () => {
+
+                    if (!ownsChat()) return;
                     const rawDesc = descInput.value.trim();
                     if (!rawDesc) { toastr['warning']('请输入描述。', 'NPC Creator'); return; }
                     genBtn.disabled = true;
                     genBtn.textContent = '⏳ 生成中...';
                     try {
-                        const generated = await generateNpcFromFreeform(nameInput.value.trim(), rawDesc, existingNpcNames);
+                        const generated = chatCommitResult(ownsChat, await generateNpcFromFreeform(nameInput.value.trim(), rawDesc, existingNpcNames));
                         if (!generated) return;
                         const nameFallback = nameInput.value.trim() || 'New NPC';
-                        await showNpcPreviewAndAdd(generated, nameFallback, 'NPC Creator');
+                        chatCommitResult(ownsChat, await showNpcPreviewAndAdd(generated, nameFallback, 'NPC Creator'));
                     } finally {
                         genBtn.disabled = false;
                         genBtn.textContent = '🤖 生成 NPC';
                     }
-                });
+
+                }));
 
                 freeformPanel.appendChild(nameLabel);
                 freeformPanel.appendChild(nameInput);
@@ -4935,6 +5119,7 @@ ${namingRule}`;
                     chip.className = 'rt-archetype-chip';
                     chip.innerHTML = `<span class="rt-archetype-chip-icon">${icon}</span> ${id}`;
                     chip.addEventListener('click', () => {
+                        if (!ownsChat()) return;
                         selectedArchetype = id;
 
                         if (id === 'Custom') {
@@ -4957,6 +5142,7 @@ ${namingRule}`;
                 }
 
                 customInput.addEventListener('input', () => {
+                    if (!ownsChat()) return;
                     selectedArchetype = customInput.value.trim();
                 });
 
@@ -4985,23 +5171,26 @@ ${namingRule}`;
                 const genBtn = document.createElement('button');
                 genBtn.className = 'rt-npc-generate-btn';
                 genBtn.textContent = '🤖 生成 NPC';
-                genBtn.addEventListener('click', async () => {
+                genBtn.addEventListener('click', ignoreChatCancellation(async () => {
+
+                    if (!ownsChat()) return;
                     const role = customInput.value.trim();
                     if (!role) { toastr['warning']('请先选择或输入一个原型/角色。', 'NPC Creator'); return; }
                     genBtn.disabled = true;
                     genBtn.textContent = '⏳ 生成中...';
                     try {
-                        const generated = await generateNpcFromArchetype(
+                        const generated = chatCommitResult(ownsChat, await generateNpcFromArchetype(
                             role, nameInput.value.trim(), conceptInput.value.trim(), existingNpcNames
-                        );
+                        ));
                         if (!generated) return;
                         const nameFallback = nameInput.value.trim() || role;
-                        await showNpcPreviewAndAdd(generated, nameFallback, 'NPC Creator');
+                        chatCommitResult(ownsChat, await showNpcPreviewAndAdd(generated, nameFallback, 'NPC Creator'));
                     } finally {
                         genBtn.disabled = false;
                         genBtn.textContent = '🤖 生成NPC';
                     }
-                });
+
+                }));
 
                 archetypePanel.appendChild(nameLabel);
                 archetypePanel.appendChild(nameInput);
@@ -5060,7 +5249,9 @@ ${namingRule}`;
                     }
                 };
 
-                const installLibraryCardAsPlayerCharacter = async (rec) => {
+                const installLibraryCardAsPlayerCharacter = ignoreChatCancellation(async (rec) => {
+
+                    if (!ownsChat()) return;
                     const chatId = runtimeState.currentChatId || SillyTavern.getContext()?.chatId;
                     if (!chatId) {
                         toastr['warning']('当前没有活动的聊天，无法附加玩家卡。', 'Library');
@@ -5085,10 +5276,10 @@ ${namingRule}`;
                     await applyLibraryPortrait(rec.name, rec.portraitPath);
                     // The card and portrait have been saved for their owner. Do not
                     // launch a CHARACTER update in a different chat after the upload.
-                    if (!canCommitPassForChat(chatId, getActiveChatId())) return true;
+                    if (!ownsChat() || !canCommitPassForChat(chatId, getActiveChatId())) return true;
                     toastr['info'](`正在将"${rec.name}"设为玩家卡并更新[CHARACTER]…`, 'Library');
-                    const result = await sendDirectPrompt(buildApplyLibraryCardAsPcPrompt(rec));
-                    if (typeof refreshAgentManifestNow === 'function') await refreshAgentManifestNow();
+                    const result = chatCommitResult(ownsChat, await sendDirectPrompt(buildApplyLibraryCardAsPcPrompt(rec)));
+                    if (typeof refreshAgentManifestNow === 'function') chatCommitResult(ownsChat, await refreshAgentManifestNow());
                     if (typeof refreshRenderedView === 'function') refreshRenderedView();
                     if (result?.success) {
                         dismissOverlay();
@@ -5098,7 +5289,7 @@ ${namingRule}`;
                         toastr['warning'](`玩家卡已设置。状态追踪器未更新[CHARACTER]：${result?.message || '无更改'}。`, 'Library');
                     }
                     return true;
-                };
+                });
 
                 const renderLibraryList = () => {
                     listContainer.innerHTML = '';
@@ -5164,6 +5355,7 @@ ${namingRule}`;
                         viewBtn.innerHTML = '<i class="fa-solid fa-address-card"></i> 完整卡片';
                         viewBtn.title = '查看完整库卡片（CORE身份与肖像）';
                         viewBtn.addEventListener('click', (e) => {
+                            if (!ownsChat()) return;
                             e.stopPropagation();
                             openLibraryNpcCard(rec);
                         });
@@ -5172,7 +5364,9 @@ ${namingRule}`;
                         addBtn.className = 'rt-charpicker-add-btn direct';
                         addBtn.textContent = '+ 原样添加';
                         addBtn.title = '将此身份连同肖像作为NPC复制到当前故事中。';
-                        addBtn.addEventListener('click', async (e) => {
+                        addBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
                             addBtn.disabled = true;
                             addBtn.textContent = '⏳ 添加中...';
@@ -5182,95 +5376,115 @@ ${namingRule}`;
                                     keys: rec.keys,
                                     portraitSrc: rec.portraitPath || '',
                                 };
-                                const ok = await createNpcFromCharCard(fakeCard, bookName, rec.content);
+                                const ok = chatCommitResult(ownsChat, await createNpcFromCharCard(fakeCard, bookName, rec.content));
                                 if (ok) {
                                     toastr['success'](`已将"${rec.name}"添加为NPC。`, 'Library');
                                     dismissOverlay();
-                                    await refreshManifest();
+                                    chatCommitResult(ownsChat, await refreshManifest());
                                 }
                             } catch (err) {
+                                if (!ownsChat()) return;
+
                                 toastr['error'](`失败：${String(err.message || err).substring(0, 100)}`, 'Library');
                             } finally {
                                 addBtn.disabled = false;
                                 addBtn.textContent = '+ 原样添加';
                             }
-                        });
+
+                        }));
 
                         const aiBtn = document.createElement('button');
                         aiBtn.className = 'rt-charpicker-add-btn ai-adapt';
                         aiBtn.textContent = '🤖 融入故事';
-                        aiBtn.addEventListener('click', async (e) => {
+                        aiBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
                             aiBtn.disabled = true;
                             aiBtn.textContent = '⏳ 适配中…';
                             try {
-                                const adapted = await adaptNpcWithAI({
+                                const adapted = chatCommitResult(ownsChat, await adaptNpcWithAI({
                                     name: rec.name,
                                     description: rec.content,
                                     personality: '',
-                                });
+                                }));
                                 if (!adapted) { aiBtn.disabled = false; aiBtn.textContent = '🤖 融入故事'; return; }
-                                await showNpcPreviewAndAdd(adapted, rec.name, 'NPC Library', null, rec.portraitPath || '');
+                                chatCommitResult(ownsChat, await showNpcPreviewAndAdd(adapted, rec.name, 'NPC Library', null, rec.portraitPath || ''));
                             } catch (err) {
+                                if (!ownsChat()) return;
+
                                 toastr['error'](`适配失败：${String(err.message || err).substring(0, 100)}`, 'NPC Library');
                             } finally {
                                 aiBtn.disabled = false;
                                 aiBtn.textContent = '🤖 融入故事';
                             }
-                        });
+
+                        }));
 
                         const partyBtn = document.createElement('button');
                         partyBtn.className = 'rt-charpicker-add-btn rt-npc-library-party-btn';
                         partyBtn.textContent = '+ 加入队伍';
                         partyBtn.title = '发送此卡片给 State Tracker，使其加入 [PARTY]。';
-                        partyBtn.addEventListener('click', async (e) => {
+                        partyBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
                             partyBtn.disabled = true;
                             partyBtn.textContent = '⏳ 添加中…';
                             try {
                                 toastr['info'](`正在通过 State Tracker 将“${rec.name}”加入队伍…`, 'Library');
-                                const result = await sendDirectPrompt(buildAddLibraryNpcToPartyPrompt(rec));
+                                const result = chatCommitResult(ownsChat, await sendDirectPrompt(buildAddLibraryNpcToPartyPrompt(rec)));
                                 if (result?.success && result.changed) {
-                                    await applyLibraryPortrait(rec.name, rec.portraitPath);
+                                    chatCommitResult(ownsChat, await applyLibraryPortrait(rec.name, rec.portraitPath));
                                     if (typeof refreshRenderedView === 'function') refreshRenderedView();
                                     dismissOverlay();
                                 } else if (!result?.success && result?.status !== 'busy') {
                                     toastr['error'](result?.message || 'State Tracker 未能添加该队伍成员。', 'Library');
                                 }
                             } catch (err) {
+                                if (!ownsChat()) return;
+
                                 toastr['error'](`失败：${String(err.message || err).substring(0, 100)}`, 'Library');
                             } finally {
                                 partyBtn.disabled = false;
                                 partyBtn.textContent = '+ 加入队伍';
                             }
-                        });
+
+                        }));
 
                         const pcBtn = document.createElement('button');
                         pcBtn.className = 'rt-charpicker-add-btn rt-npc-library-pc-btn';
                         pcBtn.textContent = '▶ 扮演 PC';
                         pcBtn.title = '将此身份设为 Player Card，并请 State Tracker 交换 [CHARACTER]。';
-                        pcBtn.addEventListener('click', async (e) => {
+                        pcBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
                             pcBtn.disabled = true;
                             pcBtn.textContent = '⏳ 设置中…';
                             try {
-                                await installLibraryCardAsPlayerCharacter(rec);
+                                chatCommitResult(ownsChat, await installLibraryCardAsPlayerCharacter(rec));
                             } catch (err) {
+                                if (!ownsChat()) return;
+
                                 toastr['error'](`失败：${String(err.message || err).substring(0, 100)}`, 'Library');
                             } finally {
                                 pcBtn.disabled = false;
                                 pcBtn.textContent = '▶ 扮演 PC';
                             }
-                        });
+
+                        }));
 
                         const exportBtn = document.createElement('button');
                         exportBtn.className = 'rt-npc-library-icon-btn';
                         exportBtn.innerHTML = '<i class="fa-solid fa-file-export"></i>';
                         exportBtn.title = '导出为 .mnpc.json（包含立绘）';
-                        exportBtn.addEventListener('click', async (e) => {
+                        exportBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
                             try {
-                                const hadPortrait = await exportNpcToFile(rec);
+                                const hadPortrait = chatCommitResult(ownsChat, await exportNpcToFile(rec));
                                 if (hadPortrait) {
                                     toastr['success'](`已导出“${rec.name}”（含立绘）。`, 'NPC Library');
                                 } else if (rec.portraitPath) {
@@ -5279,25 +5493,33 @@ ${namingRule}`;
                                     toastr['success'](`已导出“${rec.name}”。`, 'NPC Library');
                                 }
                             } catch (err) {
+                                if (!ownsChat()) return;
+
                                 toastr['error'](`导出失败：${String(err.message || err).substring(0, 100)}`, 'NPC Library');
                             }
-                        });
+
+                        }));
 
                         const delBtn = document.createElement('button');
                         delBtn.className = 'rt-npc-library-icon-btn rt-npc-library-delete-btn';
                         delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
                         delBtn.title = '从图库中移除';
-                        delBtn.addEventListener('click', async (e) => {
+                        delBtn.addEventListener('click', ignoreChatCancellation(async (e) => {
+
+                            if (!ownsChat()) return;
                             e.stopPropagation();
                             if (!confirm(`从图库中移除“${rec.name}”？这不会将其从当前故事中删除。`)) return;
                             try {
-                                await deleteNpcFromLibrary(getSettings(), rec.id);
+                                chatCommitResult(ownsChat, await deleteNpcFromLibrary(getSettings(), rec.id));
                                 toastr['info'](`已从图库中移除“${rec.name}”。`, 'NPC Library');
                                 renderLibraryList();
                             } catch (err) {
+                                if (!ownsChat()) return;
+
                                 toastr['error'](`删除失败：${String(err.message || err).substring(0, 100)}`, 'NPC Library');
                             }
-                        });
+
+                        }));
 
                         const roleRow = document.createElement('div');
                         roleRow.className = 'rt-npc-library-split-row';
@@ -5318,6 +5540,7 @@ ${namingRule}`;
                         item.appendChild(infoDiv);
                         item.appendChild(btnsDiv);
                         item.addEventListener('click', (e) => {
+                            if (!ownsChat()) return;
                             if (e.target.closest('.rt-charpicker-btns, button, a, input')) return;
                             openLibraryNpcCard(rec);
                         });
@@ -5327,8 +5550,10 @@ ${namingRule}`;
 
                 let searchTimeout = null;
                 searchInput.addEventListener('input', () => {
+                    if (!ownsChat()) return;
                     clearTimeout(searchTimeout);
                     searchTimeout = setTimeout(() => {
+                        if (!ownsChat()) return;
                         libraryFilter = searchInput.value.trim().toLowerCase();
                         renderLibraryList();
                     }, 200);
@@ -5342,20 +5567,25 @@ ${namingRule}`;
                 libraryPanel.appendChild(fileInput);
 
                 importBtn.addEventListener('click', (e) => {
+                    if (!ownsChat()) return;
                     e.stopPropagation();
                     fileInput.click();
                 });
-                fileInput.addEventListener('change', async () => {
+                fileInput.addEventListener('change', ignoreChatCancellation(async () => {
+
+                    if (!ownsChat()) return;
                     const files = [...(fileInput.files || [])];
                     fileInput.value = '';
                     if (!files.length) return;
                     let imported = 0;
                     for (const file of files) {
                         try {
-                            const text = await file.text();
-                            const stored = await importNpcPackages(getSettings(), text);
+                            const text = chatCommitResult(ownsChat, await file.text());
+                            const stored = chatCommitResult(ownsChat, await importNpcPackages(getSettings(), text));
                             imported += stored.length;
                         } catch (err) {
+                            if (!ownsChat()) return;
+
                             toastr['error'](`${file.name}: ${String(err.message || err).substring(0, 120)}`, 'NPC Library');
                         }
                     }
@@ -5363,7 +5593,8 @@ ${namingRule}`;
                         toastr['success'](`已导入 ${imported} 个 NPC。`, 'NPC Library');
                         renderLibraryList();
                     }
-                });
+
+                }));
 
                 onNpcLibraryUpdated = () => renderLibraryList();
                 document.addEventListener('rt_npc_library_updated', onNpcLibraryUpdated);
@@ -5377,7 +5608,7 @@ ${namingRule}`;
             } finally {
                 if (!overlayAttached) delete document.body.dataset.rtNpcCreatorLoading;
             }
-        };
+        });
 
         const refreshBtn = agentPanel.querySelector('#rt-agent-manifest-refresh');
         if (refreshBtn) refreshBtn.addEventListener('click', () => refreshManifest('manual-button'));
@@ -5852,7 +6083,9 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
                 hostPanel.classList.add('rt-research-menu-open');
             };
             const agentsBusy = () => isRouterRunning() || isMapUpdaterRunning() || isMapEvolutionRunning();
-            const runManualLorebook = async () => {
+            const runManualLorebook = ignoreChatCancellation(async () => {
+                const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
                 if (agentsBusy()) {
                     toastr.warning('已有代理正在运行。', 'Lorebook Agent');
                     return;
@@ -5861,9 +6094,11 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
                 const { chat } = SillyTavern.getContext();
                 const combinedNarrative = getNarrativeBlocks(chat, -1, !!s.routerIncludeHidden);
                 toastr['info']('正在启动世界书代理流程…');
-                await runRouterPass(combinedNarrative, null, s.routerLookback || 4, true);
-            };
-            const runManualMapUpdater = async () => {
+                chatCommitResult(ownsChat, await runRouterPass(combinedNarrative, null, s.routerLookback || 4, true));
+            });
+            const runManualMapUpdater = ignoreChatCancellation(async () => {
+                const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
                 if (agentsBusy()) {
                     toastr.warning('已有代理正在运行。', 'Map Updater');
                     return;
@@ -5871,7 +6106,7 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
                 const s = getSettings();
                 toastr['info']('正在启动地图更新流程…');
                 updateAgentStatusIndicator(isRouterRunning());
-                const result = await runMapUpdaterPass({ isManual: true, lookback: s.routerLookback || 4 });
+                const result = chatCommitResult(ownsChat, await runMapUpdaterPass({ isManual: true, lookback: s.routerLookback || 4 }));
                 updateAgentStatusIndicator(isRouterRunning());
                 const skipped = result?.skipped;
                 if (skipped === 'location_mapping_off' || skipped === 'dungeon_reality_off') toastr.warning('持久化地图已关闭。', 'Map Updater');
@@ -5882,20 +6117,22 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
                 else if (result?.ok && result?.noop) toastr['info']('没有持久性变化。', 'Map Updater');
                 else if (result?.ok) toastr['success']('占用更新已应用。', 'Map Updater');
                 else toastr.error('无法应用有效的占用更新。', 'Map Updater');
-            };
-            const runManualMapEvolution = async () => {
+            });
+            const runManualMapEvolution = ignoreChatCancellation(async () => {
+                const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
                 if (agentsBusy()) {
                     toastr.warning('已有代理正在运行。', 'Map Evolution');
                     return;
                 }
                 const sites = typeof listMappedEvolutionSites === 'function'
-                    ? await listMappedEvolutionSites()
+                    ? chatCommitResult(ownsChat, await listMappedEvolutionSites())
                     : [];
                 if (!sites.length) {
                     toastr.warning('没有可演化的已映射地点。', 'Map Evolution');
                     return;
                 }
-                const siteRoots = await promptMappedEvolutionSites(sites, escapeHtml);
+                const siteRoots = chatCommitResult(ownsChat, await promptMappedEvolutionSites(sites, escapeHtml));
                 if (!siteRoots) return;
                 if (!siteRoots.length) {
                     toastr.warning('请至少勾选一个已映射地点。', 'Map Evolution');
@@ -5903,7 +6140,7 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
                 }
                 toastr['info']('正在启动地图演化流程…');
                 updateAgentStatusIndicator(isRouterRunning());
-                const result = await runMapEvolutionPass({ trigger: 'manual', isManual: true, siteRoots });
+                const result = chatCommitResult(ownsChat, await runMapEvolutionPass({ trigger: 'manual', isManual: true, siteRoots }));
                 updateAgentStatusIndicator(isRouterRunning());
                 const skipped = result?.skipped;
                 if (skipped === 'location_mapping_off' || skipped === 'dungeon_reality_off') toastr.warning('持久化地图已关闭。', 'Map Evolution');
@@ -5915,7 +6152,7 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
                 else if (result?.ok && result?.applied === 0) toastr['info']('没有持久性变化。', 'Map Evolution');
                 else if (result?.ok) toastr['success']('地图演化已应用。', 'Map Evolution');
                 else toastr.error('无法应用有效的演化更新。', 'Map Evolution');
-            };
+            });
 
             manualRunBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -6757,7 +6994,9 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
     });
 
     // Direct prompt send
-    const promptSend = async () => {
+    const promptSend = ignoreChatCancellation(async () => {
+        const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
         const input = /** @type {HTMLTextAreaElement} */ (panel.querySelector('#rpg-tracker-prompt-input'));
         const msg = input.value.trim();
         if (!msg) return;
@@ -6765,8 +7004,8 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
         panel.querySelector('#rpg-tracker-prompt-btn').classList.remove('active');
         const bar = /** @type {HTMLElement} */ (panel.querySelector('#rpg-tracker-prompt-bar'));
         if (bar) bar.style.display = 'none';
-        await sendDirectPrompt(msg);
-    };
+        chatCommitResult(ownsChat, await sendDirectPrompt(msg));
+    });
     panel.querySelector('#rpg-tracker-prompt-send').addEventListener('click', promptSend);
     panel.querySelector('#rpg-tracker-prompt-input').addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); promptSend(); }
@@ -6777,7 +7016,9 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
     });
 
     // Manual update from panel button
-    const manualUpdate = async (type = 'regular') => {
+    const manualUpdate = ignoreChatCancellation(async (type = 'regular') => {
+        const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
         const { chat, Popup } = SillyTavern.getContext();
         let narrative = "";
         let isFullAudit = false;
@@ -6788,7 +7029,7 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
         } else if (type === 'full') {
             isFullAudit = true;
         } else if (type === 'custom') {
-            const count = await Popup.show.input("RPG Tracker", "需要回溯解析多少条消息？", "5");
+            const count = chatCommitResult(ownsChat, await Popup.show.input("RPG Tracker", "需要回溯解析多少条消息？", "5"));
             if (!count || isNaN(parseInt(count))) return;
             customLookbackN = parseInt(count);
             narrative = getNarrativeBlocks(chat, customLookbackN);
@@ -6797,8 +7038,8 @@ if (activateBooksBtn) activateBooksBtn.addEventListener('click', async () => {
         if (type !== 'full' && !narrative) return toastr['info']("没有可解析的助手消息。", "RPG Tracker");
 
         toastr['info'](isFullAudit ? "正在触发完整上下文审计…" : "正在触发手动状态更新…", "RPG Tracker");
-        await runStateModelPass(narrative, isFullAudit, customLookbackN);
-    };
+        chatCommitResult(ownsChat, await runStateModelPass(narrative, isFullAudit, customLookbackN));
+    });
 
     const updateBtn = panel.querySelector('#rpg-tracker-update-btn');
     const updateMenu = document.createElement('div');

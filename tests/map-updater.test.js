@@ -413,7 +413,7 @@ describe('Map Updater', () => {
         expect(updater).toContain("broadcastStep('finish', 'Already applied.')");
         expect(updater).toContain('Applied ${n} operation');
         expect(updater).not.toContain('checkAndTriggerAutoGenerations');
-        const loadIdx = updater.indexOf('const loaded = await loadActiveDungeonMapContext()');
+        const loadIdx = updater.indexOf('const activeLoaded = chatCommitResult(ownsChat, await loadActiveDungeonMapContext())');
         const runningIdx = updater.indexOf('_mapUpdaterRunning = true');
         const startIdx = updater.indexOf("broadcastStep('start', 'Initializing Map Updater...')");
         expect(loadIdx).toBeGreaterThan(-1);

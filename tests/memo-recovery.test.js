@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createMemoRecoveryManager, MAX_RECOVERY_CHATS, RECOVERY_STORAGE_KEY } from '../src/features/recovery/memo-recovery.js';
+import { invalidateChatCommitGuards } from '../src/state/pass-affinity.js';
 
 function makeManager(settings, hooks = {}) {
     return createMemoRecoveryManager({
@@ -53,7 +54,7 @@ describe('memo recovery manager', () => {
         expect(snapshots['chat-1'].currentMemo).toBe('A longer browser backup');
     });
 
-    it('restores a selected local backup and refreshes dependent views', async () => {
+    it.each([false, true])('restores a selected local backup only for its original chat lifetime (switched=%s)', async switched => {
         const settings = { currentMemo: 'disk memo', lastDelta: 'disk delta', quests: [] };
         const hooks = {
             saveSettings: vi.fn(),
@@ -69,10 +70,23 @@ describe('memo recovery manager', () => {
         settings.memoPersistedBy = snapshots['chat-1'].browserId;
         globalThis.toastr = { success: vi.fn() };
         globalThis.SillyTavern = {
-            getContext: () => ({ callGenericPopup: vi.fn().mockResolvedValue(true) }),
+            getContext: () => ({ chatId: 'chat-1', callGenericPopup: vi.fn(async () => {
+                if (switched) {
+                    invalidateChatCommitGuards();
+                    settings.currentMemo = 'arriving memo';
+                }
+                return true;
+            }) }),
         };
 
         await manager.ensureLocalMemoRecovery('chat-1');
+
+        if (switched) {
+            expect(settings.currentMemo).toBe('arriving memo');
+            expect(hooks.saveSettings).not.toHaveBeenCalled();
+            expect(JSON.parse(localStorage.getItem(RECOVERY_STORAGE_KEY))['chat-1'].currentMemo).toBe('local memo');
+            return;
+        }
 
         expect(settings).toMatchObject({
             currentMemo: 'local memo',

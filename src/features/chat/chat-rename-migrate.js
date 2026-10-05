@@ -9,14 +9,16 @@ import {
 /**
  * After a rename, keep the campaign lorebook stack attached when the new chat
  * filename would derive a different prefix than the books already in use.
- * Pins `routerCampaignPrefixOverride` + anchor to the renamed chat.
+ * Store an explicit rename pin in that chat's partition. Inactive renames must
+ * not change the open chat's live prefix or claim its manual override.
  * @param {object} s
  * @param {string} oldId
  * @param {string} newId
+ * @param {{ activeChatId?: string|null }} [options]
  * @returns {boolean} true when settings were updated
  */
-export function preserveCampaignPrefixAfterRename(s, oldId, newId) {
-    const part = s.chatStates?.[newId];
+export function preserveCampaignPrefixAfterRename(s, oldId, newId, { activeChatId = newId } = {}) {
+    const part = s?.chatStates?.[newId];
     if (!s || !part || !oldId || !newId) return false;
 
     const derivedNew = sanitizeCampaignPrefixString(newId);
@@ -24,33 +26,26 @@ export function preserveCampaignPrefixAfterRename(s, oldId, newId) {
     const fromPart = String(part.routerCampaignPrefix || '').trim();
     const existingOv = (s.routerCampaignPrefixOverride || '').trim();
     const anchor = (s.routerCampaignPrefixOverrideAnchorChatId || '').trim();
+    const isActive = activeChatId === oldId || activeChatId === newId;
+    const ownsOverride = existingOv && (anchor === oldId || anchor === newId || (!anchor && isActive));
+    const priorPin = String(part.renamedCampaignPrefix || '').trim();
+    const preserved = sanitizeCampaignPrefixString(ownsOverride ? existingOv : (priorPin || fromPart || derivedOld));
+    if (!preserved) return false;
 
-    // Bind a legacy (unanchored) or previously-oldId override to the new chat id.
-    if (existingOv && (!anchor || anchor === oldId || anchor === newId)) {
-        const pinned = sanitizeCampaignPrefixString(existingOv);
-        s.routerCampaignPrefixOverride = existingOv;
-        s.routerCampaignPrefixOverrideAnchorChatId = newId;
-        s.routerCampaignPrefix = pinned;
-        part.routerCampaignPrefix = pinned;
-        return true;
-    }
-
-    const preserved = fromPart || derivedOld;
-    if (!preserved || preserved === derivedNew) return false;
-
-    const hasLinkedStack = (Array.isArray(part.campaignBooks) && part.campaignBooks.length > 0)
+    const hasLinkedStack = ownsOverride || !!priorPin
+        || (Array.isArray(part.campaignBooks) && part.campaignBooks.length > 0)
         || (Array.isArray(part.activeRouterKeys) && part.activeRouterKeys.length > 0)
         || (Array.isArray(part.activeWorldKeys) && part.activeWorldKeys.length > 0)
         || (!!fromPart && fromPart !== derivedNew);
     if (!hasLinkedStack) return false;
 
-    // Do not steal an override that belongs to a different chat.
-    if (existingOv && anchor && anchor !== newId && anchor !== oldId) return false;
-
-    s.routerCampaignPrefixOverride = preserved;
-    s.routerCampaignPrefixOverrideAnchorChatId = newId;
-    s.routerCampaignPrefix = preserved;
+    part.renamedCampaignPrefix = preserved;
     part.routerCampaignPrefix = preserved;
+    if (ownsOverride || (isActive && !existingOv)) {
+        s.routerCampaignPrefixOverride = ownsOverride ? existingOv : preserved;
+        s.routerCampaignPrefixOverrideAnchorChatId = newId;
+    }
+    if (isActive) s.routerCampaignPrefix = preserved;
     return true;
 }
 
@@ -70,7 +65,7 @@ const KNOWN_PARTITION_KEYS = new Set([
     'memoHistory', 'dungeonMapHistory', 'lastDelta', 'customPortraits', 'customLocationImages',
     'modules', 'blockOrder', 'stockPrompts', 'quests', 'historyIndex',
     'activeRouterKeys', 'activeWorldKeys', 'keywordActivatedKeys', 'routerLog',
-    'routerCampaignPrefix', 'routerLookback', 'routerLastRunChatLength',
+    'routerCampaignPrefix', 'renamedCampaignPrefix', 'routerLookback', 'routerLastRunChatLength',
     'routerLastRunAt', 'mapUpdaterLastRunChatLength', 'mapUpdaterLastRunAt', 'mapUpdaterLastSiteRoot', 'mapUpdaterPendingExitRoot',
     'mapEvolutionLastFiredBySite', 'mapEvolutionBacklogBySite', 'mapEvolutionThreadsBySite', 'mapEvolutionLastSiteRoot', 'mapEvolutionPendingExitRoot',
     'dungeonMapRevealAll',
@@ -116,7 +111,7 @@ export function partitionHasCampaignSubstance(p) {
     if (!p || typeof p !== 'object' || Array.isArray(p)) return false;
 
     if (Object.keys(p).some((key) => !KNOWN_PARTITION_KEYS.has(key))) return true;
-    if (['currentMemo', 'lastDelta', 'worldProgressionLastFiredPeriodLabel',
+    if (['currentMemo', 'lastDelta', 'renamedCampaignPrefix', 'worldProgressionLastFiredPeriodLabel',
         'worldProgressionSkeletonAtmosphereSummary', 'lastImmersionSceneArtPath',
         'mapUpdaterLastSiteRoot', 'mapEvolutionLastSiteRoot']
         .some((key) => hasText(p[key]))) return true;
@@ -168,27 +163,38 @@ export function partitionLooksEmpty(p) {
  * @param {{
  *   saveSettings: (force?: boolean) => Promise<void>|void,
  *   loadChatState: (chatId: string) => boolean,
+ *   sanitizeFileName?: (fileName: string) => Promise<string>,
  * }} deps
  */
 export async function onChatRenamedMigrate(detail, deps) {
-    const { saveSettings, loadChatState } = deps;
+    const { saveSettings, loadChatState, sanitizeFileName } = deps;
     const oldId = stripChatFileExtension(detail?.oldFileName);
     let newId = stripChatFileExtension(detail?.newFileName);
-    // ST may emit the pre-sanitize name in CHAT_RENAMED while getCurrentChatId()
-    // already reflects the server-sanitized file after reloadCurrentChat().
-    const ctx = SillyTavern.getContext();
-    const liveId = ctx.getCurrentChatId?.() || ctx.chatId || null;
-    if (liveId && oldId && liveId !== oldId) {
-        newId = String(liveId);
-    }
     if (!oldId || !newId || oldId === newId) return;
+    // Keep the exact CHAT_CHANGED shell marker across filename resolution, even
+    // if the user opens a third chat while that request is pending.
+    const pendingReset = runtimeState.pendingUnseenChatReset;
+    if (typeof sanitizeFileName === 'function') {
+        try {
+            newId = stripChatFileExtension(await sanitizeFileName(String(detail.newFileName)));
+        } catch (error) {
+            console.warn('[RPG Tracker] Could not resolve renamed chat filename; retaining original links:', error);
+            toastr['warning']('Chat was renamed, but its new filename could not be verified. Multihog retained the original data links.', 'Chat Rename');
+            return;
+        }
+    }
+    // CHAT_RENAMED describes the renamed file, which need not be the open chat.
+    // In particular, never substitute the unrelated live chat as its destination.
+    if (!newId || oldId === newId) return;
+    const ctx = SillyTavern.getContext();
+    const activeId = ctx.getCurrentChatId?.() || ctx.chatId || runtimeState.currentChatId;
+    const isActiveRename = activeId === oldId || activeId === newId;
 
     const s = getSettings();
     if (!s.chatStates) s.chatStates = {};
 
     const hasOld = Object.prototype.hasOwnProperty.call(s.chatStates, oldId);
     const hasNew = Object.prototype.hasOwnProperty.call(s.chatStates, newId);
-    const pendingReset = runtimeState.pendingUnseenChatReset;
     const resetMatchesRename = pendingReset?.oldId === oldId && pendingReset?.newId === newId;
     const hasLocalMapBaseline = resetMatchesRename && Array.isArray(pendingReset?.preexistingLocalMapKeys);
     const preexistingLocalMapKeys = new Set(
@@ -196,7 +202,9 @@ export async function onChatRenamedMigrate(detail, deps) {
             ? pendingReset.preexistingLocalMapKeys
             : [],
     );
-    if (resetMatchesRename) runtimeState.pendingUnseenChatReset = null;
+    if (resetMatchesRename && runtimeState.pendingUnseenChatReset === pendingReset) {
+        runtimeState.pendingUnseenChatReset = null;
+    }
 
     let migratedPartition = false;
     let partitionCollision = false;
@@ -264,23 +272,22 @@ export async function onChatRenamedMigrate(detail, deps) {
     }
 
     let settingsChanged = migratedPartition;
-    if (migratedPartition && preserveCampaignPrefixAfterRename(s, oldId, newId)) {
+    if (migratedPartition && preserveCampaignPrefixAfterRename(s, oldId, newId, { activeChatId: activeId })) {
         settingsChanged = true;
-    } else if (s.routerCampaignPrefixOverrideAnchorChatId === oldId) {
+    } else if (!partitionCollision && s.routerCampaignPrefixOverrideAnchorChatId === oldId) {
         s.routerCampaignPrefixOverrideAnchorChatId = newId;
         settingsChanged = true;
     }
 
-    if (runtimeState.currentChatId === oldId) {
+    if (isActiveRename && runtimeState.currentChatId === oldId) {
         runtimeState.currentChatId = newId;
     }
-    if (migratedPartition && s.chatStateProjectionOwner === oldId) {
+    if (isActiveRename && migratedPartition && s.chatStateProjectionOwner === oldId) {
         s.chatStateProjectionOwner = newId;
         settingsChanged = true;
     }
 
     // If we are on the renamed chat, ensure live state matches the migrated partition.
-    const activeId = ctx.getCurrentChatId?.() || ctx.chatId || runtimeState.currentChatId;
     if (activeId === newId && migratedPartition && typeof loadChatState === 'function') {
         loadChatState(newId);
     } else if (activeId === newId && migratedPartition && s.chatLinkEnabled) {

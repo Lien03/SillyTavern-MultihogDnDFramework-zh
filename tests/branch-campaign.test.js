@@ -41,6 +41,15 @@ describe('copyChatStatePartition relationship copy', () => {
         for (const key of Object.keys(testExtensionSettings)) delete testExtensionSettings[key];
     });
 
+    it('does not inherit the source campaign rename pin', () => {
+        const s = { chatStates: { source: { renamedCampaignPrefix: 'Original', campaignBooks: ['Original_NPCs'] } } };
+        const copy = copyChatStatePartition(s, 'source', 'branch', 'Branch', { Original_NPCs: 'Branch_NPCs' });
+        expect(copy.renamedCampaignPrefix).toBeUndefined();
+        expect(copy.routerCampaignPrefix).toBe('Branch');
+        expect(copy.campaignBooks).toEqual(['Branch_NPCs']);
+        expect(s.chatStates.source.renamedCampaignPrefix).toBe('Original');
+    });
+
     it('copies and remaps relationship stats onto the cloned lorebook names', () => {
         const s = {
             npcRelationshipValues: { 'Live_NPCs::1': { friendship: 5, affection: 0 } },

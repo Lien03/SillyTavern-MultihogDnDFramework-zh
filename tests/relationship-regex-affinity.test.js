@@ -1,7 +1,9 @@
+import * as chatAffinity from '../src/state/pass-affinity.js';
 import { readFileSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 import { canCommitPassForChat } from '../src/state/pass-affinity.js';
+import { HISTORY_ENTRY_LIMIT } from '../src/state/history-retention.js';
 
 const source = readFileSync(new URL('../narrative-hooks.js', import.meta.url), 'utf8');
 // Run the production handlers with deferred host I/O, without booting SillyTavern.
@@ -24,10 +26,11 @@ function harness() {
     const rollback = vi.fn();
     const resolveName = vi.fn().mockResolvedValue('A_NPCs::1');
     const context = createContext({
-        console: { log() {}, warn() {}, error() {} }, runtimeState: runtime, getSettings: () => settings,
+        ...chatAffinity,
+        console: { log() {}, warn() {}, error() {} }, runtimeState: runtime, getActiveChatId: () => runtime.currentChatId, getSettings: () => settings,
         SillyTavern: { getContext: () => ({ chat: [msg] }) }, _rpgIsGenerating: false,
         getRelationshipUpdateMode: () => 'regex', RELATIONSHIP_UPDATE_MODES: { REGEX: 'regex' },
-        canCommitPassForChat, cleanMessageContent: message => message.mes,
+        canCommitPassForChat, HISTORY_ENTRY_LIMIT, cleanMessageContent: message => message.mes,
         getNpcRelationshipMax: () => 100, clampRelationshipValue: (value, max) => Math.max(-max, Math.min(max, value)),
         fuzzyResolveNpcName: resolveName, persistRelationshipCommandChanges: persist,
         maybeRollbackAgentsForSwipe: rollback,

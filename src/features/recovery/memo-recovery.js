@@ -1,3 +1,6 @@
+import { getActiveChatId } from '../../state/chat-persistence.js';
+import { createChatCommitGuard } from '../../state/pass-affinity.js';
+
 const RECOVERY_STORAGE_KEY = 'rpg_tracker_memo_recovery_v1';
 const RECOVERY_BROWSER_ID_KEY = 'rpg_tracker_recovery_browser_id_v1';
 const MAX_RECOVERY_CHATS = 8;
@@ -88,10 +91,11 @@ export function createMemoRecoveryManager({
     }
 
     async function checkLocalMemoRecovery(chatId) {
+        const ownsChat = createChatCommitGuard(chatId, getActiveChatId);
         let prompted = false;
         let restored = false;
         try {
-            if (!chatId) {
+            if (!ownsChat()) {
                 console.warn('[RPG Tracker] Memo recovery skipped: no chatId yet');
                 return;
             }
@@ -161,6 +165,7 @@ export function createMemoRecoveryManager({
                     animation: 'none',
                 });
             }
+            if (!ownsChat()) return;
             if (result) {
                 settings.currentMemo = entry.currentMemo;
                 settings.lastDelta = entry.lastDelta || settings.lastDelta;
@@ -178,7 +183,7 @@ export function createMemoRecoveryManager({
             recoveryPromptActive = false;
             if (chatId) {
                 bootCheckDone = true;
-                if (prompted) snapshotMemoToLocalStorage(chatId, { force: true, allowDowngrade: !restored });
+                if (prompted && ownsChat()) snapshotMemoToLocalStorage(chatId, { force: true, allowDowngrade: !restored });
             }
         }
     }

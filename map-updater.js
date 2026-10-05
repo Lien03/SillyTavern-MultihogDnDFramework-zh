@@ -1,3 +1,5 @@
+import { createChatCommitGuard, chatCommitResult } from './src/state/pass-affinity.js';
+import { getActiveChatId } from './state-manager.js';
 /** Dedicated ongoing dungeon/settlement occupancy updater. */
 import {
     getSettings,
@@ -66,11 +68,14 @@ export function isMapUpdaterRunning() {
 
 /** Check the post-GM footer without invoking a model; used only to bypass cadence on first entry. */
 export async function shouldForceBuildingPopulationPass() {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     if (!isLocationMappingEnabled(getSettings())) return false;
     try {
-        const loaded = await loadActiveDungeonMapContext();
+        const loaded = chatCommitResult(ownsChat, await loadActiveDungeonMapContext());
         return !!(loaded?.context && resolveBuildingPopulationTarget(loaded.context.document, loaded.currentLocation));
     } catch (error) {
+        if (!ownsChat()) return false;
+
         console.warn('[RPG Tracker] Could not check BUILDING first-entry population:', error);
         return false;
     }
@@ -78,11 +83,14 @@ export async function shouldForceBuildingPopulationPass() {
 
 /** Resolve the mapped site currently selected by the post-narration footer. */
 export async function getActiveMapUpdaterSiteRoot() {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     if (!isLocationMappingEnabled(getSettings())) return '';
     try {
-        const loaded = await loadActiveDungeonMapContext();
+        const loaded = chatCommitResult(ownsChat, await loadActiveDungeonMapContext());
         return String(loaded?.context?.siteRoot || '').trim();
     } catch (error) {
+        if (!ownsChat()) return '';
+
         console.warn('[RPG Tracker] Could not resolve active Map Updater site:', error);
         return '';
     }
@@ -97,6 +105,9 @@ export function stopMapUpdaterPass() {
         _mapUpdaterController.abort();
         _mapUpdaterController = null;
     }
+    _mapUpdaterStarting = false;
+    _mapUpdaterRunning = false;
+    document.dispatchEvent(new CustomEvent('rt_map_updater_status', { detail: { running: false } }));
 }
 
 function broadcastStep(type, content, metadata = {}) {
@@ -418,6 +429,9 @@ export async function maybeRollbackMapUpdaterForSwipe(msg) {
  * @param {{ isManual?: boolean, lookback?: number|null, buildingIntent?: string, directInstruction?: string, siteRoot?: string|null, trigger?: 'normal'|'site_exit', deferWatermark?: boolean, stampSwipe?: boolean }} [options]
  */
 export async function runMapUpdaterPass({ isManual = false, lookback = null, buildingIntent = '', directInstruction = '', siteRoot = null, trigger = 'normal', deferWatermark = false, stampSwipe = true } = {}) {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId, { signal });
     const settings = getSettings();
     if (settings.mapUpdaterEnabled === false && !isManual) return { skipped: 'disabled' };
     if (!isLocationMappingEnabled(settings)) return { skipped: 'location_mapping_off' };
@@ -429,11 +443,12 @@ export async function runMapUpdaterPass({ isManual = false, lookback = null, bui
     const directPass = !!instruction;
     const exitPass = trigger === 'site_exit';
     _mapUpdaterStarting = true;
+    _mapUpdaterController = controller;
     try {
         let loaded;
         let inspectorPass = false;
         if (requestedSite) {
-            const siteLoaded = await loadDungeonMapContextForSite(requestedSite);
+            const siteLoaded = chatCommitResult(ownsChat, await loadDungeonMapContextForSite(requestedSite));
             if (!siteLoaded?.context) return { skipped: 'no_such_map' };
             loaded = {
                 context: siteLoaded.context,
@@ -442,7 +457,7 @@ export async function runMapUpdaterPass({ isManual = false, lookback = null, bui
             };
             inspectorPass = !siteLoaded.isActiveSite && !exitPass;
         } else {
-            const activeLoaded = await loadActiveDungeonMapContext();
+            const activeLoaded = chatCommitResult(ownsChat, await loadActiveDungeonMapContext());
             if (!activeLoaded?.context) return { skipped: 'no_active_map' };
             loaded = activeLoaded;
         }
@@ -455,16 +470,13 @@ export async function runMapUpdaterPass({ isManual = false, lookback = null, bui
         if (_mapUpdaterRunning || isRouterRunning() || isMapEvolutionRunning()) return { skipped: 'busy' };
 
         _mapUpdaterRunning = true;
-        if (_mapUpdaterController) _mapUpdaterController.abort();
-        _mapUpdaterController = new AbortController();
-        const signal = _mapUpdaterController.signal;
         document.dispatchEvent(new CustomEvent('rt_map_updater_status', { detail: { running: true } }));
         broadcastStep('start', 'Initializing Map Updater...');
 
         const kind = normalizeMapSiteKind(loaded.context.document?.kind);
         broadcastStep('thought', `Site: ${loaded.context.siteRoot} (${kind})\nCurrent location: ${loaded.currentLocation || 'Unknown'}`);
 
-        const snapshot = await snapshotCampaignLocationsBook();
+        const snapshot = chatCommitResult(ownsChat, await snapshotCampaignLocationsBook());
         const recentStory = recentStoryContext(ctx, settings, {
             isManual,
             lookback,
@@ -496,7 +508,7 @@ export async function runMapUpdaterPass({ isManual = false, lookback = null, bui
             }
             if (attempt > 0) broadcastStep('thought', `Correction pass ${attempt}...`);
             else broadcastStep('thought', 'Requesting occupancy update...');
-            const output = await sendStateRequest(requestSettings(settings), systemPrompt, prompt, signal);
+            const output = chatCommitResult(ownsChat, await sendStateRequest(requestSettings(settings), systemPrompt, prompt, signal));
             const parsed = parseMapArchitectResponse(output);
             if (!parsed.value) {
                 lastIssues = [{ code: 'INVALID_JSON', path: '$', hint: parsed.error || 'No JSON object was found.' }];
@@ -561,8 +573,8 @@ export async function runMapUpdaterPass({ isManual = false, lookback = null, bui
             }
             broadcastStep('result', summarizeMapUpdaterOperations(parsed.value) || 'Transaction accepted.');
             const mapResult = requestedSite
-                ? await applyDungeonMapCommit(parsed.value, loaded.context, loaded.books, currentTime, { requireActive: false })
-                : await applyActiveDungeonMapCommit(parsed.value, loaded.context, loaded.books, currentTime);
+                ? chatCommitResult(ownsChat, await applyDungeonMapCommit(parsed.value, loaded.context, loaded.books, currentTime, { requireActive: false, canCommit: ownsChat }))
+                : chatCommitResult(ownsChat, await applyActiveDungeonMapCommit(parsed.value, loaded.context, loaded.books, currentTime, { canCommit: ownsChat }));
             if (!mapResult.ok) {
                 lastIssues = mapResult.errors || [{ code: mapResult.code || 'MAP_COMMIT_FAILED', path: 'map', hint: 'Persistence rejected the transaction.' }];
                 if (attempt < MAX_CORRECTION_ATTEMPTS && mapResult.retryable !== false) {
@@ -607,6 +619,8 @@ export async function runMapUpdaterPass({ isManual = false, lookback = null, bui
         broadcastStep('error', concise || 'Validation failure.');
         return { ok: false, errors: lastIssues };
     } catch (error) {
+        if (!ownsChat()) return { skipped: signal.aborted ? 'stopped' : 'chat_changed' };
+
         if (error?.name === 'AbortError') {
             console.log('[RPG Tracker] Map Updater aborted by user.');
             if (_mapUpdaterRunning) broadcastStep('error', 'Stopped by user.');
@@ -616,8 +630,8 @@ export async function runMapUpdaterPass({ isManual = false, lookback = null, bui
         if (_mapUpdaterRunning) broadcastStep('error', String(error?.message || error));
         return { ok: false, error: String(error?.message || error) };
     } finally {
+        if (_mapUpdaterController === controller) {
         _mapUpdaterStarting = false;
-        if (_mapUpdaterRunning) {
             _mapUpdaterRunning = false;
             _mapUpdaterController = null;
             document.dispatchEvent(new CustomEvent('rt_map_updater_status', { detail: { running: false } }));

@@ -1,3 +1,5 @@
+import { createChatCommitGuard, chatCommitResult } from './src/state/pass-affinity.js';
+import { getActiveChatId } from './state-manager.js';
 /**
  * Map Evolution — off-screen site simulation with lazy World Report pressure.
  *
@@ -95,6 +97,9 @@ export function stopMapEvolutionPass() {
         _mapEvolutionController.abort();
         _mapEvolutionController = null;
     }
+    _mapEvolutionStarting = false;
+    _mapEvolutionRunning = false;
+    document.dispatchEvent(new CustomEvent('rt_map_evolution_status', { detail: { running: false } }));
 }
 
 function broadcastStep(type, content, metadata = {}) {
@@ -149,8 +154,17 @@ function reportApplicationsForSite(settings, siteRoot) {
     return settings.mapEvolutionWorldReportApplications[siteKey];
 }
 
-async function loadRecentWorldReports(settings, ctx) {
-    const prefix = getEffectiveRouterCampaignPrefix(ctx.chatId || ctx.getCurrentChatId?.() || '');
+/**
+ * @param {object} settings
+ * @param {object} ctx
+ * @param {string|null|undefined} [chatId] Originating chat — never re-read live ctx.chatId.
+ */
+async function loadRecentWorldReports(settings, ctx, chatId = null) {
+    // Prefer the pinned / tracked chat id — ctx.chatId can lag behind runtimeState during
+    // CHAT_CHANGED, and loading another campaign's World book feeds foreign pressure into
+    // this chat's map mutations / report-application stamps.
+    const id = chatId || getActiveChatId() || ctx?.chatId || ctx?.getCurrentChatId?.() || '';
+    const prefix = getEffectiveRouterCampaignPrefix(id);
     const worldBookName = prefix ? `${prefix}_World` : 'World';
     let book = null;
     try { book = await ctx.loadWorldInfo(worldBookName); } catch (_) {}
@@ -228,6 +242,7 @@ function parseCompressionDigests(raw) {
 }
 
 async function maybeCompressSiteThreads(settings, siteRoot, signal) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId, { signal });
     if (settings.mapEvolutionCompressEnabled === false) return { skipped: 'disabled' };
     const threshold = normalizeMapEvolutionCompressThreshold(settings.mapEvolutionCompressThreshold);
     const stored = storedEvolutionThreads(settings.mapEvolutionThreadsBySite, siteRoot);
@@ -262,13 +277,13 @@ Return JSON only.`;
             throw abortError;
         }
         broadcastStep('thought', `${siteRoot}: compressing evolution history (${tokens} tokens ≥ ${threshold})...`);
-        const output = await sendStateRequest(
+        const output = chatCommitResult(ownsChat, await sendStateRequest(
             req,
             attempt ? `${systemPrompt}\n\nPrevious output was not valid digest JSON. ${lastError}` : systemPrompt,
             userPrompt,
             signal,
             { stream: true, debugSource: 'Map Evolution' },
-        );
+        ));
         const parsed = parseCompressionDigests(output);
         if (parsed.ok) {
             settings.mapEvolutionThreadsBySite = applyCompressedThreadDigests(
@@ -478,6 +493,7 @@ function stampTriggerMessage(ctx, snapshot) {
 }
 
 export async function maybeRollbackMapEvolutionForSwipe(msg) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     if (!msg?.extra || msg.extra.rpgMapEvolutionRanForSwipe === undefined) return false;
     const currentSwipeId = msg.swipe_id ?? 0;
     if (msg.extra.rpgMapEvolutionRanForSwipe === currentSwipeId) return false;
@@ -489,7 +505,7 @@ export async function maybeRollbackMapEvolutionForSwipe(msg) {
     const snapshot = swipeSnapshots.get(swipeSnapshotKey(ctx, msg, msg.extra.rpgMapEvolutionRanForSwipe));
     delete msg.extra.rpgMapEvolutionRanForSwipe;
     if (!snapshot) return false;
-    const restored = await restoreCampaignLocationsBook(snapshot.locationsBook || snapshot, ctx);
+    const restored = chatCommitResult(ownsChat, await restoreCampaignLocationsBook(snapshot.locationsBook || snapshot, ctx));
     if (restored && snapshot.locationsBook) {
         const settings = getSettings();
         settings.mapEvolutionLastFiredBySite = JSON.parse(JSON.stringify(snapshot.lastFiredBySite || {}));
@@ -521,6 +537,7 @@ async function evolveOneSite({
     directInstruction = '',
     recentStory = '',
 }) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId, { signal });
     const partyIsHere = dungeonSiteRootsMatch(site.siteRoot, currentRoot);
     const combatActive = partyIsHere && isCombatActive(settings.currentMemo);
     const bubble = partyIsHere
@@ -595,7 +612,7 @@ AUTHORITATIVE RECENT STORY CONTRACT
         }
         if (attempt > 0) broadcastStep('thought', `${site.siteRoot}: correction pass ${attempt}...`);
         else broadcastStep('thought', `${site.siteRoot}: requesting evolution (${trigger})...`);
-        const output = await sendStateRequest(requestSettings(settings), systemPrompt, prompt, signal, { stream: true, debugSource: 'Map Evolution' });
+        const output = chatCommitResult(ownsChat, await sendStateRequest(requestSettings(settings), systemPrompt, prompt, signal, { stream: true, debugSource: 'Map Evolution' }));
         lastOutput = output;
         const parsed = parseMapArchitectResponse(output);
         if (!parsed.value) {
@@ -642,13 +659,13 @@ AUTHORITATIVE RECENT STORY CONTRACT
             }
             break;
         }
-        const mapResult = await applyDungeonMapCommit(
+        const mapResult = chatCommitResult(ownsChat, await applyDungeonMapCommit(
             transaction,
             site,
             books,
             currentTime,
-            { requireActive: false, frozenAreaIds },
-        );
+            { requireActive: false, frozenAreaIds, canCommit: ownsChat },
+        ));
         if (!mapResult.ok) {
             lastIssues = mapResult.errors || [{ code: mapResult.code || 'MAP_COMMIT_FAILED', path: 'map', hint: 'Persistence rejected the transaction.' }];
             if (attempt < MAX_CORRECTION_ATTEMPTS && mapResult.retryable !== false) {
@@ -749,6 +766,11 @@ export async function runMapEvolutionPass({
     directInstruction = '',
     lookback = null,
 } = {}) {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    const passChatId = getActiveChatId();
+    const ownsProjection = createChatCommitGuard(passChatId, getActiveChatId);
+    const ownsChat = () => ownsProjection() && !signal.aborted;
     hydrateWorldProgressionFromChatState();
     const settings = getSettings();
     const instruction = String(directInstruction || '').trim();
@@ -760,8 +782,9 @@ export async function runMapEvolutionPass({
 
     const ctx = SillyTavern.getContext();
     _mapEvolutionStarting = true;
+    _mapEvolutionController = controller;
     try {
-        const loaded = await loadAllMappedSiteContexts();
+        const loaded = chatCommitResult(ownsChat, await loadAllMappedSiteContexts());
         if (!loaded?.sites?.length) return { skipped: 'no_maps' };
 
         const currentLocation = loaded.currentLocation || '';
@@ -782,14 +805,11 @@ export async function runMapEvolutionPass({
         }
 
         _mapEvolutionRunning = true;
-        if (_mapEvolutionController) _mapEvolutionController.abort();
-        _mapEvolutionController = new AbortController();
-        const signal = _mapEvolutionController.signal;
         document.dispatchEvent(new CustomEvent('rt_map_evolution_status', { detail: { running: true } }));
         broadcastStep('start', `Initializing Map Evolution (${trigger})...`);
 
         const snapshot = {
-            locationsBook: await snapshotCampaignLocationsBook(),
+            locationsBook: chatCommitResult(ownsChat, await snapshotCampaignLocationsBook()),
             lastFiredBySite: JSON.parse(JSON.stringify(settings.mapEvolutionLastFiredBySite || {})),
             reportApplications: JSON.parse(JSON.stringify(settings.mapEvolutionWorldReportApplications || {})),
             backlogBySite: JSON.parse(JSON.stringify(settings.mapEvolutionBacklogBySite || {})),
@@ -798,7 +818,7 @@ export async function runMapEvolutionPass({
         const digestLines = [];
         const results = [];
         const books = loaded.books;
-        const recentWorldReports = await loadRecentWorldReports(settings, ctx);
+        const recentWorldReports = chatCommitResult(ownsChat, await loadRecentWorldReports(settings, ctx, passChatId));
         const recentStory = formatMapEvolutionRecentStory(ctx.chat, settings, lookback);
 
         for (const site of [...baselineOnly, ...toEvolve]) {
@@ -806,7 +826,7 @@ export async function runMapEvolutionPass({
                 stampSiteFired(settings, site.siteRoot, currentTime);
                 continue;
             }
-            const siteResult = await evolveOneSite({
+            const siteResult = chatCommitResult(ownsChat, await evolveOneSite({
                 site,
                 books,
                 trigger,
@@ -821,7 +841,7 @@ export async function runMapEvolutionPass({
                 ctx,
                 directInstruction: instruction,
                 recentStory,
-            });
+            }));
             results.push(siteResult);
             if (siteResult?.digestLine) digestLines.push(siteResult.digestLine);
             if (siteResult?.ok) {
@@ -854,7 +874,7 @@ export async function runMapEvolutionPass({
                 }
                 stampSiteFired(settings, site.siteRoot, currentTime);
                 stampReportOutcomes(settings, site.siteRoot, siteResult.reportOutcomes, currentTime);
-                await maybeCompressSiteThreads(settings, site.siteRoot, signal);
+                chatCommitResult(ownsChat, await maybeCompressSiteThreads(settings, site.siteRoot, signal));
             }
         }
 
@@ -868,6 +888,8 @@ export async function runMapEvolutionPass({
         broadcastStep('finish', `Map Evolution: ${applied} applied, ${noops} noop, ${failed} failed.`);
         return { ok: failed === 0, results, applied, noops, failed };
     } catch (error) {
+        if (!ownsProjection()) return { skipped: 'chat_changed' };
+
         // Finished sites already wrote map commits to the lorebook and stamped
         // Last Evolved / report applications / backlog in memory. Persist that
         // bookkeeping on abort or throw so a later hydrate cannot re-due a site
@@ -882,8 +904,8 @@ export async function runMapEvolutionPass({
         if (_mapEvolutionRunning) broadcastStep('error', String(error?.message || error));
         return { ok: false, error: String(error?.message || error) };
     } finally {
+        if (_mapEvolutionController === controller) {
         _mapEvolutionStarting = false;
-        if (_mapEvolutionRunning) {
             _mapEvolutionRunning = false;
             _mapEvolutionController = null;
             document.dispatchEvent(new CustomEvent('rt_map_evolution_status', { detail: { running: false } }));
@@ -895,12 +917,13 @@ export async function runMapEvolutionPass({
  * Interval restlessness for the configured map pool, plus one pass when the party just left a mapped site.
  */
 export async function maybeRunMapEvolution() {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     hydrateWorldProgressionFromChatState();
     const settings = getSettings();
     if (settings.mapEvolutionEnabled === false) return { skipped: 'disabled' };
     if (!isLocationMappingEnabled(settings)) return { skipped: 'location_mapping_off' };
 
-    const loaded = await loadAllMappedSiteContexts();
+    const loaded = chatCommitResult(ownsChat, await loadAllMappedSiteContexts());
     const currentLocation = loaded?.currentLocation || '';
     const active = loaded ? activeSiteFrom(loaded, currentLocation) : null;
     const currentRoot = active?.siteRoot || '';
@@ -913,7 +936,7 @@ export async function maybeRunMapEvolution() {
         const now = parseInWorldMinutes(currentTimeFrom(settings));
         if (!(Number.isFinite(already) && already >= 0 && already === now)) {
             settings.mapEvolutionPendingExitRoot = previousRoot;
-            exitResult = await runMapEvolutionPass({ trigger: 'site_exit' });
+            exitResult = chatCommitResult(ownsChat, await runMapEvolutionPass({ trigger: 'site_exit' }));
             // Busy/stopped skips must keep the pending exit + lastSiteRoot so a
             // later pass can still fire the site-exit restock/decay contract.
             // Advancing bookkeeping here permanently drops that departure.
@@ -926,7 +949,7 @@ export async function maybeRunMapEvolution() {
 
     const scope = normalizeEvolutionTickScope(settings.mapEvolutionTickScope);
     if (!currentRoot && scope === 'active') return exitResult || { skipped: 'no_active_map' };
-    const intervalResult = await runMapEvolutionPass({ trigger: 'interval' });
+    const intervalResult = chatCommitResult(ownsChat, await runMapEvolutionPass({ trigger: 'interval' }));
     return { exit: exitResult, interval: intervalResult };
 }
 

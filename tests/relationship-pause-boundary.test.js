@@ -14,6 +14,6 @@ describe('relationship update pause boundary', () => {
         expect(handlerStart).toBeGreaterThanOrEqual(0);
         expect(regexCall).toBeGreaterThanOrEqual(0);
         expect(pauseGate).toBeGreaterThan(regexCall);
-        expect(handler.match(/await handleRelationshipSwipeChange\(\);/g)).toHaveLength(1);
+        expect(handler.match(/await handleRelationshipSwipeChange\(\)/g)).toHaveLength(1);
     });
 });

@@ -5,7 +5,7 @@ const source = readFileSync(new URL('../src/ui/panel/panel-builder.js', import.m
 
 describe('NPC Manager portrait generation', () => {
     it('queues the saved NPC entry when NPC auto-generation is enabled', () => {
-        const creatorStart = source.indexOf('const createNpcFromCharCard = async');
+        const creatorStart = source.indexOf('const createNpcFromCharCard = ');
         const creatorEnd = source.indexOf('const minimalReviewNpcWithAI = async', creatorStart);
         const creator = source.slice(creatorStart, creatorEnd);
 
@@ -31,7 +31,7 @@ describe('NPC Manager portrait generation', () => {
 
     it('opens a Full NPC Card from the library list without campaign relationship bars', () => {
         const cardStart = source.indexOf('const openLibraryNpcCard = async');
-        const cardEnd = source.indexOf('const performManifestRefresh = async', cardStart);
+        const cardEnd = source.indexOf('const performManifestRefresh = ', cardStart);
         const card = source.slice(cardStart, cardEnd);
         expect(cardStart).toBeGreaterThanOrEqual(0);
         expect(card).toContain('📚 资料库');

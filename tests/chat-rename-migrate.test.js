@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getSettings, saveChatState } from '../state-manager.js';
+import { getSettings, saveChatState, getEffectiveRouterCampaignPrefix } from '../state-manager.js';
 import { runtimeState } from '../src/app/runtime-state.js';
 import {
     onChatRenamedMigrate,
@@ -186,6 +186,117 @@ describe('onChatRenamedMigrate', () => {
             'Old_Chat_NPCs',
             'Old_Chat_Locations',
         ]);
+    });
+
+    it.each([true, false])('renames an inactive chat while the open chat has a saved partition: %s', async hasOpenPartition => {
+        const s = getSettings();
+        const old = { currentMemo: 'inactive campaign', routerCampaignPrefix: 'Old_Chat',
+            campaignBooks: ['Old_Chat_NPCs'], playerCharacter: { name: 'Ada' } };
+        const open = { currentMemo: 'open campaign', routerCampaignPrefix: 'Open_Chat' };
+        s.chatStates = { 'Old Chat': old, ...(hasOpenPartition ? { 'Open Chat': open } : {}) };
+        s.currentMemo = 'open campaign';
+        s.routerCampaignPrefix = 'Open_Chat';
+        s.chatStateProjectionOwner = 'Open Chat';
+        runtimeState.currentChatId = 'Open Chat';
+        const base = SillyTavern.getContext();
+        SillyTavern.getContext = () => ({ ...base, chatId: 'Open Chat', getCurrentChatId: () => 'Open Chat' });
+        for (const key of [COMPANION_BY_CHAT_KEY, MEMO_RECOVERY_KEY]) {
+            localStorage.setItem(key, JSON.stringify({ 'Old Chat': { content: 'old' }, 'Open Chat': { content: 'open' } }));
+        }
+        const loadChatState = vi.fn();
+        await onChatRenamedMigrate(
+            { oldFileName: 'Old Chat.jsonl', newFileName: 'Renamed Chat.jsonl' },
+            { saveSettings: vi.fn(), loadChatState },
+        );
+        expect(s.chatStates['Renamed Chat']).toBe(old);
+        expect(s.chatStates['Old Chat']).toBeUndefined();
+        expect(s.chatStates['Open Chat']).toBe(hasOpenPartition ? open : undefined);
+        expect(s.currentMemo).toBe('open campaign');
+        expect(s.routerCampaignPrefix).toBe('Open_Chat');
+        expect(s.chatStateProjectionOwner).toBe('Open Chat');
+        expect(runtimeState.currentChatId).toBe('Open Chat');
+        expect(loadChatState).not.toHaveBeenCalled();
+        expect(getEffectiveRouterCampaignPrefix('Renamed Chat')).toBe('Old_Chat');
+        for (const key of [COMPANION_BY_CHAT_KEY, MEMO_RECOVERY_KEY]) {
+            expect(readLocalMap(key)).toEqual({ 'Renamed Chat': { content: 'old' }, 'Open Chat': { content: 'open' } });
+        }
+    });
+
+    it('uses the server-sanitized event filename while an unrelated chat stays open', async () => {
+        const s = getSettings();
+        s.chatStates = { 'Old Chat': { currentMemo: 'old' }, 'Open Chat': { currentMemo: 'open' } };
+        runtimeState.currentChatId = 'Open Chat';
+        const base = SillyTavern.getContext();
+        SillyTavern.getContext = () => ({ ...base, chatId: 'Open Chat', getCurrentChatId: () => 'Open Chat' });
+        const sanitizeFileName = vi.fn(async () => 'NewChat.jsonl');
+        await onChatRenamedMigrate(
+            { oldFileName: 'Old Chat.jsonl', newFileName: 'New:Chat.jsonl' },
+            { saveSettings: vi.fn(), loadChatState: vi.fn(), sanitizeFileName },
+        );
+        expect(sanitizeFileName).toHaveBeenCalledWith('New:Chat.jsonl');
+        expect(s.chatStates.NewChat.currentMemo).toBe('old');
+        expect(s.chatStates['Open Chat'].currentMemo).toBe('open');
+        expect(s.chatStates['New:Chat']).toBeUndefined();
+    });
+
+    it('does not reload a different chat if the user switches during filename resolution', async () => {
+        const s = getSettings();
+        s.chatStates = { 'Old Chat': { currentMemo: 'old' } };
+        let active = 'Renamed Chat';
+        const base = SillyTavern.getContext();
+        SillyTavern.getContext = () => ({ ...base, chatId: active, getCurrentChatId: () => active });
+        runtimeState.currentChatId = active;
+        const loadChatState = vi.fn();
+        let resolve;
+        const pending = onChatRenamedMigrate(
+            { oldFileName: 'Old Chat.jsonl', newFileName: 'Renamed Chat.jsonl' },
+            { saveSettings: vi.fn(), loadChatState, sanitizeFileName: () => new Promise(done => { resolve = done; }) },
+        );
+        active = 'Open Chat';
+        runtimeState.currentChatId = active;
+        resolve('Renamed Chat.jsonl');
+        await pending;
+        expect(s.chatStates['Renamed Chat'].currentMemo).toBe('old');
+        expect(loadChatState).not.toHaveBeenCalled();
+        expect(runtimeState.currentChatId).toBe('Open Chat');
+    });
+
+    it('retains all original links when filename verification fails', async () => {
+        const s = getSettings();
+        s.chatStates = { 'Old Chat': { currentMemo: 'old campaign' } };
+        localStorage.setItem(MEMO_RECOVERY_KEY, JSON.stringify({ 'Old Chat': { currentMemo: 'old campaign' } }));
+        const before = JSON.stringify(s.chatStates);
+        const saveSettings = vi.fn();
+        await onChatRenamedMigrate(
+            { oldFileName: 'Old Chat.jsonl', newFileName: 'Renamed Chat.jsonl' },
+            { saveSettings, loadChatState: vi.fn(), sanitizeFileName: async () => { throw new Error('offline'); } },
+        );
+        expect(JSON.stringify(s.chatStates)).toBe(before);
+        expect(readLocalMap(MEMO_RECOVERY_KEY)['Old Chat'].currentMemo).toBe('old campaign');
+        expect(saveSettings).not.toHaveBeenCalled();
+        expect(toastr.warning).toHaveBeenCalledOnce();
+    });
+
+    it('retains an exact rename shell marker across resolution without clearing a later switch marker', async () => {
+        const s = getSettings();
+        s.chatStates = { 'Old Chat': { currentMemo: 'old campaign' }, 'Renamed Chat': { currentMemo: '' } };
+        markRenameReset();
+        let resolve;
+        const loadChatState = vi.fn();
+        const pending = onChatRenamedMigrate(
+            { oldFileName: 'Old Chat.jsonl', newFileName: 'Renamed Chat.jsonl' },
+            { saveSettings: vi.fn(), loadChatState, sanitizeFileName: () => new Promise(done => { resolve = done; }) },
+        );
+        const base = SillyTavern.getContext();
+        SillyTavern.getContext = () => ({ ...base, chatId: 'Third Chat', getCurrentChatId: () => 'Third Chat' });
+        runtimeState.currentChatId = 'Third Chat';
+        const laterMarker = { oldId: 'Renamed Chat', newId: 'Third Chat', preexistingLocalMapKeys: [] };
+        runtimeState.pendingUnseenChatReset = laterMarker;
+        resolve('Renamed Chat.jsonl');
+        await pending;
+        expect(s.chatStates['Renamed Chat'].currentMemo).toBe('old campaign');
+        expect(runtimeState.pendingUnseenChatReset).toBe(laterMarker);
+        expect(loadChatState).not.toHaveBeenCalled();
     });
 
     it('moves a partition and browser-local state when the destination is unused', async () => {

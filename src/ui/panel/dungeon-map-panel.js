@@ -1,3 +1,5 @@
+import { getActiveChatId } from '../../../state-manager.js';
+import { createChatCommitGuard, chatCommitResult, ignoreChatCancellation } from '../../state/pass-affinity.js';
 import { getSettings, saveChatState } from '../../../state-manager.js';
 import { runtimeState } from '../../app/runtime-state.js';
 import { saveSettings } from '../../app/runtime-bridge.js';
@@ -485,6 +487,8 @@ export function renderMapEvolutionHistoryHtml(backlogBySite, siteRoot, { revealA
  * @param {{ siteLabel?: string, currentLocation?: string }} [options]
  */
 export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '', currentLocation = '' } = {}) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
     const ctx = globalThis.SillyTavern?.getContext?.();
     if (!ctx?.callGenericPopup || !mapDocument) return;
     const site = siteLabel || mapDocument.site || '站点地图';
@@ -590,9 +594,11 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
         if (rawSave) rawSave.disabled = !revealAll;
         if (!revealAll && currentView === 'raw') setMapView('readable');
     };
-    const reloadInspectorFromLiveMap = async ({ resetRaw = true } = {}) => {
+    const reloadInspectorFromLiveMap = ignoreChatCancellation(async ({ resetRaw = true } = {}) => {
+
+        if (!ownsChat()) return;
         const fresh = typeof runtimeState.loadMappedEvolutionSiteRef === 'function'
-            ? await runtimeState.loadMappedEvolutionSiteRef(site)
+            ? chatCommitResult(ownsChat, await runtimeState.loadMappedEvolutionSiteRef(site))
             : null;
         if (fresh?.document) currentDocument = fresh.document;
         if (resetRaw) rawDirty = false;
@@ -601,13 +607,14 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
         if (typeof runtimeState.refreshTrackerViewRef === 'function') {
             runtimeState.refreshTrackerViewRef();
         }
-    };
+    });
     const live = typeof runtimeState.loadMappedEvolutionSiteRef === 'function'
-        ? await runtimeState.loadMappedEvolutionSiteRef(site)
+        ? chatCommitResult(ownsChat, await runtimeState.loadMappedEvolutionSiteRef(site))
         : null;
     if (live?.document) currentDocument = live.document;
     paint();
     popupDom.querySelector('.rt-dungeon-map-reveal-all')?.addEventListener('change', (event) => {
+        if (!ownsChat()) return;
         revealAll = !!event.target.checked;
         persistDungeonMapRevealAll(revealAll);
         paint();
@@ -615,6 +622,7 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
     });
     for (const button of popupDom.querySelectorAll('[data-map-view]')) {
         button.addEventListener('click', () => {
+            if (!ownsChat()) return;
             if (button.dataset.mapView === 'raw' && rawDirty && raw) {
                 const parsed = parseEditableDungeonMapJson(raw.value, site);
                 if (parsed.ok && parsed.document) currentDocument = parsed.document;
@@ -623,10 +631,13 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
         });
     }
     raw?.addEventListener('input', () => {
+        if (!ownsChat()) return;
         rawDirty = true;
         if (rawStatus) rawStatus.textContent = '有未保存的更改。';
     });
-    rawSave?.addEventListener('click', async () => {
+    rawSave?.addEventListener('click', ignoreChatCancellation(async () => {
+
+        if (!ownsChat()) return;
         if (!revealAll || !raw) return;
         const parsed = parseEditableDungeonMapJson(raw.value, site);
         if (!parsed.ok) {
@@ -640,16 +651,18 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
         if (rawStatus) rawStatus.textContent = '保存中…';
         try {
             const routerSpec = '../../../router.js';
-            const { persistManualDungeonMapDocument } = await import(routerSpec);
-            await persistManualDungeonMapDocument(site, parsed.document);
+            const { persistManualDungeonMapDocument } = chatCommitResult(ownsChat, await import(routerSpec));
+            chatCommitResult(ownsChat, await persistManualDungeonMapDocument(site, parsed.document));
             currentDocument = parsed.document;
             rawDirty = false;
             if (rawStatus) rawStatus.textContent = '已保存。';
             if (typeof globalThis.toastr?.success === 'function') {
                 globalThis.toastr.success(`已为 ${site} 保存地图 JSON。`, 'Map Inspector', { timeOut: 4000 });
             }
-            await reloadInspectorFromLiveMap({ resetRaw: true });
+            chatCommitResult(ownsChat, await reloadInspectorFromLiveMap({ resetRaw: true }));
         } catch (error) {
+            if (!ownsChat()) return;
+
             const message = String(error?.message || error);
             if (rawStatus) rawStatus.textContent = message;
             if (typeof globalThis.toastr?.error === 'function') {
@@ -658,8 +671,11 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
         } finally {
             rawSave.disabled = !revealAll;
         }
-    });
-    runButton?.addEventListener('click', async () => {
+
+    }));
+    runButton?.addEventListener('click', ignoreChatCancellation(async () => {
+
+        if (!ownsChat()) return;
         if (runtimeState.isLoreOrMapAgentBusyRef?.()) {
             if (runStatus) runStatus.textContent = '已有传说或地图代理正在运行。';
             return;
@@ -671,9 +687,9 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
         runButton.disabled = true;
         if (runStatus) runStatus.textContent = `正在为 ${site} 运行地图演化…`;
         try {
-            const result = await runtimeState.runMapEvolutionPassRef({ trigger: 'manual', isManual: true, siteRoots: [site] });
+            const result = chatCommitResult(ownsChat, await runtimeState.runMapEvolutionPassRef({ trigger: 'manual', isManual: true, siteRoots: [site] }));
             if (result?.ok) {
-                await reloadInspectorFromLiveMap();
+                chatCommitResult(ownsChat, await reloadInspectorFromLiveMap());
                 const applied = Number(result.applied) || 0;
                 const noops = Number(result.noops) || 0;
                 if (runStatus) runStatus.textContent = applied
@@ -690,26 +706,33 @@ export async function openDungeonMapReadablePopup(mapDocument, { siteLabel = '',
                         : `Map Evolution could not complete for ${site}.`;
             }
         } catch (error) {
+            if (!ownsChat()) return;
+
             if (runStatus) runStatus.textContent = `地图演化失败：${String(error?.message || error)}`;
         } finally {
             runButton.disabled = false;
         }
-    });
-    popupDom.querySelector('.rt-dungeon-map-testing-ground')?.addEventListener('click', async () => {
-        const { openMapEvolutionTestingGround } = await import('./panel-map-evolution-debug.js');
-        await openMapEvolutionTestingGround({ siteRoot: site });
-        await reloadInspectorFromLiveMap();
-    });
+
+    }));
+    popupDom.querySelector('.rt-dungeon-map-testing-ground')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+        if (!ownsChat()) return;
+        const { openMapEvolutionTestingGround } = chatCommitResult(ownsChat, await import('./panel-map-evolution-debug.js'));
+        chatCommitResult(ownsChat, await openMapEvolutionTestingGround({ siteRoot: site }));
+        chatCommitResult(ownsChat, await reloadInspectorFromLiveMap());
+
+    }));
     bindMapUpdaterDirectControls(popupDom, {
         siteRoot: site,
         onSuccess: () => reloadInspectorFromLiveMap(),
     });
-    await ctx.callGenericPopup(popupDom, ctx.POPUP_TYPE?.TEXT ?? 1, '', {
+    chatCommitResult(ownsChat, await ctx.callGenericPopup(popupDom, ctx.POPUP_TYPE?.TEXT ?? 1, '', {
         okButton: 'Close', cancelButton: false, wide: true, large: true,
         allowVerticalScrolling: true,
         leftAlign: true,
         onClose: () => hideDungeonMapAssetTip(),
-    });
+    }));
+
 }
 
 function openSceneMapDetails(scene) {
@@ -860,6 +883,7 @@ function summarizeMapUpdaterResult(result) {
 }
 
 function bindMapUpdaterDirectControls(root, { siteRoot = null, onSuccess } = {}) {
+    const ownsView = siteRoot ? createChatCommitGuard(getActiveChatId(), getActiveChatId) : () => true;
     const scope = root?.querySelector?.('.rt-immersion-map') || root;
     if (!scope) return;
 
@@ -896,7 +920,10 @@ function bindMapUpdaterDirectControls(root, { siteRoot = null, onSuccess } = {})
         lookbackInput.value = String(settings.mapUpdaterDirectLookback ?? settings.routerLookback ?? 10);
     }
 
-    const runManual = async ({ clearInput = false } = {}) => {
+    const runManual = ignoreChatCancellation(async ({ clearInput = false } = {}) => {
+        const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId, { canCommit: ownsView });
+
+        if (!ownsView()) return;
         if (typeof runtimeState.isLoreOrMapAgentBusyRef === 'function' && runtimeState.isLoreOrMapAgentBusyRef()) {
             mapUpdaterToast('warning', 'Another agent is already running.');
             return;
@@ -918,20 +945,20 @@ function bindMapUpdaterDirectControls(root, { siteRoot = null, onSuccess } = {})
         for (const button of runButtons) button.disabled = true;
         setStatus('Running Map Updater…');
         try {
-            const result = await run({
+            const result = chatCommitResult(ownsChat, await run({
                 isManual: true,
                 lookback,
                 directInstruction,
                 siteRoot: siteRoot || null,
-            });
+            }));
             const summary = summarizeMapUpdaterResult(result);
             mapUpdaterToast(summary.kind, summary.message);
             setStatus(summary.message);
             if (result?.ok) {
                 if (typeof onSuccess === 'function') {
-                    await onSuccess();
+                    chatCommitResult(ownsChat, await onSuccess());
                 } else if (typeof runtimeState.refreshImmersionView === 'function') {
-                    await runtimeState.refreshImmersionView();
+                    chatCommitResult(ownsChat, await runtimeState.refreshImmersionView());
                 }
             }
             if (clearInput && input) {
@@ -942,16 +969,19 @@ function bindMapUpdaterDirectControls(root, { siteRoot = null, onSuccess } = {})
                 }
             }
         } catch (error) {
+            if (!ownsChat()) return;
+
             const message = String(error?.message || error);
             mapUpdaterToast('error', message);
             setStatus(message);
         } finally {
             for (const button of runButtons) button.disabled = false;
         }
-    };
+    });
 
     if (toggle && panel) {
         toggle.addEventListener('click', (event) => {
+            if (!ownsView()) return;
             event.preventDefault();
             event.stopPropagation();
             setPanelOpen(panel.hidden);
@@ -960,12 +990,14 @@ function bindMapUpdaterDirectControls(root, { siteRoot = null, onSuccess } = {})
 
     if (input) {
         input.addEventListener('input', () => {
+            if (!ownsView()) return;
             if (siteRoot) return;
             const s = getSettings();
             s.mapUpdaterDirectPrompt = String(input.value || '');
             void saveSettings();
         });
         input.addEventListener('keydown', (event) => {
+            if (!ownsView()) return;
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
                 void runManual({ clearInput: true });
@@ -975,6 +1007,7 @@ function bindMapUpdaterDirectControls(root, { siteRoot = null, onSuccess } = {})
 
     if (lookbackInput) {
         lookbackInput.addEventListener('change', () => {
+            if (!ownsView()) return;
             const s = getSettings();
             s.mapUpdaterDirectLookback = Math.max(0, Math.min(100, parseInt(String(lookbackInput.value), 10) || 0));
             lookbackInput.value = String(s.mapUpdaterDirectLookback);
@@ -983,6 +1016,7 @@ function bindMapUpdaterDirectControls(root, { siteRoot = null, onSuccess } = {})
     }
 
     scope.querySelector('.rt-map-updater-direct-run')?.addEventListener('click', (event) => {
+        if (!ownsView()) return;
         event.preventDefault();
         event.stopPropagation();
         void runManual({ clearInput: true });

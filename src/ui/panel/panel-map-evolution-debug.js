@@ -1,3 +1,5 @@
+import { getActiveChatId } from '../../../state-manager.js';
+import { createChatCommitGuard, chatCommitResult, ignoreChatCancellation } from '../../state/pass-affinity.js';
 import { getSettings } from '../../../state-manager.js';
 import {
     MAP_ASSET_KINDS,
@@ -220,12 +222,14 @@ function assetOptions(document) {
  * @param {{ siteRoot?: string }} [options]
  */
 export async function openMapEvolutionTestingGround({ siteRoot = '' } = {}) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
     const ctx = globalThis.SillyTavern?.getContext?.();
     if (!ctx?.callGenericPopup) return;
 
     const popup = document.createElement('div');
     popup.className = 'rt-map-evo-debug';
-    let sandbox = await describeEvolutionSandbox(siteRoot);
+    let sandbox = chatCommitResult(ownsChat, await describeEvolutionSandbox(siteRoot));
     const settings = getSettings();
     let selectedArcId = '';
 
@@ -322,94 +326,125 @@ export async function openMapEvolutionTestingGround({ siteRoot = '' } = {}) {
         if (status) status.textContent = text || '';
     };
 
-    const reload = async (root = popup.querySelector('[data-debug="site"]')?.value || sandbox.siteRoot) => {
-        sandbox = await describeEvolutionSandbox(root);
+    const reload = ignoreChatCancellation(async (root = popup.querySelector('[data-debug="site"]')?.value || sandbox.siteRoot) => {
+
+        if (!ownsChat()) return;
+        sandbox = chatCommitResult(ownsChat, await describeEvolutionSandbox(root));
         const subjects = collectEvolutionArcSubjects(sandbox?.memory?.storedThreads || [], sandbox?.document);
         if (selectedArcId && !subjects.some(subject => subject.id === selectedArcId)) selectedArcId = '';
         paint();
-    };
+    });
 
     const bind = () => {
-        popup.querySelector('[data-debug="site"]')?.addEventListener('change', async (event) => {
-            await reload(event.target.value);
-        });
-        popup.querySelector('[data-debug-action="set-time"]')?.addEventListener('click', async () => {
+        popup.querySelector('[data-debug="site"]')?.addEventListener('change', ignoreChatCancellation(async (event) => {
+
+            if (!ownsChat()) return;
+            chatCommitResult(ownsChat, await reload(event.target.value));
+
+        }));
+        popup.querySelector('[data-debug-action="set-time"]')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+            if (!ownsChat()) return;
             const result = setCampaignTimeLabel(popup.querySelector('[data-debug="set-time"]')?.value);
             setStatus(result.ok ? `已将时间设置为 ${result.timeLabel}。` : result.error);
-            if (result.ok) await reload();
-        });
-        popup.querySelector('[data-debug-action="advance-hours"]')?.addEventListener('click', async () => {
+            if (result.ok) chatCommitResult(ownsChat, await reload());
+
+        }));
+        popup.querySelector('[data-debug-action="advance-hours"]')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+            if (!ownsChat()) return;
             const hours = Number(popup.querySelector('[data-debug="hours"]')?.value) || 12;
             const result = advanceCampaignTime(hours * 60);
             setStatus(result.ok ? `已推进至 ${result.timeLabel}。` : result.error);
-            if (result.ok) await reload();
-        });
-        popup.querySelector('[data-debug-action="advance-day"]')?.addEventListener('click', async () => {
+            if (result.ok) chatCommitResult(ownsChat, await reload());
+
+        }));
+        popup.querySelector('[data-debug-action="advance-day"]')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+            if (!ownsChat()) return;
             const result = advanceCampaignTime(1440);
             setStatus(result.ok ? `已推进至 ${result.timeLabel}。` : result.error);
-            if (result.ok) await reload();
-        });
-        popup.querySelector('[data-debug-action="evolve"]')?.addEventListener('click', async () => {
+            if (result.ok) chatCommitResult(ownsChat, await reload());
+
+        }));
+        popup.querySelector('[data-debug-action="evolve"]')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+            if (!ownsChat()) return;
             setStatus(`正在为 ${sandbox.siteRoot} 运行地图演化…`);
-            const result = await debugRunEvolution(sandbox.siteRoot);
+            const result = chatCommitResult(ownsChat, await debugRunEvolution(sandbox.siteRoot));
             if (result?.skipped === 'busy') setStatus('已有代理正在运行。');
             else if (result?.ok && result?.applied) setStatus(`演化应用了 ${result.applied} 项实质性更新。撤销可回退该流程。`);
             else if (result?.ok) setStatus('演化已运行；无实质性变化。撤销可回退该流程。');
             else setStatus(result?.error || '演化失败。');
-            await reload();
-        });
-        popup.querySelector('[data-debug-action="simulate"]')?.addEventListener('click', async () => {
+            chatCommitResult(ownsChat, await reload());
+
+        }));
+        popup.querySelector('[data-debug-action="simulate"]')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+            if (!ownsChat()) return;
             const ticks = Number(popup.querySelector('[data-debug="ticks"]')?.value) || 3;
             const hours = Number(popup.querySelector('[data-debug="hours"]')?.value) || Number(getSettings().mapEvolutionIntervalHours) || 8;
             setStatus(`正在以 ${hours} 小时模拟 ${ticks} 个 tick…`);
-            const result = await debugSimulateTicks({
+            const result = chatCommitResult(ownsChat, await debugSimulateTicks({
                 siteRoot: sandbox.siteRoot,
                 ticks,
                 hoursPerTick: hours,
                 onTick: ({ index, count, timeLabel, phase }) => {
                     setStatus(`tick ${index + 1}/${count}（${phase}）于 ${timeLabel}…`);
                 },
-            });
+            }));
             if (!result.ok) setStatus(result.error || '模拟已停止。');
             else setStatus(`已模拟 ${result.ticks} 个 tick（每个 ${result.hoursPerTick} 小时）。撤销可回退该次运行。`);
-            await reload();
-        });
-        popup.querySelector('[data-debug-action="undo-pass"]')?.addEventListener('click', async () => {
+            chatCommitResult(ownsChat, await reload());
+
+        }));
+        popup.querySelector('[data-debug-action="undo-pass"]')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+            if (!ownsChat()) return;
             setStatus('正在恢复流程前的快照…');
-            const result = await debugUndoLastEvolutionPass();
+            const result = chatCommitResult(ownsChat, await debugUndoLastEvolutionPass());
             if (result?.skipped === 'busy') setStatus('已有代理正在运行。');
             else if (result.ok) {
                 const kind = result.action?.type === 'simulate' ? '模拟 tick' : '演化';
                 setStatus(`已在 ${result.siteRoot} 上撤销${kind}。重做可再次运行同一流程。`);
             } else setStatus(result.error || '撤销失败。');
-            await reload();
-        });
-        popup.querySelector('[data-debug-action="redo-pass"]')?.addEventListener('click', async () => {
+            chatCommitResult(ownsChat, await reload());
+
+        }));
+        popup.querySelector('[data-debug-action="redo-pass"]')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+            if (!ownsChat()) return;
             const prior = peekTestingGroundLastPass();
             const kind = prior?.action?.type === 'simulate' ? '模拟 tick' : '演化';
             setStatus(`正在重做${kind}…`);
-            const result = await debugRedoLastEvolutionPass({
+            const result = chatCommitResult(ownsChat, await debugRedoLastEvolutionPass({
                 onTick: ({ index, count, timeLabel, phase }) => {
                     setStatus(`重做 tick ${index + 1}/${count}（${phase}）于 ${timeLabel}…`);
                 },
-            });
+            }));
             if (result?.skipped === 'busy') setStatus('已有代理正在运行。');
             else if (result?.ok && result?.action?.type === 'simulate') setStatus(`已重做模拟：${result.ticks} 个 tick（每个 ${result.hoursPerTick} 小时）。`);
             else if (result?.ok && result?.applied) setStatus(`已重做演化：应用了 ${result.applied} 项实质性更新。`);
             else if (result?.ok) setStatus('已重做演化；无实质性变化。');
             else setStatus(result?.error || '重做失败。');
-            await reload();
-        });
-        popup.querySelector('[data-debug-action="clear-history"]')?.addEventListener('click', async () => {
+            chatCommitResult(ownsChat, await reload());
+
+        }));
+        popup.querySelector('[data-debug-action="clear-history"]')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+            if (!ownsChat()) return;
             const root = sandbox.siteRoot;
             const confirmed = window.confirm(`确定要为 "${root}" 清除演化待办与因果线程吗？\n\n地图占位、[TIME] 与上次演化时钟保持不变。这只会移除提示历史，使后续演化流程不会受到先前提示中 tick 的影响。`);
             if (!confirmed) return;
             const result = debugClearEvolutionHistory(root);
             setStatus(result.ok ? `已清除 ${root} 的演化历史。` : result.error);
-            if (result.ok) await reload();
-        });
-        popup.querySelector('[data-debug-action="add"]')?.addEventListener('click', async () => {
-            const result = await debugAddAsset({
+            if (result.ok) chatCommitResult(ownsChat, await reload());
+
+        }));
+        popup.querySelector('[data-debug-action="add"]')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+            if (!ownsChat()) return;
+            const result = chatCommitResult(ownsChat, await debugAddAsset({
                 siteRoot: sandbox.siteRoot,
                 name: popup.querySelector('[data-debug="add-name"]')?.value,
                 kind: popup.querySelector('[data-debug="add-kind"]')?.value,
@@ -418,28 +453,34 @@ export async function openMapEvolutionTestingGround({ siteRoot = '' } = {}) {
                 faction: popup.querySelector('[data-debug="add-faction"]')?.value,
                 cause: popup.querySelector('[data-debug="add-cause"]')?.value,
                 actor: popup.querySelector('[data-debug="add-actor"]')?.value,
-            });
+            }));
             setStatus(result.ok ? '实体已添加。' : result.error);
-            if (result.ok) await reload();
-        });
-        popup.querySelector('[data-debug-action="set"]')?.addEventListener('click', async () => {
-            const result = await debugSetAsset({
+            if (result.ok) chatCommitResult(ownsChat, await reload());
+
+        }));
+        popup.querySelector('[data-debug-action="set"]')?.addEventListener('click', ignoreChatCancellation(async () => {
+
+            if (!ownsChat()) return;
+            const result = chatCommitResult(ownsChat, await debugSetAsset({
                 siteRoot: sandbox.siteRoot,
                 assetId: popup.querySelector('[data-debug="set-asset"]')?.value,
                 state: popup.querySelector('[data-debug="set-state"]')?.value,
                 count: popup.querySelector('[data-debug="set-count"]')?.value,
                 actor: popup.querySelector('[data-debug="set-actor"]')?.value,
                 cause: popup.querySelector('[data-debug="set-cause"]')?.value,
-            });
+            }));
             setStatus(result.ok ? '实体已更新。' : result.error);
-            if (result.ok) await reload();
-        });
+            if (result.ok) chatCommitResult(ownsChat, await reload());
+
+        }));
         popup.querySelector('[data-debug="arc-subject"]')?.addEventListener('change', (event) => {
+            if (!ownsChat()) return;
             selectedArcId = String(event.target.value || '').trim();
             paintArc();
         });
         popup.querySelectorAll('[data-debug-arc]').forEach(node => {
             node.addEventListener('click', () => {
+                if (!ownsChat()) return;
                 selectedArcId = String(node.getAttribute('data-debug-arc') || '').trim();
                 paintArc();
             });
@@ -453,15 +494,17 @@ export async function openMapEvolutionTestingGround({ siteRoot = '' } = {}) {
             node.classList.toggle('is-selected', node.getAttribute('data-debug-arc') === selectedArcId);
         });
         popup.querySelector('[data-debug="arc-subject"]')?.addEventListener('change', (event) => {
+            if (!ownsChat()) return;
             selectedArcId = String(event.target.value || '').trim();
             paintArc();
         });
     };
 
     paint();
-    await ctx.callGenericPopup(popup, ctx.POPUP_TYPE?.TEXT ?? 1, '', {
+    chatCommitResult(ownsChat, await ctx.callGenericPopup(popup, ctx.POPUP_TYPE?.TEXT ?? 1, '', {
         okButton: '关闭', cancelButton: false, wide: true, large: true,
         allowVerticalScrolling: true,
         leftAlign: true,
-    });
+    }));
+
 }

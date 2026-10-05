@@ -1,4 +1,6 @@
 import { runtimeState } from '../../app/runtime-state.js';
+import { getActiveChatId } from '../../../state-manager.js';
+import { createChatCommitGuard, chatCommitResult } from '../../state/pass-affinity.js';
 import {
     findLoreHistoryIndexForChat,
     isLoreRedoEntryForChat,
@@ -57,6 +59,7 @@ export function wireAgentActivity({
 
     if (agentNavBack) {
         agentNavBack.addEventListener('click', async () => {
+            const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
             const s = getSettings();
             const scope = getActiveLoreHistoryScope(s);
             const histIdx = findLoreHistoryIndexForChat(s.routerHistory || [], scope);
@@ -65,14 +68,15 @@ export function wireAgentActivity({
             if (agentNavFwd) agentNavFwd.disabled = true;
             const histEntry = s.routerHistory[histIdx];
             try {
-                const postPassState = await captureRouterLoreState();
-                const ok = await rollbackRouterPass(histIdx, postPassState);
+                const postPassState = chatCommitResult(ownsChat, await captureRouterLoreState());
+                const ok = chatCommitResult(ownsChat, await rollbackRouterPass(histIdx, postPassState));
                 if (ok) {
                     runtimeState.loreRedoStack.push({ prePassSnapshot: histEntry, postPassState });
                 } else {
                     toastr['error']('回滚失败；已尝试安全恢复。请查看控制台。', '世界书代理');
                 }
             } catch (error) {
+                if (!ownsChat()) return;
                 console.error('[RPG Tracker] Could not capture a safe rollback recovery state:', error);
                 toastr['error']('无法制作完整的安全快照，撤销已停止。', '世界书代理');
             }
@@ -83,6 +87,7 @@ export function wireAgentActivity({
 
     if (agentNavFwd) {
         agentNavFwd.addEventListener('click', async () => {
+            const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
             const s = getSettings();
             const scope = getActiveLoreHistoryScope(s);
             const scopedRedo = getScopedRedoEntries(scope);
@@ -92,7 +97,13 @@ export function wireAgentActivity({
             const redoEntry = scopedRedo[scopedRedo.length - 1];
             const stackIdx = runtimeState.loreRedoStack.lastIndexOf(redoEntry);
             if (stackIdx >= 0) runtimeState.loreRedoStack.splice(stackIdx, 1);
-            const ok = await reapplyRouterPass(redoEntry.prePassSnapshot, redoEntry.postPassState);
+            let ok = false;
+            try {
+                ok = await reapplyRouterPass(redoEntry.prePassSnapshot, redoEntry.postPassState);
+            } catch (error) {
+                if (ownsChat()) console.error('[RPG Tracker] Could not redo lorebook pass:', error);
+            }
+            if (!ownsChat()) return;
             if (!ok) {
                 runtimeState.loreRedoStack.push(redoEntry);
                 toastr['error']('重做失败。请查看控制台。', '世界书代理');
@@ -129,9 +140,11 @@ export function wireAgentActivity({
     const keysRefreshBtn = agentPanel.querySelector('#rt-agent-keys-refresh');
     if (keysRefreshBtn) {
         keysRefreshBtn.addEventListener('click', async (e) => {
+            const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
             e.stopPropagation();
             keysRefreshBtn.querySelector('i')?.classList.add('fa-spin');
             await runtimeState.renderRouterUI();
+            if (!ownsChat()) return;
             if (typeof runtimeState.refreshAgentManifest === 'function') {
                 await runtimeState.refreshAgentManifest('manual-button');
             }
@@ -179,15 +192,18 @@ export function wireAgentActivity({
     syncLastRunDisplay();
 
     document.addEventListener('rt_lore_agent_updated', async (event) => {
+        const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
         saveSettings();
         // Rollback/redo requests use the manifest's dedicated disk-authoritative
         // list path. Avoid updateWorldInfoList here: it downloads and parses the
         // user's complete settings payload and made event bursts extremely costly.
         await runtimeState.renderRouterUI();
+        if (!ownsChat()) return;
         if (typeof runtimeState.refreshAgentManifest === 'function') {
             const source = (/** @type {CustomEvent} */ (event)).detail?.source || 'auto';
             await runtimeState.refreshAgentManifest(source);
         }
+        if (!ownsChat()) return;
         updateUndoLabel();
         syncLastRunDisplay();
     });

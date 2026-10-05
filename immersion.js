@@ -1,16 +1,22 @@
-import { getSettings, getEffectiveRouterCampaignPrefix, saveChatState } from './state-manager.js';
+import { getSettings, getActiveChatId, getEffectiveRouterCampaignPrefix, saveChatState } from './state-manager.js';
 import { escapeHtml } from './memo-processor.js';
 import { normalizeLocationPath, resolveLocationImageWithMeta, triggerBackgroundLocationGeneration, hasLocationImage, getLinkedPlayerCharacter, isLocationImageGenerating, resolvePortraitSrcForPlayerCharacter, applyLocationImageToChatBackground } from './portraits.js';
 import { resolvePortraitDisplaySrc, lookupCustomPortraitSrc } from './portrait-storage.js';
 import { resolveCurrentLocationPath, formatLocationBreadcrumb } from './location-resolver.js';
 import { isWorldInfoBookKnown, scanRecentOutputForPresentNpcs } from './router.js';
-import { canCommitPassForChat } from './src/state/pass-affinity.js';
+import { canCommitPassForChat, createChatCommitGuard, chatCommitResult } from './src/state/pass-affinity.js';
 import { canUseSceneMemo } from './src/state/scene-affinity.js';
 import { resolveDungeonMapForLocation, resolveDungeonMapFromHistorySnapshot, stripDungeonMapSection } from './dungeon-reality.js';
 import { buildDungeonMapGraph, renderDungeonMapEmbedHtml } from './dungeon-map-graph.js';
 import { isDungeonMapDetached, isDungeonMapRevealAll } from './src/ui/panel/dungeon-map-panel.js';
 import { isLocationMappingEnabled } from './src/state/section-enabled.js';
 import { runtimeState } from './src/app/runtime-state.js';
+
+/** Prefer a pinned pass id, then the tracked chat, then ST's possibly-stale ctx.chatId. */
+function resolveImmersionChatId(optsChatId, ctx) {
+    if (optsChatId != null && String(optsChatId).length > 0) return String(optsChatId);
+    return getActiveChatId() || ctx?.chatId || null;
+}
 
 /**
  * Parse current location from recent chat status footer, then memo [TIME] block.
@@ -55,7 +61,8 @@ let latestBackgroundSceneRequest = 0;
  */
 export async function loadAllLocationPaths(ctx, settings) {
     const s = settings || getSettings();
-    const chatId = ctx?.chatId;
+    // Prefer tracked chat — ctx.chatId can lag during CHAT_CHANGED / MESSAGE_SWIPED.
+    const chatId = resolveImmersionChatId(null, ctx);
     if (!chatId) return [];
 
     const prefix = getEffectiveRouterCampaignPrefix(chatId);
@@ -149,7 +156,9 @@ export async function loadLocationEntryByPath(path, settings) {
 
     const s = settings || getSettings();
     const ctx = SillyTavern.getContext();
-    const prefix = getEffectiveRouterCampaignPrefix(ctx.chatId);
+    // Prefer tracked chat — ctx.chatId can lag during CHAT_CHANGED / MESSAGE_SWIPED.
+    const chatId = resolveImmersionChatId(null, ctx);
+    const prefix = getEffectiveRouterCampaignPrefix(chatId || '');
     const bookName = prefix ? `${prefix}_Locations` : 'Locations';
 
     try {
@@ -205,18 +214,23 @@ export async function loadNpcEntryByKey(entryId, settings) {
 /**
  * @param {string} memo
  * @param {object} [settings]
+ * @param {{ chatId?: string|null }} [opts] Originating chat — never re-read live ctx.chatId for books.
  * @returns {Promise<object>}
  */
-export async function buildImmersionSceneState(memo, settings) {
+export async function buildImmersionSceneState(memo, settings, opts = {}) {
     const backgroundRequest = ++latestBackgroundSceneRequest;
     const s = settings || getSettings();
     const ctx = SillyTavern.getContext();
-    const backgroundChatId = ctx.chatId;
+    // Prefer the pinned / tracked chat — ctx.chatId can lag behind runtimeState during
+    // CHAT_CHANGED / MESSAGE_SWIPED, which would load another campaign's Locations book
+    // and enqueue its scene art into this chat's portrait store.
+    const backgroundChatId = resolveImmersionChatId(opts.chatId, ctx);
+    const ownsBackground = createChatCommitGuard(backgroundChatId, getActiveChatId);
     const backgroundMemo = memo ?? s.currentMemo;
     const backgroundMemoCurrent = canUseSceneMemo(s, backgroundChatId, backgroundMemo);
 
     const rawLocationText = getCurrentLocationText(memo ?? s.currentMemo, ctx);
-    const prefix = getEffectiveRouterCampaignPrefix(ctx.chatId);
+    const prefix = getEffectiveRouterCampaignPrefix(backgroundChatId || '');
     const locationBookName = prefix ? `${prefix}_Locations` : 'Locations';
     let locationBook = null;
     try {
@@ -253,10 +267,10 @@ export async function buildImmersionSceneState(memo, settings) {
 
     const locationImage = storagePath ? resolveLocationImageWithMeta(storagePath).src : '';
     const liveCtx = SillyTavern.getContext();
-    if (backgroundRequest === latestBackgroundSceneRequest
+    if (ownsBackground() && backgroundRequest === latestBackgroundSceneRequest
         && backgroundMemoCurrent
         && canUseSceneMemo(getSettings(), backgroundChatId, backgroundMemo)
-        && backgroundChatId === liveCtx.chatId
+        && backgroundChatId === getActiveChatId()
         && rawLocationText === getCurrentLocationText(getSettings().currentMemo, liveCtx)) {
         syncCurrentLocationBackground({ locationImage });
     }
@@ -402,10 +416,6 @@ let _lastImmersionSceneArtChatLen = null;
 const _lastLocSessionKey = (chatId) => `rpg_rt_last_loc_${chatId || 'default'}`;
 const _lastChatLenSessionKey = (chatId) => `rpg_rt_last_loc_chatlen_${chatId || 'default'}`;
 
-function getActiveChatId() {
-    return typeof globalThis._rpgCurrentChatId === 'function' ? globalThis._rpgCurrentChatId() : null;
-}
-
 function getChatMessageCount() {
     try {
         const chat = SillyTavern.getContext()?.chat;
@@ -489,18 +499,18 @@ function getLastImmersionSceneArtChatLen() {
     return readPersistedImmersionSceneArtChatLen(getActiveChatId());
 }
 
-function rememberImmersionSceneArtPath(storagePath) {
+function rememberImmersionSceneArtPath(storagePath, chatId = getActiveChatId()) {
     if (!storagePath || _lastImmersionSceneArtPath === storagePath) return;
     _lastImmersionSceneArtPath = storagePath;
-    persistImmersionSceneArtPath(getActiveChatId(), storagePath);
+    persistImmersionSceneArtPath(chatId, storagePath);
 }
 
-function rememberImmersionSceneArtChatLen(chatLen) {
+function rememberImmersionSceneArtChatLen(chatLen, chatId = getActiveChatId()) {
     if (chatLen == null || !Number.isFinite(Number(chatLen))) return;
     const n = Number(chatLen);
     if (_lastImmersionSceneArtChatLen === n) return;
     _lastImmersionSceneArtChatLen = n;
-    persistImmersionSceneArtChatLen(getActiveChatId(), n);
+    persistImmersionSceneArtChatLen(chatId, n);
 }
 
 /** Restore visit tracking after F5 / loadChatState (avoids treating reload as a new arrival). */
@@ -518,10 +528,11 @@ export function resetImmersionSceneArtTracking() {
 }
 
 /**
- * @returns {'location_change'|'every_n_outputs'}
+ * @returns {'location_enter'|'location_change'|'every_n_outputs'}
  */
 function getRealtimeTriggerMode(s) {
-    return s.portraitRealtimeTriggerMode === 'every_n_outputs' ? 'every_n_outputs' : 'location_change';
+    return ['location_enter', 'every_n_outputs'].includes(s.portraitRealtimeTriggerMode)
+        ? s.portraitRealtimeTriggerMode : 'location_change';
 }
 
 /**
@@ -529,6 +540,7 @@ function getRealtimeTriggerMode(s) {
  * Does not require Visuals/Map to be open.
  */
 export async function runRealtimeSceneArtCheck() {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const s = getSettings();
     if (!s.portraitAutoGenerateSceneView) return;
     if (!s.locationImages || s.enablePortraits === false) return;
@@ -541,20 +553,29 @@ export async function runRealtimeSceneArtCheck() {
     const memoAtStart = s.currentMemo;
     if (!canUseSceneMemo(s, passChatId, memoAtStart)) return;
     try {
-        const scene = await buildImmersionSceneState(memoAtStart, s);
+        const scene = chatCommitResult(ownsChat, await buildImmersionSceneState(memoAtStart, s, { chatId: passChatId }));
         if (!canCommitPassForChat(passChatId, getActiveChatId())) return;
         if (!canUseSceneMemo(getSettings(), passChatId, memoAtStart)) return;
         maybeAutoGenerateImmersionSceneArt(scene, () => {
             if (typeof globalThis._rpgRefreshImmersionView === 'function') {
                 void globalThis._rpgRefreshImmersionView();
             }
-        });
+        }, { chatId: passChatId });
     } catch (err) {
+        if (!ownsChat()) return;
+
         console.error('[RPG Tracker] runRealtimeSceneArtCheck failed:', err);
     }
 }
 
-export function maybeAutoGenerateImmersionSceneArt(scene, refresh) {
+/**
+ * @param {object} scene From buildImmersionSceneState
+ * @param {() => void} [refresh]
+ * @param {{ chatId?: string|null }} [opts] Originating chat for visit stamps and image writes.
+ */
+export function maybeAutoGenerateImmersionSceneArt(scene, refresh, opts = {}) {
+    const passChatId = resolveImmersionChatId(opts.chatId, SillyTavern.getContext());
+    if (!canCommitPassForChat(passChatId, getActiveChatId())) return;
     const s = getSettings();
     if (!s.portraitAutoGenerateSceneView) return;
     if (!s.locationImages || s.enablePortraits === false) return;
@@ -573,7 +594,7 @@ export function maybeAutoGenerateImmersionSceneArt(scene, refresh) {
     let dueToLocation = false;
     let dueToOutputs = false;
 
-    if (!hasImage || locationChanged) {
+    if (!hasImage || (mode !== 'location_enter' && locationChanged)) {
         dueToLocation = true;
     }
 
@@ -583,17 +604,18 @@ export function maybeAutoGenerateImmersionSceneArt(scene, refresh) {
 
     // Track the current place even when skipping generation (so revisits don't re-fire forever).
     if (!dueToLocation && !dueToOutputs) {
-        if (locationChanged) rememberImmersionSceneArtPath(storagePath);
+        if (locationChanged) rememberImmersionSceneArtPath(storagePath, passChatId);
         if (mode === 'every_n_outputs' && lastChatLen == null) {
-            rememberImmersionSceneArtChatLen(chatLen);
+            rememberImmersionSceneArtChatLen(chatLen, passChatId);
         }
         return;
     }
 
-    rememberImmersionSceneArtPath(storagePath);
-    rememberImmersionSceneArtChatLen(chatLen);
+    rememberImmersionSceneArtPath(storagePath, passChatId);
+    rememberImmersionSceneArtChatLen(chatLen, passChatId);
     triggerBackgroundLocationGeneration(storagePath, refresh, scene.locationContent || '', {
         realtimeArrival: true,
         forceReplace: hasLocationImage(storagePath) || dueToOutputs,
+        chatId: passChatId,
     });
 }

@@ -137,7 +137,7 @@ describe('per-chat portrait ownership', () => {
             immersionSource.indexOf('export async function runRealtimeSceneArtCheck'),
             immersionSource.indexOf('export function maybeAutoGenerateImmersionSceneArt'),
         );
-        expect(immersionSource).toContain("import { canCommitPassForChat } from './src/state/pass-affinity.js'");
+        expect(immersionSource).toMatch(/import \{[^}]*\bcreateChatCommitGuard\b[^}]*\} from '\.\/src\/state\/pass-affinity\.js'/);
         expect(fn).toContain('const passChatId = getActiveChatId()');
         expect(fn).toContain('const memoAtStart = s.currentMemo');
         expect(fn.indexOf('await buildImmersionSceneState')).toBeGreaterThan(fn.indexOf('const passChatId'));
@@ -150,13 +150,24 @@ describe('per-chat portrait ownership', () => {
         expect(fn.indexOf('maybeAutoGenerateImmersionSceneArt')).toBeGreaterThan(
             fn.indexOf('canCommitPassForChat(passChatId, getActiveChatId())'),
         );
+        expect(fn).toContain('await buildImmersionSceneState(memoAtStart, s, { chatId: passChatId })');
+        expect(fn).toContain('maybeAutoGenerateImmersionSceneArt(scene,');
+        expect(fn).toContain('{ chatId: passChatId }');
+        expect(immersionSource).toContain('getEffectiveRouterCampaignPrefix(backgroundChatId');
+        expect(immersionSource).not.toContain('getEffectiveRouterCampaignPrefix(ctx.chatId)');
+        expect(immersionSource).toContain('chatId: passChatId');
+        const genFn = immersionSource.slice(
+            immersionSource.indexOf('export function maybeAutoGenerateImmersionSceneArt'),
+            immersionSource.indexOf('export function maybeAutoGenerateImmersionSceneArt') + 2200,
+        );
+        expect(genFn).toContain('chatId: passChatId');
     });
 
     it('pins auto-gen kickoffs before lorebook awaits and aborts when affinity is lost', () => {
         const portraitsSource = readFileSync(new URL('../portraits.js', import.meta.url), 'utf8');
         const indexSource = readFileSync(new URL('../index.js', import.meta.url), 'utf8');
 
-        expect(portraitsSource).toContain("import { canCommitPassForChat } from './src/state/pass-affinity.js'");
+        expect(portraitsSource).toMatch(/import \{[^}]*\bcreateChatCommitGuard\b[^}]*\} from '\.\/src\/state\/pass-affinity\.js'/);
 
         const forceFn = portraitsSource.slice(
             portraitsSource.indexOf('export async function forceCheckAutoGenerations'),
@@ -167,8 +178,11 @@ describe('per-chat portrait ownership', () => {
         expect(forceLoadAt).toBeGreaterThan(forceFn.indexOf('const passChatId'));
         expect(forceFn.indexOf('canCommitPassForChat(passChatId, getActiveChatId())', forceLoadAt))
             .toBeGreaterThan(forceLoadAt);
+        expect(forceFn).toContain('getEffectiveRouterCampaignPrefix(passChatId)');
+        expect(forceFn).not.toContain('getEffectiveRouterCampaignPrefix(ctx.chatId)');
         expect(forceFn).toContain('triggerBackgroundPortraitGeneration(name, refresh, entry.content || \'\', pinnedOpts)');
         expect(forceFn).toContain('triggerBackgroundLocationGeneration(path, refresh, entry.content, pinnedOpts)');
+        expect(forceFn).toContain('await loadLocationLorebookEntries(passChatId)');
 
         const checkFn = portraitsSource.slice(
             portraitsSource.indexOf('export async function checkAndTriggerAutoGenerations'),
@@ -180,15 +194,25 @@ describe('per-chat portrait ownership', () => {
         expect(checkFn.indexOf('canCommitPassForChat(passChatId, getActiveChatId())', checkLoadAt))
             .toBeGreaterThan(checkLoadAt);
         expect(checkFn).toContain('chatId: passChatId');
+        expect(checkFn).toContain('getEffectiveRouterCampaignPrefix(passChatId)');
+        expect(checkFn).not.toContain('getEffectiveRouterCampaignPrefix(ctx.chatId)');
 
         const locFn = portraitsSource.slice(
             portraitsSource.indexOf('export async function checkAndTriggerLocationAutoGenerations'),
             portraitsSource.indexOf('export async function checkAndTriggerLocationAutoGenerations') + 1200,
         );
-        const locLoadAt = locFn.indexOf('await loadLocationLorebookEntries()');
+        const locLoadAt = locFn.indexOf('await loadLocationLorebookEntries(passChatId)');
         expect(locLoadAt).toBeGreaterThan(locFn.indexOf('passChatId'));
         expect(locFn.indexOf('canCommitPassForChat(passChatId, getActiveChatId())', locLoadAt))
             .toBeGreaterThan(locLoadAt);
+
+        const mapFn = portraitsSource.slice(
+            portraitsSource.indexOf('async function loadLocationLorebookMap'),
+            portraitsSource.indexOf('async function loadLocationLorebookMap') + 900,
+        );
+        expect(mapFn).toContain('getEffectiveRouterCampaignPrefix(id)');
+        expect(mapFn).not.toContain('getEffectiveRouterCampaignPrefix(ctx.chatId)');
+        expect(mapFn).not.toContain('if (!ctx.chatId)');
 
         const portraitTrigger = portraitsSource.slice(
             portraitsSource.indexOf('export function triggerBackgroundPortraitGeneration'),

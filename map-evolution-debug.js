@@ -1,3 +1,5 @@
+import { createChatCommitGuard, chatCommitResult } from './src/state/pass-affinity.js';
+import { getActiveChatId } from './state-manager.js';
 /**
  * Map Evolution testing ground — time, entities, and independent ticks
  * without playing through a campaign. Logic lives here; the popup UI is
@@ -56,7 +58,7 @@ export { MAP_ASSET_KINDS, replaceMemoCurrentTime };
 let lastTestingGroundPass = null;
 
 export function peekTestingGroundLastPass() {
-    if (!lastTestingGroundPass) return null;
+    if (!lastTestingGroundPass || lastTestingGroundPass.snapshot?.chatId !== getActiveChatId()) return null;
     return {
         action: { ...lastTestingGroundPass.action },
         undone: !!lastTestingGroundPass.undone,
@@ -69,15 +71,19 @@ export function clearTestingGroundLastPass() {
 }
 
 export async function snapshotTestingGroundWorld() {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const world = cloneTestingGroundWorldState(getSettings());
-    world.locationsBook = await snapshotCampaignLocationsBook();
+    world.chatId = getActiveChatId();
+    world.locationsBook = chatCommitResult(ownsChat, await snapshotCampaignLocationsBook());
     return world;
 }
 
 export async function restoreTestingGroundWorld(snapshot) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     if (!snapshot) return { ok: false, error: 'No snapshot to restore.' };
+    if (snapshot.chatId !== getActiveChatId()) return { ok: false, skipped: 'chat_changed' };
     if (snapshot.locationsBook) {
-        const restored = await restoreCampaignLocationsBook(snapshot.locationsBook);
+        const restored = chatCommitResult(ownsChat, await restoreCampaignLocationsBook(snapshot.locationsBook));
         if (!restored) return { ok: false, error: 'Could not restore the Locations book.' };
     }
     applyTestingGroundWorldState(snapshot, getSettings());
@@ -90,9 +96,10 @@ export async function restoreTestingGroundWorld(snapshot) {
 }
 
 async function captureTestingGroundCheckpoint(action) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     lastTestingGroundPass = {
         action: { ...action },
-        snapshot: await snapshotTestingGroundWorld(),
+        snapshot: chatCommitResult(ownsChat, await snapshotTestingGroundWorld()),
         undone: false,
     };
     return lastTestingGroundPass;
@@ -144,10 +151,11 @@ export function advanceCampaignTime(deltaMinutes) {
 }
 
 export async function describeEvolutionSandbox(siteRoot = '') {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const settings = getSettings();
-    const sites = await listMappedEvolutionSites();
+    const sites = chatCommitResult(ownsChat, await listMappedEvolutionSites());
     const wanted = normalizeDungeonLabel(siteRoot) || sites.find(site => site.current)?.siteRoot || sites[0]?.siteRoot || '';
-    const loaded = wanted ? await loadAllMappedSiteContexts() : null;
+    const loaded = wanted ? chatCommitResult(ownsChat, await loadAllMappedSiteContexts()) : null;
     const site = (loaded?.sites || []).find(candidate =>
         normalizeDungeonLabel(candidate.siteRoot) === normalizeDungeonLabel(wanted),
     );
@@ -188,7 +196,8 @@ function debugOperationId(suffix) {
 }
 
 async function commitSandboxTransaction(siteRoot, transaction) {
-    const loaded = await loadAllMappedSiteContexts();
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+    const loaded = chatCommitResult(ownsChat, await loadAllMappedSiteContexts());
     const site = (loaded?.sites || []).find(candidate =>
         normalizeDungeonLabel(candidate.siteRoot) === normalizeDungeonLabel(siteRoot),
     );
@@ -202,9 +211,9 @@ async function commitSandboxTransaction(siteRoot, transaction) {
             errors: validation.errors,
         };
     }
-    const result = await applyDungeonMapCommit(transaction, site, loaded.books, timeLabel, {
+    const result = chatCommitResult(ownsChat, await applyDungeonMapCommit(transaction, site, loaded.books, timeLabel, {
         requireActive: false,
-    });
+    }));
     if (!result.ok) {
         return {
             ok: false,
@@ -255,6 +264,7 @@ export async function debugAddAsset({
     cause,
     actor = '',
 } = {}) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const causeText = String(cause || '').trim();
     if (!String(name || '').trim()) return { ok: false, error: 'Name is required.' };
     if (!String(location || '').trim()) return { ok: false, error: 'Location (area id) is required.' };
@@ -295,6 +305,7 @@ export async function debugSetAsset({
     actor = '',
     threadStatus = '',
 } = {}) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const causeText = String(cause || '').trim();
     if (!String(assetId || '').trim()) return { ok: false, error: 'Asset id is required.' };
     if (!causeText) return { ok: false, error: 'Cause is required.' };
@@ -325,10 +336,11 @@ export function evolutionAgentsBusy() {
 }
 
 export async function debugRunEvolution(siteRoot) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     if (evolutionAgentsBusy()) return { ok: false, skipped: 'busy', error: 'An agent is already running.' };
     const root = String(siteRoot || '').trim();
     if (!root) return { ok: false, error: 'Pick a mapped site.' };
-    await captureTestingGroundCheckpoint({ type: 'evolve', siteRoot: root });
+    chatCommitResult(ownsChat, await captureTestingGroundCheckpoint({ type: 'evolve', siteRoot: root }));
     return runMapEvolutionPass({ trigger: 'manual', isManual: true, siteRoots: [root] });
 }
 
@@ -338,6 +350,7 @@ async function runSimulateTicks({
     hoursPerTick = 0,
     onTick = null,
 } = {}) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const root = String(siteRoot || '').trim();
     if (!root) return { ok: false, error: 'Pick a mapped site.' };
     const count = Math.max(1, Math.min(20, Math.floor(Number(ticks) || 1)));
@@ -352,7 +365,7 @@ async function runSimulateTicks({
         if (typeof onTick === 'function') {
             onTick({ index, count, timeLabel: advanced.timeLabel, phase: 'time' });
         }
-        const evolved = await runMapEvolutionPass({ trigger: 'manual', isManual: true, siteRoots: [root] });
+        const evolved = chatCommitResult(ownsChat, await runMapEvolutionPass({ trigger: 'manual', isManual: true, siteRoots: [root] }));
         results.push({ timeLabel: advanced.timeLabel, evolved });
         if (typeof onTick === 'function') {
             onTick({ index, count, timeLabel: advanced.timeLabel, phase: 'evolved', evolved });
@@ -374,25 +387,27 @@ export async function debugSimulateTicks({
     hoursPerTick = 0,
     onTick = null,
 } = {}) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const root = String(siteRoot || '').trim();
     if (!root) return { ok: false, error: 'Pick a mapped site.' };
     if (evolutionAgentsBusy()) return { ok: false, skipped: 'busy', error: 'An agent is already running.' };
     const count = Math.max(1, Math.min(20, Math.floor(Number(ticks) || 1)));
     const hours = Math.max(1, Math.floor(Number(hoursPerTick) || Number(getSettings().mapEvolutionIntervalHours) || 8));
-    await captureTestingGroundCheckpoint({
+    chatCommitResult(ownsChat, await captureTestingGroundCheckpoint({
         type: 'simulate',
         siteRoot: root,
         ticks: count,
         hoursPerTick: hours,
-    });
+    }));
     return runSimulateTicks({ siteRoot: root, ticks: count, hoursPerTick: hours, onTick });
 }
 
 export async function debugUndoLastEvolutionPass() {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     if (!lastTestingGroundPass) return { ok: false, error: 'No Evolution pass to undo. Run one first.' };
     if (lastTestingGroundPass.undone) return { ok: false, error: 'Last pass is already undone. Redo it or run a new one.' };
     if (evolutionAgentsBusy()) return { ok: false, skipped: 'busy', error: 'An agent is already running.' };
-    const restored = await restoreTestingGroundWorld(lastTestingGroundPass.snapshot);
+    const restored = chatCommitResult(ownsChat, await restoreTestingGroundWorld(lastTestingGroundPass.snapshot));
     if (!restored.ok) return restored;
     lastTestingGroundPass.undone = true;
     return {
@@ -404,19 +419,20 @@ export async function debugUndoLastEvolutionPass() {
 }
 
 export async function debugRedoLastEvolutionPass({ onTick = null } = {}) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     if (!lastTestingGroundPass) return { ok: false, error: 'No Evolution pass to redo. Run one first.' };
     if (evolutionAgentsBusy()) return { ok: false, skipped: 'busy', error: 'An agent is already running.' };
-    const restored = await restoreTestingGroundWorld(lastTestingGroundPass.snapshot);
+    const restored = chatCommitResult(ownsChat, await restoreTestingGroundWorld(lastTestingGroundPass.snapshot));
     if (!restored.ok) return restored;
     const action = lastTestingGroundPass.action;
     const result = action.type === 'simulate'
-        ? await runSimulateTicks({
+        ? chatCommitResult(ownsChat, await runSimulateTicks({
             siteRoot: action.siteRoot,
             ticks: action.ticks,
             hoursPerTick: action.hoursPerTick,
             onTick,
-        })
-        : await runMapEvolutionPass({ trigger: 'manual', isManual: true, siteRoots: [action.siteRoot] });
+        }))
+        : chatCommitResult(ownsChat, await runMapEvolutionPass({ trigger: 'manual', isManual: true, siteRoots: [action.siteRoot] }));
     lastTestingGroundPass.undone = false;
     return { ...result, redone: true, action: { ...action } };
 }

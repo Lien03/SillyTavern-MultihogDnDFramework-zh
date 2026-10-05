@@ -1,10 +1,14 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createSceneViewController } from '../src/ui/panel/panel-scene-view.js';
 import { captureDungeonMapViewport, restoreDungeonMapViewport } from '../src/ui/panel/dungeon-map-panel.js';
+import { invalidateChatCommitGuards } from '../src/state/pass-affinity.js';
 import { runtimeState } from '../src/app/runtime-state.js';
 
+beforeEach(() => { globalThis._rpgCurrentChatId = () => runtimeState.currentChatId; });
+
 afterEach(() => {
+    delete globalThis._rpgCurrentChatId;
     delete globalThis._rpgRefreshImmersionView;
     delete globalThis._rpgCheckRealtimeSceneArt;
     delete globalThis._rpgSyncAgentImmersionUi;
@@ -57,11 +61,11 @@ describe('Scene View controller', () => {
         expect(generate).toHaveBeenCalledTimes(1);
     });
 
-    it.each(['resolve', 'reject'])('ignores a stale scene %s after switching chats', async outcome => {
+    it.each(['resolve', 'reject', 'roundtrip'])('ignores a stale scene %s after switching chats', async outcome => {
         runtimeState.currentChatId = 'A';
         let finish;
         const pending = new Promise((resolve, reject) => {
-            finish = () => outcome === 'resolve' ? resolve({ dungeonMap: {} }) : reject(new Error('late failure'));
+            finish = () => outcome !== 'reject' ? resolve({ dungeonMap: {} }) : reject(new Error('late failure'));
         });
         const generate = vi.fn();
         const { immersion } = mountController({ agentImmersionMode: true, locationImages: true, currentMemo: 'memo-A' }, {
@@ -70,6 +74,11 @@ describe('Scene View controller', () => {
         });
         const refresh = runtimeState.refreshImmersionView();
         runtimeState.currentChatId = 'B';
+        invalidateChatCommitGuards();
+        if (outcome === 'roundtrip') {
+            runtimeState.currentChatId = 'A';
+            invalidateChatCommitGuards();
+        }
         runtimeState.hasActiveDungeonMap = true;
         immersion.innerHTML = 'B scene';
         finish();
@@ -118,19 +127,21 @@ describe('Scene View controller', () => {
             source.indexOf('const performImmersionRefresh = async () => {'),
             source.indexOf('runtimeState.refreshImmersionView = createCoalescedRefresh'),
         );
-        expect(source).toContain("import { canCommitPassForChat } from '../../state/pass-affinity.js'");
+        expect(source).toContain("import { createChatCommitGuard } from '../../state/pass-affinity.js'");
         expect(fn).toContain('const passChatId = runtimeState.currentChatId');
         expect(fn).toContain('const memoAtStart = s.currentMemo');
         expect(fn.indexOf('await buildImmersionSceneState')).toBeGreaterThan(-1);
-        expect(fn.indexOf('canCommitPassForChat(passChatId, runtimeState.currentChatId)')).toBeGreaterThan(
+        expect(fn.indexOf('!ownsChat()')).toBeGreaterThan(
             fn.indexOf('await buildImmersionSceneState'),
         );
         expect(fn.indexOf("canUseSceneMemo(getSettings(), passChatId, memoAtStart)")).toBeGreaterThan(
             fn.indexOf('await buildImmersionSceneState'),
         );
         expect(fn.indexOf('maybeAutoGenerateImmersionSceneArt')).toBeGreaterThan(
-            fn.indexOf('canCommitPassForChat(passChatId, runtimeState.currentChatId)'),
+            fn.indexOf('!ownsChat()'),
         );
+        expect(fn).toContain('await buildImmersionSceneState(memoAtStart, s, { chatId: passChatId })');
+        expect(fn).toContain('{ chatId: passChatId }');
     });
 
     it('restores a map graph viewport after the refresh replaces its scroll container', () => {

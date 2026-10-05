@@ -29,7 +29,7 @@ describe('NPC card / lore activation after a newly created entry', () => {
     });
 
     it('records the NPCs book on campaignBooks and persists settings after Add NPC', () => {
-        const creatorStart = panel.indexOf('const createNpcFromCharCard = async');
+        const creatorStart = panel.indexOf('const createNpcFromCharCard = ');
         const creatorEnd = panel.indexOf('const minimalReviewNpcWithAI = async', creatorStart);
         const creator = panel.slice(creatorStart, creatorEnd);
         expect(creator).toContain('rememberCampaignBook(bookName, s)');
@@ -41,7 +41,7 @@ describe('NPC card / lore activation after a newly created entry', () => {
     });
 
     it('writes disk-fresh lorebooks back into ST worldInfoCache on a full manifest refresh', () => {
-        expect(router).toContain('if (!skipUpdate) await updateWorldInfoCache(n, b)');
+        expect(router).toContain('if (!skipUpdate) chatCommitResult(ownsChat, await updateWorldInfoCache(n, b))');
         expect(router).toContain('export async function updateWorldInfoCache');
         expect(router).toContain('export function rememberCampaignBook');
         expect(router).toContain('resolveBooksToScan(knownBooks, registryNames, prefix');

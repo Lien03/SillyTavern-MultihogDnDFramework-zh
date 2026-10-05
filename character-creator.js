@@ -1,4 +1,4 @@
-import { getSettings, saveChatState, DEFAULT_PC_SECTIONS } from './state-manager.js';
+import { getSettings, saveChatState, DEFAULT_PC_SECTIONS, getActiveChatId } from './state-manager.js';
 import { sendStateRequest } from './llm-client.js';
 import { buildOnboardingXpHint, buildOnboardingTimeHint, buildStartingGearHint, buildOnboardingActiveBlocks, buildCombatAndSkillScalingHint } from './constants.js';
 import { escapeHtml } from './memo-processor.js';
@@ -13,6 +13,23 @@ import { CHARACTER_CREATOR_NAME_ADDITIONS } from './src/state/character-names.js
 import { buildInstantActionPromptSection, extractInstantActionLevel, normalizeInstantActionInstructions } from './src/state/instant-action-instructions.js';
 import { findCharacterCreatorPresetByName, upsertCharacterCreatorPreset } from './src/features/character-creator/presets.js';
 import { getCharacterCreationConnectionSettings } from './character-creation-connection.js';
+import { createChatCommitGuard } from './src/state/pass-affinity.js';
+
+/**
+ * sendDirectPrompt already refuses memo commits after a chat switch, but callers
+ * must not treat a failed/cancelled result as success — the live projection is
+ * then the arriving chat, so memo/portrait/Player Card follow-ups would corrupt it.
+ * @param {any} result
+ * @param {string} [label]
+ */
+function assertDirectPromptOwned(result, label = 'Character generation') {
+    if (result?.success) return result;
+    const status = result?.status;
+    if (status === 'cancelled' || status === 'chat_changed') {
+        throw new Error(`${label} stopped because the active chat changed or the request was cancelled.`);
+    }
+    throw new Error(result?.message || `${label} failed — State Model returned no character sheet. Check your API connection.`);
+}
 
 const _CR_CLASS_LISTS = {
     fantasy: [
@@ -266,6 +283,9 @@ export async function generateQuickStartCharacter(opts) {
     if (!className) throw new Error('Quick Start requires a class archetype.');
 
     const memoBefore = s.currentMemo || '';
+    const passChatId = opts.chatId ?? getActiveChatId();
+    const ownsChat = opts.canCommit || createChatCommitGuard(passChatId, getActiveChatId);
+    if (!ownsChat()) throw new Error('Character generation stopped because the active chat changed.');
     const { prompt } = buildCharacterGenerationPrompt({
         nameVal: opts.nameVal,
         genre,
@@ -275,10 +295,14 @@ export async function generateQuickStartCharacter(opts) {
         instantActionInstructions: opts.instantActionInstructions,
     });
 
-    await sendDirectPrompt(prompt, {
+    const result = await sendDirectPrompt(prompt, {
         systemPromptMode: 'modules_only',
         connectionSettings: getCharacterCreationConnectionSettings(s),
     });
+    assertDirectPromptOwned(result);
+    if (!ownsChat()) {
+        throw new Error('Character generation stopped because the active chat changed or the request was cancelled.');
+    }
 
     const s2 = getSettings();
     const memoAfter = s2.currentMemo || '';
@@ -287,7 +311,7 @@ export async function generateQuickStartCharacter(opts) {
     }
 
     const extractedName = extractCharNameFromMemo(memoAfter);
-    return { charName: extractedName || 'My Character' };
+    return { charName: extractedName || 'My Character', passChatId };
 }
 
 /**
@@ -295,32 +319,36 @@ export async function generateQuickStartCharacter(opts) {
  * @param {string} name
  * @param {string} bio
  * @param {number} [wordCount]
+ * @param {{ chatId?: string|null, canCommit?: () => boolean }} [opts]
  * @returns {Promise<boolean>} true if written
  */
-export async function addPlayerCardToLorebookAgent(name, bio, wordCount = 150) {
+export async function addPlayerCardToLorebookAgent(name, bio, wordCount = 150, opts = {}) {
     const safeName = String(name || '').replace(/['"\\]/g, '').trim() || 'My Character';
     const finalBio = String(bio || '').trim();
     if (!finalBio) return false;
 
+    const passChatId = opts.chatId ?? getActiveChatId();
+    const ownsChat = opts.canCommit || createChatCommitGuard(passChatId, getActiveChatId);
+    if (!ownsChat()) return false;
     const s = getSettings();
     if (!s.chatStates) s.chatStates = {};
-    const currentChatId = SillyTavern.getContext().chatId;
-    if (!currentChatId) return false;
 
-    if (!s.chatStates[currentChatId]) s.chatStates[currentChatId] = {};
-    s.chatStates[currentChatId].playerCharacter = {
+    if (!s.chatStates[passChatId]) s.chatStates[passChatId] = {};
+    s.chatStates[passChatId].playerCharacter = {
         name: safeName,
         bio: finalBio,
         wordCount: wordCount || 100,
         timestamp: Date.now(),
     };
-    saveChatState(currentChatId);
+    saveChatState(passChatId);
     // The card is ready as soon as it is stored above. Campaign Records can be
     // rebuilding a large lorebook or Scene View, so never make the approval UI
     // wait for that unrelated work to finish.
-    void refreshAgentManifestNow().catch(error => {
-        console.warn('[RPG Tracker] Could not refresh Campaign Records after adding Player Card:', error);
-    });
+    if (ownsChat()) {
+        void refreshAgentManifestNow().catch(error => {
+            console.warn('[RPG Tracker] Could not refresh Campaign Records after adding Player Card:', error);
+        });
+    }
     return true;
 }
 
@@ -759,23 +787,33 @@ async function handleCharRollGenerate(el, panel) {
     if (genBtn) { genBtn.disabled = true; genBtn.textContent = '🎲 生成中…'; }
 
     try {
-        await sendDirectPrompt(prompt, {
+        const passChatId = getActiveChatId();
+        const ownsChat = createChatCommitGuard(passChatId, getActiveChatId);
+        const result = await sendDirectPrompt(prompt, {
             systemPromptMode: 'modules_only',
             connectionSettings: getCharacterCreationConnectionSettings(s),
         });
+        assertDirectPromptOwned(result);
+        if (!ownsChat()) return;
 
         if (wantPlayerCard || wantStPersona) {
             const s2 = getSettings();
             const extractedName = extractCharNameFromMemo(s2.currentMemo);
             const charName = extractedName || nameVal || 'My Character';
             if (wantStPersona) {
-                await activateSillyTavernPersona(charName);
+                if (!ownsChat()) return;
+                await activateSillyTavernPersona(charName, { chatId: passChatId, canCommit: ownsChat });
             }
             if (!wantPlayerCard) return;
+            if (!ownsChat()) return;
             const finalExtraHints = extraHints + (cardSnippet ? `\n\n--- CHARACTER CARD CONTEXT ---${cardSnippet}` : '');
             const bio = await generatePersonaBio(charName, wordCount, finalExtraHints);
-            if (bio) showPersonaConfirmOverlay(bio, charName, wordCount, extraHints);
+            if (!ownsChat()) return;
+            if (bio) showPersonaConfirmOverlay(bio, charName, wordCount, extraHints, { chatId: passChatId, canCommit: ownsChat });
         }
+    } catch (error) {
+        console.error('[Character Creator]', error);
+        toastr['error'](error?.message || String(error), 'Character Creator', { timeOut: 8000 });
     } finally {
         const resetEl = resolveOnboardingEl(el) || el;
         const resetPanel = resetEl.querySelector('#rt-char-roll-panel') || panel;
@@ -848,9 +886,16 @@ Rules:
     }
 }
 
-async function uploadDefaultPersonaAvatar(url, avatarId, refreshAvatars) {
+function assertPersonaChatOwned(canCommit) {
+    if (!canCommit()) throw new Error('Persona setup stopped because the active chat changed.');
+}
+
+async function uploadDefaultPersonaAvatar(url, avatarId, refreshAvatars, canCommit) {
+    assertPersonaChatOwned(canCommit);
     const fetchResult = await fetch(url);
+    assertPersonaChatOwned(canCommit);
     const blob = await fetchResult.blob();
+    assertPersonaChatOwned(canCommit);
     const file = new File([blob], 'avatar.png', { type: 'image/png' });
     const formData = new FormData();
     formData.append('avatar', file);
@@ -862,14 +907,18 @@ async function uploadDefaultPersonaAvatar(url, avatarId, refreshAvatars) {
         cache: 'no-cache',
         body: formData,
     });
+    assertPersonaChatOwned(canCommit);
     if (!response.ok) {
         throw new Error(`Failed to upload persona avatar: ${response.statusText}`);
     }
     const data = await response.json();
+    assertPersonaChatOwned(canCommit);
     await refreshAvatars(true, data?.path || avatarId);
 }
 
 async function injectAsSillyTavernPersona(name, options = {}) {
+    const canCommit = options.canCommit;
+    assertPersonaChatOwned(canCommit);
     const [
         { initPersona, setUserAvatar, getUserAvatars, setPersonaDescription, user_avatar, persona_description_positions },
         { findPersona },
@@ -881,6 +930,7 @@ async function injectAsSillyTavernPersona(name, options = {}) {
         import('../../../power-user.js'),
         import('../../../../script.js'),
     ]);
+    assertPersonaChatOwned(canCommit);
 
     const identity = buildNameOnlyPersonaIdentity(name);
     const trimmedName = identity.name;
@@ -918,13 +968,18 @@ async function injectAsSillyTavernPersona(name, options = {}) {
     } else {
         avatarId = `${Date.now()}-${trimmedName.replace(/[^a-zA-Z0-9]/g, '')}.png`;
         await initPersona(avatarId, trimmedName, identity.description, '');
-        await uploadDefaultPersonaAvatar(default_user_avatar, avatarId, getUserAvatars);
+        assertPersonaChatOwned(canCommit);
+        await uploadDefaultPersonaAvatar(default_user_avatar, avatarId, getUserAvatars, canCommit);
     }
 
+    assertPersonaChatOwned(canCommit);
     await setUserAvatar(avatarId);
+    assertPersonaChatOwned(canCommit);
     setPersonaDescription();
     await saveSettings();
+    assertPersonaChatOwned(canCommit);
     await getUserAvatars(true, avatarId);
+    assertPersonaChatOwned(canCommit);
     return avatarId;
 }
 
@@ -934,12 +989,16 @@ async function injectAsSillyTavernPersona(name, options = {}) {
  * the sole rich biography. Persona-derived onboarding may preserve the existing
  * source description.
  * @param {string} name
- * @param {{ preserveExistingDescription?: boolean }} [options]
+ * @param {{ preserveExistingDescription?: boolean, chatId?: string|null, canCommit?: () => boolean }} [options]
  * @returns {Promise<string>} avatarId
  */
 export async function activateSillyTavernPersona(name, options = {}) {
+    const chatId = options.chatId ?? getActiveChatId();
+    const canCommit = options.canCommit || createChatCommitGuard(chatId, getActiveChatId);
+    assertPersonaChatOwned(canCommit);
     const identity = buildNameOnlyPersonaIdentity(name);
-    const avatarId = await injectAsSillyTavernPersona(identity.name, options);
+    const avatarId = await injectAsSillyTavernPersona(identity.name, { ...options, chatId, canCommit });
+    assertPersonaChatOwned(canCommit);
 
     try {
         const ctx = SillyTavern.getContext();
@@ -952,6 +1011,9 @@ export async function activateSillyTavernPersona(name, options = {}) {
 }
 
 export function showPersonaConfirmOverlay(bioText, charName, wordCount, extraHints = '', opts = {}) {
+    const passChatId = opts.chatId ?? getActiveChatId();
+    const ownsChat = opts.canCommit || createChatCommitGuard(passChatId, getActiveChatId);
+    if (!ownsChat()) return;
     const existing = document.getElementById('rt-persona-confirm-overlay');
     if (existing) existing.remove();
 
@@ -998,9 +1060,14 @@ export function showPersonaConfirmOverlay(bioText, charName, wordCount, extraHin
 
      // ── Add as Player into Lorebook Agent ────────────────────────────────────
      overlay.querySelector('#rt-pco-add-pc').addEventListener('click', async () => {
+         if (!ownsChat()) {
+             toastr['warning']('This Player Card belongs to a previous chat session. Generate it again in the intended chat.', 'Character Creator');
+             overlay.remove();
+             return;
+         }
          const finalBio = /** @type {HTMLTextAreaElement} */ (overlay.querySelector('#rt-pco-bio')).value.trim();
          const safeName = charName.replace(/['"\\]/g, '').trim() || 'My Character';
-         const ok = await addPlayerCardToLorebookAgent(safeName, finalBio, wordCount || 100);
+         const ok = await addPlayerCardToLorebookAgent(safeName, finalBio, wordCount || 100, { chatId: passChatId, canCommit: ownsChat });
          if (ok) {
              toastr['success'](`"${safeName}" 已作为玩家添加到世界书代理。`, 'Character Creator');
          } else {
@@ -1011,10 +1078,12 @@ export function showPersonaConfirmOverlay(bioText, charName, wordCount, extraHin
  
      // ── Regenerate button ────────────────────────────────────────────────────
      overlay.querySelector('#rt-pco-regen').addEventListener('click', async () => {
+         if (!ownsChat()) { overlay.remove(); return; }
          const regenBtn = /** @type {HTMLButtonElement} */ (overlay.querySelector('#rt-pco-regen'));
          regenBtn.disabled = true;
          regenBtn.textContent = '⏳ 重新生成中…';
          const newBio = await generatePersonaBio(charName, wordCount, extraHints, opts);
+         if (!ownsChat()) { overlay.remove(); return; }
          if (newBio) {
              /** @type {HTMLTextAreaElement} */ (overlay.querySelector('#rt-pco-bio')).value = newBio;
          } else {
@@ -1286,60 +1355,79 @@ ${worldCtx}`;
     toastr['info'](`正在将 "${name}" 导入为玩家角色…正在生成状态备忘。`, 'PC Import');
     el.querySelectorAll('.rt-random-char-btn').forEach(b => { /** @type {HTMLButtonElement} */ (b).disabled = true; });
 
-    await sendDirectPrompt(memoPrompt, {
-        systemPromptMode: 'modules_only',
-        connectionSettings: getCharacterCreationConnectionSettings(s),
-    });
+    const passChatId = getActiveChatId();
+    const ownsChat = createChatCommitGuard(passChatId, getActiveChatId);
+    let importSucceeded = false;
+    try {
+        const result = await sendDirectPrompt(memoPrompt, {
+            systemPromptMode: 'modules_only',
+            connectionSettings: getCharacterCreationConnectionSettings(s),
+        });
+        assertDirectPromptOwned(result, 'PC Import');
+        if (!ownsChat()) {
+            throw new Error('PC Import stopped because the active chat changed or the request was cancelled.');
+        }
+        importSucceeded = true;
 
-    // Sync the card's avatar as the PC portrait globally so both the State Tracker
-    // and Campaign Records immediately reflect the newly imported character's image.
-    if (charCard.avatar && charCard.avatar !== 'none') {
-        if (!s.customPortraits) s.customPortraits = {};
-        const avatarUrl = `/characters/${encodeURIComponent(charCard.avatar)}`;
-        const safeName = name.replace(/['"\\]/g, '').trim() || 'My Character';
-        s.customPortraits['CHARACTER'] = avatarUrl;
-        s.customPortraits['PC'] = avatarUrl;
-        s.customPortraits[safeName] = avatarUrl;
-        
-        // Also map the AI-generated clean name (if any) from the new state memo,
-        // so the State Tracker can match the portrait even if the AI changed the name.
-        const extractedName = extractCharNameFromMemo(s.currentMemo);
-        if (extractedName && extractedName !== safeName) {
-            s.customPortraits[extractedName] = avatarUrl;
+        // Sync the card's avatar as the PC portrait globally so both the State Tracker
+        // and Campaign Records immediately reflect the newly imported character's image.
+        if (charCard.avatar && charCard.avatar !== 'none'
+            && ownsChat()) {
+            if (!s.customPortraits) s.customPortraits = {};
+            const avatarUrl = `/characters/${encodeURIComponent(charCard.avatar)}`;
+            const safeName = name.replace(/['"\\]/g, '').trim() || 'My Character';
+            s.customPortraits['CHARACTER'] = avatarUrl;
+            s.customPortraits['PC'] = avatarUrl;
+            s.customPortraits[safeName] = avatarUrl;
+
+            // Also map the AI-generated clean name (if any) from the new state memo,
+            // so the State Tracker can match the portrait even if the AI changed the name.
+            const extractedName = extractCharNameFromMemo(s.currentMemo);
+            if (extractedName && extractedName !== safeName) {
+                s.customPortraits[extractedName] = avatarUrl;
+            }
+
+            if (ownsChat() && typeof saveChatState === 'function') {
+                saveChatState(passChatId);
+            }
+
+            // Force an immediate synchronous re-render of the State Tracker
+            // now that the customPortraits object has the PC avatar.
+            if (ownsChat() && typeof refreshRenderedView === 'function') {
+                refreshRenderedView();
+            }
+            document.dispatchEvent(new CustomEvent('rt_lore_agent_updated'));
         }
-        
-        const currentChatId = SillyTavern.getContext().chatId;
-        if (currentChatId && typeof saveChatState === 'function') {
-            saveChatState(currentChatId);
-        }
-        
-        // Force an immediate synchronous re-render of the State Tracker 
-        // now that the customPortraits object has the PC avatar.
-        if (typeof refreshRenderedView === 'function') {
-            refreshRenderedView();
-        }
-        document.dispatchEvent(new CustomEvent('rt_lore_agent_updated'));
+    } catch (error) {
+        console.error('[PC Import]', error);
+        toastr['error'](error?.message || String(error), 'PC Import', { timeOut: 8000 });
+        el.querySelectorAll('.rt-random-char-btn').forEach(b => { /** @type {HTMLButtonElement} */ (b).disabled = false; });
+        return;
     }
 
     el.querySelectorAll('.rt-random-char-btn').forEach(b => { /** @type {HTMLButtonElement} */ (b).disabled = false; });
+    if (!importSucceeded || !ownsChat()) return;
 
     // --- Step 2: Optional name-only ST persona ---
     if (s.onboardingCreateSillyTavernPersona !== false) {
         try {
-            await activateSillyTavernPersona(name);
+            await activateSillyTavernPersona(name, { chatId: passChatId, canCommit: ownsChat });
         } catch (error) {
             console.error('[PC Import] Could not create name-only ST persona:', error);
             toastr['warning'](`玩家角色已导入，但无法为 "${name}" 创建 ST 人设。`, 'PC Import');
         }
     }
 
+    if (!ownsChat()) return;
+
     // --- Step 3: Optional Lorebook Agent Player Card ---
     if (!s.onboardingCreatePersona) return;
     toastr['info'](`正在为 "${name}" 生成世界书代理玩家卡…`, 'PC Import');
     
     const bio = await generatePcImportBio(charCard, mode, wordCountStr);
+    if (!ownsChat()) return;
     if (bio) {
-        showPersonaConfirmOverlay(bio, name, wordCountStr === 'same' ? 150 : parseInt(wordCountStr, 10), '');
+        showPersonaConfirmOverlay(bio, name, wordCountStr === 'same' ? 150 : parseInt(wordCountStr, 10), '', { chatId: passChatId, canCommit: ownsChat });
     } else {
         toastr['warning']('状态备忘已发送，但玩家卡生成失败。你可以手动添加玩家卡。', 'PC Import');
     }

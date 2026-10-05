@@ -1,3 +1,5 @@
+import { createChatCommitGuard, assertChatCommit, chatCommitResult } from './src/state/pass-affinity.js';
+import { getActiveChatId } from './state-manager.js';
 /** Dedicated one-shot dungeon/settlement/interior map generation agent. */
 import { getSettings } from './state-manager.js';
 import { sendStateRequest } from './llm-client.js';
@@ -48,13 +50,13 @@ function siteToastLabel(site) {
     return String(site || '地点').trim() || '地点';
 }
 
-function startMapArchitectToast(site) {
+function startMapArchitectToast(site, token) {
     const toastrApi = globalThis.toastr;
     if (typeof toastrApi?.info !== 'function') return;
     const key = normalizeKey(site);
     const prior = architectToasts.get(key);
     if (prior && typeof toastrApi.clear === 'function') {
-        try { toastrApi.clear(prior); } catch (_) { /* best effort */ }
+        try { toastrApi.clear(prior.toast); } catch (_) { /* best effort */ }
     }
     try {
         const toast = toastrApi.info(
@@ -62,19 +64,21 @@ function startMapArchitectToast(site) {
             'Map Architect',
             { timeOut: 0, extendedTimeOut: 0, closeButton: true },
         );
-        if (toast) architectToasts.set(key, toast);
+        if (toast) architectToasts.set(key, { toast, token });
         else architectToasts.delete(key);
     } catch (_) { /* notification display is best effort */ }
 }
 
-function finishMapArchitectToast(site, succeeded) {
+function finishMapArchitectToast(site, succeeded, token, notify = true) {
     const toastrApi = globalThis.toastr;
     const key = normalizeKey(site);
     const prior = architectToasts.get(key);
+    if (prior && prior.token !== token) return;
     architectToasts.delete(key);
     if (prior && typeof toastrApi?.clear === 'function') {
-        try { toastrApi.clear(prior); } catch (_) { /* best effort */ }
+        try { toastrApi.clear(prior.toast); } catch (_) { /* best effort */ }
     }
+    if (!notify) return;
     const method = succeeded ? toastrApi?.success : toastrApi?.error;
     if (typeof method !== 'function') return;
     try {
@@ -353,6 +357,7 @@ function mapArchitectFailure(message) {
 }
 
 async function runMapArchitectOnce(rawArgs) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const args = {
         site: String(rawArgs?.site || '').trim(),
         entrance: String(rawArgs?.entrance || '').trim(),
@@ -376,7 +381,7 @@ async function runMapArchitectOnce(rawArgs) {
     if (!isLocationMappingEnabled(settings)) {
         throw mapArchitectFailure('Persistent Maps is disabled in Components. No map was generated or saved.');
     }
-    const current = await syncDungeonMapsToLocationLorebook(ctx.chat || [], { capture: false });
+    const current = chatCommitResult(ownsChat, await syncDungeonMapsToLocationLorebook(ctx.chat || [], { capture: false }));
     if ((current.errors || []).some(error => /no campaign prefix/i.test(String(error)))) {
         throw mapArchitectFailure('No campaign prefix is available, so there is no safe Locations lorebook target. Nothing was generated or saved.');
     }
@@ -398,7 +403,7 @@ async function runMapArchitectOnce(rawArgs) {
         }
         if (hostContext) {
             const existingDocument = parseDungeonMapDocument(existing.mapChunks[0], existing.siteRoot).document;
-            const saved = await persistArchitectDungeonMap(args.site, existingDocument, { hostContext });
+            const saved = chatCommitResult(ownsChat, await persistArchitectDungeonMap(args.site, existingDocument, { hostContext, canCommit: ownsChat }));
             const continuation = hostContext.explicit
                 ? 'This was an offsite structural edit. Keep the current player location and narration unchanged.'
                 : 'Keep unseen facts private and continue narration from the player-observable entrance.';
@@ -408,13 +413,13 @@ async function runMapArchitectOnce(rawArgs) {
         broadcastStep('finish', `已复用 ${args.site} 的现有地图。`);
         return existingResult(existing);
     }
-    if (rawArgs?.requireNew && await locationRootExists(args.site)) {
+    if (rawArgs?.requireNew && chatCommitResult(ownsChat, await locationRootExists(args.site))) {
         throw mapArchitectFailure(`A location named "${args.site}" already exists. Use + MAP on that root instead.`);
     }
 
     const lookback = resolveLookback(settings, rawArgs?.lookback);
     const context = recentStoryContext(ctx, lookback, current);
-    const referenceContext = await buildMapArchitectReferenceContext(ctx, rawArgs);
+    const referenceContext = chatCommitResult(ownsChat, await buildMapArchitectReferenceContext(ctx, rawArgs));
     const currentTime = currentTimeFrom(settings);
     let topologyPrompt = topologyUserPrompt(args, context, referenceContext, currentLocation, hostContext, entranceKnowledge);
     let topology = null;
@@ -423,13 +428,13 @@ async function runMapArchitectOnce(rawArgs) {
     for (let attempt = 0; attempt <= MAX_CORRECTION_ATTEMPTS; attempt++) {
         if (attempt > 0) broadcastStep('thought', `正在为 ${args.site} 进行拓扑修正（第 ${attempt} 轮）...`);
         else broadcastStep('thought', `正在为 ${args.site} 构建 ${args.kind.toLowerCase()} 拓扑...`);
-        const output = await sendStateRequest(
+        const output = chatCommitResult(ownsChat, await sendStateRequest(
             requestSettings(settings),
             DEFAULT_MAP_ARCHITECT_TOPOLOGY_SYSTEM_PROMPT,
             topologyPrompt,
             null,
             { jsonSchema: MAP_ARCHITECT_TOPOLOGY_JSON_SCHEMA, stream: true, debugSource: 'Map Architect: Topology' },
-        );
+        ));
         const parsed = parseMapArchitectResponse(output);
         if (parsed.value?.areas) canonicalizeReciprocalConnectionDetails(parsed.value.areas);
         const envelope = envelopeErrors(parsed.value, ['version', 'site', 'kind', 'threat', 'areas'], 'areas', 'Topology');
@@ -473,13 +478,13 @@ async function runMapArchitectOnce(rawArgs) {
     for (let attempt = 0; attempt <= MAX_CORRECTION_ATTEMPTS; attempt++) {
         if (attempt > 0) broadcastStep('thought', `正在为 ${args.site} 进行内容修正（第 ${attempt} 轮）...`);
         else broadcastStep('thought', `正在为 ${args.site} 填充 ${topology.areas.length} 个已锁定区域...`);
-        const output = await sendStateRequest(
+        const output = chatCommitResult(ownsChat, await sendStateRequest(
             requestSettings(settings),
             placementSystemPrompt,
             placementPrompt,
             null,
             { jsonSchema: MAP_ARCHITECT_ASSETS_JSON_SCHEMA, stream: true, debugSource: 'Map Architect: Assets' },
-        );
+        ));
         const parsed = parseMapArchitectResponse(output);
         const envelope = envelopeErrors(parsed.value, ['assets'], 'assets', 'Content placement');
         const candidate = parsed.value && !envelope.length
@@ -509,13 +514,14 @@ async function runMapArchitectOnce(rawArgs) {
     if (!isLocationMappingEnabled(getSettings())) {
         throw mapArchitectFailure('Persistent Maps was disabled while the map was being generated. Nothing was saved.');
     }
-    const saved = await persistArchitectDungeonMap(args.site, completedMap, {
+    const saved = chatCommitResult(ownsChat, await persistArchitectDungeonMap(args.site, completedMap, {
+        canCommit: ownsChat,
         requireNew: !!rawArgs?.requireNew,
         locationKeys: rawArgs?.locationKeys,
         locationCore: rawArgs?.locationCore || args.briefDescription,
         includeManifest,
         hostContext,
-    });
+    }));
     const status = saved.existing ? 'A concurrent map already existed and was preserved.' : `Map saved to ${saved.entryId}.`;
     const statusDisplay = saved.existing ? '已存在并发生成的地图，原地图已保留。' : `地图已保存到 ${saved.entryId}。`;
     const continuation = hostContext?.explicit
@@ -531,6 +537,7 @@ async function runMapArchitectOnce(rawArgs) {
  * Site is locked; the narrator is not involved.
  */
 export async function inferMapArchitectArgs({ site, loreEntry = '', userBrief = '', lookback, lorebookNames = [], characterCards = [] } = {}) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const siteRoot = String(site || '').trim();
     if (!siteRoot) throw new Error('Map Architect 自动填充需要一个地点根。');
 
@@ -540,14 +547,14 @@ export async function inferMapArchitectArgs({ site, loreEntry = '', userBrief = 
         throw new Error('Persistent Maps 已在组件中禁用。未填充地图简报。');
     }
 
-    const current = await syncDungeonMapsToLocationLorebook(ctx.chat || [], { capture: false });
+    const current = chatCommitResult(ownsChat, await syncDungeonMapsToLocationLorebook(ctx.chat || [], { capture: false }));
     if ((current.errors || []).some(error => /no campaign prefix/i.test(String(error)))) {
         throw new Error('没有可用的战役前缀，因此没有安全的 Locations 知识库目标。');
     }
 
     const windowSize = resolveLookback(settings, lookback);
     const context = recentStoryContext(ctx, windowSize, current);
-    const referenceContext = await buildMapArchitectReferenceContext(ctx, { lorebookNames, characterCards });
+    const referenceContext = chatCommitResult(ownsChat, await buildMapArchitectReferenceContext(ctx, { lorebookNames, characterCards }));
     const lore = String(loreEntry || '').trim() || '(No location lore entry.)';
     const brief = String(userBrief || '').trim() || '(none)';
     const userPrompt = `FILL CREATE_AREA_MAP FIELDS
@@ -569,13 +576,13 @@ SETTLEMENT = the city/town/village as a whole. DUNGEON = a high-risk room graph.
 Do not include the locked site name in keywords.
 Output only the JSON object.`;
 
-    const output = await sendStateRequest(
+    const output = chatCommitResult(ownsChat, await sendStateRequest(
         requestSettings(settings, { maxTokens: Math.min(4000, Math.max(1000, Number(settings.mapArchitectMaxTokens) || 25000)) }),
         DEFAULT_MAP_ARCHITECT_BRIEF_SYSTEM_PROMPT,
         userPrompt,
         null,
         { jsonSchema: MAP_ARCHITECT_BRIEF_JSON_SCHEMA, stream: true, debugSource: 'Map Architect' },
-    );
+    ));
     const parsed = parseMapArchitectResponse(output);
     if (!parsed.value) {
         throw new Error(parsed.error || 'Map Architect 未返回地图简报 JSON。');
@@ -612,22 +619,27 @@ Output only the JSON object.`;
 
 /** Dedupe parallel/repeated tool calls for the same site within one generation. */
 export function runMapArchitect(args) {
-    const key = normalizeKey([args?.attachTo?.site, args?.attachTo?.cell, args?.site].filter(Boolean).join(' :: '));
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+    const key = `${getActiveChatId()}::${normalizeKey([args?.attachTo?.site, args?.attachTo?.cell, args?.site].filter(Boolean).join(' :: '))}`;
+    if (architectRuns.has(key) && !architectRuns.get(key).ownsChat()) architectRuns.delete(key);
     if (architectRuns.has(key)) return architectRuns.get(key);
-    startMapArchitectToast(args?.site);
+    const toastToken = {};
+    startMapArchitectToast(args?.site, toastToken);
     const run = runMapArchitectOnce(args)
         .then(result => {
-            finishMapArchitectToast(args?.site, true);
+            assertChatCommit(ownsChat);
+            finishMapArchitectToast(args?.site, true, toastToken);
             return result;
         })
         .catch(error => {
-            finishMapArchitectToast(args?.site, false);
+            finishMapArchitectToast(args?.site, false, toastToken, ownsChat());
             console.error('[RPG Tracker] Map Architect failed:', error);
-            broadcastStep('error', describeFailure(error));
+            if (ownsChat()) broadcastStep('error', describeFailure(error));
             if (/\[MAP_ARCHITECT_(?:ERROR|ATTACHMENT_ERROR)/.test(String(error?.message || ''))) throw error;
             throw mapArchitectFailure(`Map Architect failed before a validated map could be saved: ${describeFailure(error)}`);
         })
-        .finally(() => architectRuns.delete(key));
+        .finally(() => { if (architectRuns.get(key) === run) architectRuns.delete(key); });
+    run.ownsChat = ownsChat;
     architectRuns.set(key, run);
     return run;
 }

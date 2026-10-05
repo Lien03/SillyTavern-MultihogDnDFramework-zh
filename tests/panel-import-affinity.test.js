@@ -1,17 +1,27 @@
+import * as chatAffinity from '../src/state/pass-affinity.js';
 import { readFileSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
+import { parseAst } from 'rollup/parseAst';
 import { canCommitPassForChat } from '../src/state/pass-affinity.js';
 import { canUseSceneMemo } from '../src/state/scene-affinity.js';
 
 const source = readFileSync(new URL('../src/ui/panel/panel-builder.js', import.meta.url), 'utf8');
 // Execute the production closures with controlled host I/O, without mounting the
 // entire panel or loading SillyTavern's browser-only dependencies.
-function closure(name, indent) {
-    const start = source.indexOf(`const ${name} = async (`);
-    const end = source.indexOf(`\n${' '.repeat(indent)}};`, start);
-    if (start < 0 || end < 0) throw new Error(`Missing closure ${name}`);
-    return source.slice(start, end) + `\n}; globalThis.run = ${name};`;
+function closure(name) {
+    let declaration;
+    function visit(node) {
+        if (!node || typeof node !== 'object') return;
+        if (node.type === 'VariableDeclarator' && node.id.name === name) declaration = node;
+        for (const value of Object.values(node)) {
+            if (Array.isArray(value)) value.forEach(visit);
+            else if (value && typeof value === 'object') visit(value);
+        }
+    }
+    visit(parseAst(source));
+    if (!declaration) throw new Error(`Missing closure ${name}`);
+    return `const ${source.slice(declaration.start, declaration.end)}; globalThis.run = ${name};`;
 }
 function deferred() {
     let resolve;
@@ -28,6 +38,7 @@ describe('panel import chat ownership', () => {
         let chatId = 'A';
         const generate = vi.fn();
         const context = createContext({
+        ...chatAffinity, ownsChat: chatAffinity.createChatCommitGuard('A', () => chatId),
             getSettings: () => ({ portraitAutoGenerateSceneView: true, locationImages: true }),
             getActiveChatId: () => chatId, canCommitPassForChat, canUseSceneMemo,
             buildImmersionSceneState: () => gate.promise,
@@ -53,6 +64,7 @@ describe('panel import chat ownership', () => {
         let handler;
         const element = { style: {}, classList: { remove() {} }, addEventListener: (_event, fn) => { handler = fn; } };
         const context = createContext({
+        ...chatAffinity, ownsChat: chatAffinity.createChatCommitGuard('A', () => chatId),
             portraitWrap: element, locThumbWrap: element,
             getActiveChatId: () => chatId,
             fileToDataUrl: () => gate.promise,
@@ -74,7 +86,8 @@ describe('panel import chat ownership', () => {
         const gate = deferred();
         let chatId = 'A';
         const apply = vi.fn();
-        const context = createContext({ getActiveChatId: () => chatId, fetchSrcAsDataUrl: () => gate.promise, applyPortraitData: apply, console });
+        const context = createContext({
+        ...chatAffinity, ownsChat: chatAffinity.createChatCommitGuard('A', () => chatId), getActiveChatId: () => chatId, fetchSrcAsDataUrl: () => gate.promise, applyPortraitData: apply, console });
         runInContext(closure('applyLibraryPortrait', 16), context);
         const pending = context.run('Alice', 'portrait.png');
         chatId = 'B';
@@ -93,6 +106,7 @@ describe('panel import chat ownership', () => {
         const activate = vi.fn();
         const remember = vi.fn();
         const context = createContext({
+        ...chatAffinity, ownsChat: chatAffinity.createChatCommitGuard('A', () => chatId),
             SillyTavern: { getContext: () => ({ loadWorldInfo: async () => ({ entries: {} }), executeSlashCommandsWithOptions: activate }) },
             getSettings: () => settings, getActiveChatId: () => chatId, canCommitPassForChat,
             fetch: () => { entered.resolve(); return gate.promise; }, getRequestHeaders: () => ({}),
@@ -120,6 +134,7 @@ describe('panel import chat ownership', () => {
         const prompt = vi.fn();
         const settings = { chatStates: {} };
         const context = createContext({
+        ...chatAffinity, ownsChat: chatAffinity.createChatCommitGuard('A', () => chatId),
             runtimeState: { currentChatId: 'A' }, getSettings: () => settings,
             getActiveChatId: () => chatId, canCommitPassForChat,
             saveChatState() {}, applyLibraryPortrait: () => gate.promise, sendDirectPrompt: prompt,

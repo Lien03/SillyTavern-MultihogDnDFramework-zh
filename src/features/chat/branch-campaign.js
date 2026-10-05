@@ -1,6 +1,7 @@
 import { createBranch } from '../../../../../../bookmarks.js';
 import { saveItemizedPrompts } from '../../../../../../itemized-prompts.js';
-import { getSettings, sanitizeCampaignPrefixString, saveChatState } from '../../../state-manager.js';
+import { getActiveChatId, getSettings, sanitizeCampaignPrefixString, saveChatState } from '../../../state-manager.js';
+import { createChatCommitGuard } from '../../state/pass-affinity.js';
 import { snapshotPortraitMapsForChat } from '../../../portrait-storage.js';
 import { runtimeState } from '../../app/runtime-state.js';
 import {
@@ -51,6 +52,7 @@ export function clearBranchSeedGuard(chatId) {
  * @param {{ saveSettings: (force?: boolean) => Promise<void>|void }} deps
  */
 export async function branchCampaignChat(deps) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const { saveSettings } = deps;
     const s = getSettings();
     const ctx = SillyTavern.getContext();
@@ -107,7 +109,7 @@ export async function branchCampaignChat(deps) {
     } catch (_) {
         return null;
     }
-    if (!confirmed) return null;
+    if (!confirmed || !ownsChat()) return null;
 
     // ── Freeze chat A ──────────────────────────────────────────────────────────
     if (typeof globalThis._rpgFlushRawMemoChanges === 'function') {
@@ -119,6 +121,7 @@ export async function branchCampaignChat(deps) {
     snapshotPortraitMapsForChat(s, oldId);
     saveChatState(oldId, { skipDiskWrite: true });
     await Promise.resolve(saveSettings(true));
+    if (!ownsChat()) return null;
 
     // Re-read after flush/save
     if (!s.chatStates?.[oldId]) {
@@ -188,7 +191,7 @@ export async function branchCampaignChat(deps) {
         // inherits a global/legacy override and keeps writing into the original
         // lorebook stack while cloned books under newPrefix sit unused.
         const ov = (s.routerCampaignPrefixOverride || '').trim();
-        if (ov) {
+        if (ov && ownsChat()) {
             const anchor = (s.routerCampaignPrefixOverrideAnchorChatId || '').trim();
             if (!anchor || anchor === newChatId) {
                 s.routerCampaignPrefixOverrideAnchorChatId = oldId;
@@ -213,9 +216,13 @@ export async function branchCampaignChat(deps) {
         }
 
         // ── Open branch ────────────────────────────────────────────────────────
+        // The seed and cloned books have explicit destinations and may finish
+        // after a switch. Never read arriving prompts or navigate away from it.
+        if (!ownsChat()) return newChatId;
         try {
             await saveItemizedPrompts(newChatId);
         } catch (_) { /* non-fatal */ }
+        if (!ownsChat()) return newChatId;
 
         if (ctx.groupId) {
             await ctx.openGroupChat(ctx.groupId, newChatId);

@@ -48,9 +48,10 @@ describe('getEligibleCoreFieldNames', () => {
 
 describe('router.js core-field gating wiring', () => {
     it('threads isManual into applyAction', () => {
-        expect(routerSource).toContain('async function applyAction(action, allBooks = {}, currentTime = \'\', breadcrumb = \'\', isManual = false)');
-        expect(routerSource).toContain('await applyAction(basicAction, archiveBooks, currentTime, breadcrumb, isManual)');
-        expect(routerSource).toContain('const commitResult = await applyAction(args, archiveBooks, currentTime, breadcrumb, isManual)');
+        expect(routerSource).toContain('async function applyAction(action, allBooks = {}, currentTime = \'\', breadcrumb = \'\', isManual = false, options = {})');
+        expect(routerSource).toContain('await commitOwnedAction(basicAction)');
+        expect(routerSource).toContain('const commitResult = await commitOwnedAction(args)');
+        expect(routerSource).toContain('await applyAction(action, archiveBooks, currentTime, breadcrumb, isManual, { canCommit: ownsChat })');
     });
 
     it('hard-rejects non-Combat-Profile core updates on automatic passes', () => {

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { invalidateChatCommitGuards } from '../src/state/pass-affinity.js';
 import { runtimeState } from '../src/app/runtime-state.js';
 import { wireAgentActivity } from '../src/ui/panel/panel-agent-activity.js';
 
@@ -7,7 +8,10 @@ beforeEach(() => {
     runtimeState.loreRedoStack = [];
 });
 
+beforeEach(() => { globalThis._rpgCurrentChatId = () => runtimeState.currentChatId; });
+
 afterEach(() => {
+    delete globalThis._rpgCurrentChatId;
     delete globalThis.document;
     delete globalThis.toastr;
     runtimeState.currentChatId = null;
@@ -15,6 +19,38 @@ afterEach(() => {
 });
 
 describe('Agent activity controls', () => {
+    it.each(['snapshot', 'undo', 'redo'])('does not repopulate history after a round trip during %s', async phase => {
+        let release;
+        const gate = new Promise(resolve => { release = resolve; });
+        const handlers = {};
+        const button = id => ({ addEventListener: (_, fn) => { handlers[id] = fn; } });
+        const back = button('undo'), forward = button('redo');
+        const history = [{ chatId: 'Chat A', campaignPrefix: 'A', bookSnapshots: {} }];
+        const postPassState = { chatId: 'Chat A', campaignPrefix: 'A' };
+        runtimeState.loreRedoStack = [{ prePassSnapshot: history[0], postPassState }];
+        globalThis.document = { addEventListener: vi.fn() };
+        globalThis.toastr = { error: vi.fn() };
+        const rollback = vi.fn(() => phase === 'undo' ? gate : true);
+        const refreshManifest = vi.fn();
+        wireAgentActivity({
+            agentPanel: { querySelector: id => id === '#rt-agent-nav-back' ? back : id === '#rt-agent-nav-fwd' ? forward : null },
+            getSettings: () => ({ routerHistory: history, routerCampaignPrefix: 'A' }), getRouterTick: () => 0,
+            captureRouterLoreState: () => phase === 'snapshot' ? gate : postPassState,
+            rollbackRouterPass: rollback, reapplyRouterPass: () => gate, refreshManifest, saveSettings() {},
+        });
+        const pending = handlers[phase === 'redo' ? 'redo' : 'undo']();
+        // Let the snapshot continuation reach undo before invalidating its owner.
+        if (phase === 'undo') await Promise.resolve();
+        invalidateChatCommitGuards();
+        invalidateChatCommitGuards();
+        runtimeState.loreRedoStack = [];
+        release(phase === 'snapshot' ? postPassState : phase !== 'redo');
+        await pending;
+        expect(runtimeState.loreRedoStack).toEqual([]);
+        expect(refreshManifest).not.toHaveBeenCalled();
+        if (phase === 'snapshot') expect(rollback).not.toHaveBeenCalled();
+    });
+
     it('wires lifecycle listeners even when optional Agent controls are absent', () => {
         const addEventListener = vi.fn();
         globalThis.document = { addEventListener };

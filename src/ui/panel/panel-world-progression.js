@@ -1,3 +1,5 @@
+import { getActiveChatId } from '../../../state-manager.js';
+import { createChatCommitGuard, chatCommitResult, ignoreChatCancellation } from '../../state/pass-affinity.js';
 import { runtimeState } from '../../app/runtime-state.js';
 
 /** Wires the Lorebook Agent's World Progression controls and status readout. */
@@ -24,6 +26,7 @@ export function wireAgentWorldProgression({
         const worldHeader = agentPanel.querySelector('#rt-agent-world-header');
         if (worldHeader) {
             worldHeader.addEventListener('click', (e) => {
+
                 if (e.target instanceof Element && e.target.closest('#rt-agent-world-enabled-badge')) return;
                 toggleAgentWorld();
             });
@@ -31,7 +34,9 @@ export function wireAgentWorldProgression({
 
         const badgeEl = agentPanel.querySelector('#rt-agent-world-enabled-badge');
         if (badgeEl) {
-            badgeEl.addEventListener('click', async (e) => {
+            badgeEl.addEventListener('click', ignoreChatCancellation(async (e) => {
+                const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
                 e.stopPropagation();
                 const s = getSettings();
                 s.worldProgressionEnabled = !s.worldProgressionEnabled;
@@ -39,9 +44,10 @@ export function wireAgentWorldProgression({
                 updateAgentWorldStatus();
                 $('#rpg_world_progression_enabled').prop('checked', s.worldProgressionEnabled);
                 if (runtimeState.currentChatId) {
-                    await syncCampaignPrefixAndWorldsForChat(runtimeState.currentChatId, 'toggle-world-progression');
+                    chatCommitResult(ownsChat, await syncCampaignPrefixAndWorldsForChat(runtimeState.currentChatId, 'toggle-world-progression'));
                 }
-            });
+
+            }));
         }
 
         // ── Agent World Progression status display helper ──
@@ -84,6 +90,7 @@ export function wireAgentWorldProgression({
         const worldIntervalInp = /** @type {HTMLInputElement|null} */ (agentPanel.querySelector('#rt-agent-world-interval'));
         if (worldIntervalInp) {
             worldIntervalInp.addEventListener('input', () => {
+
                 getSettings().worldProgressionIntervalHours = parseInt(worldIntervalInp.value) || 24;
                 saveSettings();
                 updateAgentWorldStatus();
@@ -98,6 +105,7 @@ export function wireAgentWorldProgression({
         const worldLocationsInp = /** @type {HTMLInputElement|null} */ (agentPanel.querySelector('#rt-agent-world-locations'));
         if (worldLocationsInp) {
             worldLocationsInp.addEventListener('change', () => {
+
                 const s = getSettings();
                 s.worldProgressionLocationsPerReport = Math.max(1, Math.min(12, parseInt(worldLocationsInp.value, 10) || 3));
                 worldLocationsInp.value = String(s.worldProgressionLocationsPerReport);
@@ -109,8 +117,10 @@ export function wireAgentWorldProgression({
         // ── Agent World Fire Now button ──
         const worldFireNowBtn = agentPanel.querySelector('#rt-agent-world-fire-now');
         if (worldFireNowBtn) {
-            worldFireNowBtn.addEventListener('click', async () => {
-                const { parseInWorldMinutes: piw, runWorldProgressionPass: rwp } = await import('../../../router.js');
+            worldFireNowBtn.addEventListener('click', ignoreChatCancellation(async () => {
+                const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
+                const { parseInWorldMinutes: piw, runWorldProgressionPass: rwp } = chatCommitResult(ownsChat, await import('../../../router.js'));
                 const s = getSettings();
                 const timeMatch = (s.currentMemo || '').match(/\[TIME\]([\s\S]*?)\[\/TIME\]/i);
                 const timeStr = timeMatch ? extractCurrentTimeStr(timeMatch[1]) : '';
@@ -124,24 +134,29 @@ export function wireAgentWorldProgression({
                 /** @type {HTMLButtonElement} */ (worldFireNowBtn).disabled = true;
                 worldFireNowBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 生成中…';
                 try {
-                    await rwp(timeStr, currentMinutes);
+                    chatCommitResult(ownsChat, await rwp(timeStr, currentMinutes));
                     updateAgentWorldStatus();
                     toastr['success']('世界进程报告已生成。', '世界进程');
                 } catch (e) {
+                    if (!ownsChat()) return;
+
                     toastr['error'](`世界进程错误：${e.message}`, '世界进程');
                     s.worldProgressionLastFiredAtMinutes = savedLast;
                 } finally {
                     /** @type {HTMLButtonElement} */ (worldFireNowBtn).disabled = false;
                     worldFireNowBtn.innerHTML = '<i class="fa-solid fa-globe"></i> 立即生成';
                 }
-            });
+
+            }));
         }
 
         // ── Agent World Fire with Extra Instructions button ──
         const worldFireExtraBtn = agentPanel.querySelector('#rt-agent-world-fire-extra');
         if (worldFireExtraBtn) {
-            worldFireExtraBtn.addEventListener('click', async () => {
-                const { parseInWorldMinutes: piw, runWorldProgressionPass: rwp } = await import('../../../router.js');
+            worldFireExtraBtn.addEventListener('click', ignoreChatCancellation(async () => {
+                const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
+
+                const { parseInWorldMinutes: piw, runWorldProgressionPass: rwp } = chatCommitResult(ownsChat, await import('../../../router.js'));
                 const s = getSettings();
                 const timeMatch = (s.currentMemo || '').match(/\[TIME\]([\s\S]*?)\[\/TIME\]/i);
                 const timeStr = timeMatch ? extractCurrentTimeStr(timeMatch[1]) : '';
@@ -165,14 +180,16 @@ export function wireAgentWorldProgression({
 
                 let extraInstructions = '';
                 setTimeout(() => {
+                    if (!ownsChat()) return;
                     const textarea = document.getElementById('rt_wp_extra_instructions_agent');
                     if (textarea) {
-                        textarea.addEventListener('input', () => { extraInstructions = textarea.value.trim(); });
+                        textarea.addEventListener('input', () => {
+                            if (!ownsChat()) return; extraInstructions = textarea.value.trim(); });
                     }
                 }, 100);
 
                 const { Popup } = SillyTavern.getContext();
-                const choice = await Popup.show.confirm('世界进程', popupBody, { okButton: '生成', cancelButton: '取消' });
+                const choice = chatCommitResult(ownsChat, await Popup.show.confirm('世界进程', popupBody, { okButton: '生成', cancelButton: '取消' }));
                 if (!choice) return;
 
                 const savedLast = s.worldProgressionLastFiredAtMinutes;
@@ -180,23 +197,27 @@ export function wireAgentWorldProgression({
                 /** @type {HTMLButtonElement} */ (worldFireExtraBtn).disabled = true;
                 worldFireExtraBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 生成中…';
                 try {
-                    await rwp(timeStr, currentMinutes, extraInstructions);
+                    chatCommitResult(ownsChat, await rwp(timeStr, currentMinutes, extraInstructions));
                     updateAgentWorldStatus();
                     toastr['success']('世界进程报告已生成。', '世界进程');
                 } catch (e) {
+                    if (!ownsChat()) return;
+
                     toastr['error'](`世界进程错误：${e.message}`, '世界进程');
                     s.worldProgressionLastFiredAtMinutes = savedLast;
                 } finally {
                     /** @type {HTMLButtonElement} */ (worldFireExtraBtn).disabled = false;
                     worldFireExtraBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> 附带额外指令生成';
                 }
-            });
+
+            }));
         }
 
         // ── Agent World Reset Timeline button ──
         const worldResetBtn = agentPanel.querySelector('#rt-agent-world-reset-timeline');
         if (worldResetBtn) {
             worldResetBtn.addEventListener('click', () => {
+
                 const s = getSettings();
                 s.worldProgressionLastFiredAtMinutes = -1;
                 s.worldProgressionLastFiredPeriodLabel = '';
@@ -210,7 +231,8 @@ export function wireAgentWorldProgression({
 
         const worldPurgeBtn = agentPanel.querySelector('#rt-agent-world-purge-history');
         if (worldPurgeBtn) {
-            worldPurgeBtn.addEventListener('click', () => { void confirmAndPurgeWorldHistory(); });
+            worldPurgeBtn.addEventListener('click', () => {
+         void confirmAndPurgeWorldHistory(); });
         }
 
         // ── Agent World Progression Toggle ──

@@ -1,3 +1,5 @@
+import { createChatCommitGuard, chatCommitResult } from './src/state/pass-affinity.js';
+import { getActiveChatId } from './state-manager.js';
 // ─────────────────────────────────────────────────────────────────────────
 // Game Cartridges — save/load/export/import the entire "configuration
 // surface" of the framework (system prompt sections/order/toggles, Game
@@ -192,6 +194,7 @@ export function updateCartridgeFromCurrent(cartridge) {
  * @returns {Promise<boolean>}
  */
 export async function loadCartridge(cartridge) {
+    const ownsChat = createChatCommitGuard(getActiveChatId(), getActiveChatId);
     const { Popup } = SillyTavern.getContext();
 
     // Pre-compute modified status for every group so we can render badges.
@@ -255,11 +258,11 @@ export async function loadCartridge(cartridge) {
         });
     }, 100);
 
-    const result = await Popup.show.confirm(`🎮 加载卡带：${escapeHtml(cartridge.name)}`, content, {
+    const result = chatCommitResult(ownsChat, await Popup.show.confirm(`🎮 加载卡带：${escapeHtml(cartridge.name)}`, content, {
         okButton: '加载所选',
         cancelButton: '取消',
         ...GC_POPUP_LARGE,
-    });
+    }));
 
     if (!result) return false;
 
@@ -280,7 +283,7 @@ export async function loadCartridge(cartridge) {
     refreshOrderList();
     syncAllNarratorTogglesForUnlockState();
     refreshRenderedView();
-    await autoApplySysprompt(true);
+    chatCommitResult(ownsChat, await autoApplySysprompt(true));
     if (typeof globalThis._rpgSyncSettingsUi === 'function') {
         globalThis._rpgSyncSettingsUi();
     }

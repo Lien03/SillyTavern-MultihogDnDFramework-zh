@@ -39,7 +39,7 @@ describe('panel router view', () => {
         const refreshImmersionView = vi.fn().mockResolvedValue(undefined);
         runtimeState.refreshImmersionView = refreshImmersionView;
         globalThis.SillyTavern = {
-            getContext: () => ({ loadWorldInfo: vi.fn() }),
+            getContext: () => ({ chatId: 'A', loadWorldInfo: vi.fn() }),
         };
 
         const render = createRouterViewRenderer({
@@ -81,6 +81,7 @@ describe('panel router view', () => {
         };
         globalThis.SillyTavern = {
             getContext: () => ({
+                chatId: 'A',
                 loadWorldInfo: vi.fn().mockResolvedValue({
                     entries: { 7: { key: ['Old Keep'], comment: 'Old Keep', content } },
                 }),

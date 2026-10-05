@@ -2,6 +2,92 @@
 
 All notable changes to the **Multihog D&D Framework** will be documented in this file.
 
+## [2026.9.25] - 2026-09-27
+
+### Fixed
+- File-backed memo, map, and Map Evolution history now loads and saves from phones or other browsers connected over plain HTTP on a local network. Chat switching can restore each chat's own history without browser APIs that are reserved for secure contexts.
+
+## [2026.8.97] - 2026-09-25
+
+### Fixed
+- Switching chats cancels departing Real-Time Visualization work without permanently disabling the mode. Explicit user stops and generation failures still disable further attempts until re-enabled.
+- "On Location enter (once per place)" reuses existing location art on revisits instead of behaving like "every location change". The other trigger modes retain their existing behavior.
+- Location-background preference is explicitly treated as global, alongside the other visualization preferences, when cleaning legacy chat snapshots.
+
+## [2026.8.96] - 2026-09-24
+
+### Changed
+- Reduced paired Linear Stone history retention from 50 to 25 snapshots. Existing histories, including those already migrated to the 50-entry limit, are trimmed on load while preserving LIVE and its map.
+
+## [2026.8.95] - 2026-09-24
+
+### Fixed
+- Linear Stone history now retains 50 paired memo/dungeon-map snapshots instead of 1,000 per chat. Existing live, saved-chat, and profile histories are trimmed on settings load; loading older chat/profile snapshots also applies the limit.
+- Retention preserves the current LIVE stone and its map even when LIVE lies outside the newest 50 entries. Chat Link conflict archives also preserve this pair at the limit.
+- Older rollback snapshots beyond retention are removed to reduce settings.json size. Current memos, campaign lorebooks, and current map contents are unchanged; storage remains in the existing format.
+
+## [2026.8.94] - 2026-09-23
+
+### Fixed
+- Scene View and Real-Time location generation resolve the Locations lorebook from the tracked chat when SillyTavern's chat ID is stale. Stale scene requests cannot stamp visit tracking for another chat.
+- Map Evolution reads World Reports from the campaign pinned to its pass, preventing another campaign's reports from driving map changes.
+- Linear Stone swipe synchronization follows the LIVE history index after Chat Link archiving or restoring older stones. Rolling back to a saved base keeps its dungeon-map snapshot paired and preserves unrelated archives; missing base snapshots are left unknown rather than reusing abandoned occupancy.
+- Previous-memo archiving retains the stored LIVE map snapshot after slicing non-zero history indices.
+
+## [2026.8.93] - 2026-09-19
+
+### Fixed
+- Automatic portrait and location generation select lorebooks using the tracked chat when SillyTavern's chat ID is stale. Scene prompts also use the tracked campaign's linked player character, present NPCs, and legacy campaign-prefix override.
+- Dungeon-map snapshots update the actual LIVE history slot, including after Chat Link conflict archiving or restoring an older stone as LIVE, without overwriting another stone's map.
+
+## [2026.8.92] - 2026-09-18
+
+### Fixed
+- Shared chat ownership guards now cover map agents, lorebook writes and recovery, world generation, portrait follow-ups, narrative scheduling, history navigation, and delayed panel actions. Switching away and back also cancels the old operation.
+- `/la save` retains its originating chat through nested lorebook writes and uses a campaign-scoped Chronicle book. Dungeon-map capture and map transactions stop before updating another chat's history or activation.
+- Full Lorebook Agent audits stop between chunks after a switch. Branch Campaign and Chat Link dialogs cannot apply the departing chat's choices to the arriving chat.
+- Cancelled map operations cannot clear a newer run's controller or notifications. Persistent panel controls capture ownership for each action and continue working after a switch; explicitly chat-scoped image uploads can still finish safely.
+- Chat Link conflict archiving keeps memo/map history paired and preserves the LIVE-history pointer. Known legacy object stones, including those already restored as LIVE, are repaired when settings, chats, or profiles load.
+
+### Development
+- Added deferred-I/O regression coverage for chat switches, round trips, cancellation, failed recovery, and successful ordinary writes. Documented the shared async ownership pattern in `docs/chat-ownership.md`.
+
+## [2026.8.91] - 2026-09-16
+
+### Fixed
+- Automatic dungeon-map capture retains chat ownership across lorebook awaits and stops writing `dungeonMapHistory` or Lorebook Agent activation into another chat after a switch. Campaign Locations writes keep the pinned prefix.
+- Chat Link conflict RESTORE/OVERWRITE archives displaced memos as plain Linear Stone strings (paired with dungeon-map history). Object stones no longer poison the memo panel, delta view, or "restore as LIVE".
+
+## [2026.8.90] - 2026-09-15
+
+### Fixed
+- Renaming an inactive chat migrates its data to the renamed file, preserving the open chat's state. The destination uses SillyTavern's filename sanitizer instead of the active chat ID.
+- Renamed chats retain their original lorebook prefix across saves, reloads, and later renames. Manual overrides remain scoped to their chat, and new campaign branches use their cloned lorebooks.
+
+## [2026.8.89] - 2026-09-14
+
+### Fixed
+- Character Creator, Quick Start, PC Import, and onboarding archetype rolls stop after a cancelled/chat-changed State Tracker prompt, so late Player Card, portrait, persona, or starter-message follow-ups cannot land in another chat.
+- Character creation retains the same ownership guard through initial configuration, persona imports/uploads, and Player Card preview approval. Switching away and back also invalidates pending work.
+
+## [2026.8.88] - 2026-09-13
+
+### Fixed
+- Lorebook Agent retains chat ownership across lorebook/LLM awaits and stops committing records, activation, relationships, or watermarks into another chat after a switch (including the post-LLM window where the response is already in hand).
+- Delayed Lorebook Agent auto-cleanup is cancelled on chat switch; history finalization and portrait rename follow-up saves also stop when their originating pass loses ownership.
+
+## [2026.8.87] - 2026-09-13
+
+### Fixed
+- World Progression retains chat ownership across lorebook loads, saves, activation, and LLM awaits, and stops writing reports or advancing timers into another chat after a switch.
+- Chat switches abort in-flight World Progression and Lorebook Agent LLM work before the live projection flips.
+- Adventure Companion aborts in-flight LLM/tool work on chat switch and refuses late actions when the originating chat is no longer active.
+- Cancelled Companion requests retain their abort signal and cannot execute late tools or clear the controls of a newer request.
+- State memo commands stop before changing quests, history, or memo data if the chat or state changes while a map snapshot is captured.
+
+### Added
+- **`/get-state-memo` and `/set-state-memo` slash commands**: Read the full state memo or a single `[BLOCK]` without an LLM pass. `/get-state-memo block=TIME` returns just the content (`Day 2`); `/get-state-memo TIME` (positional) returns the wrapped block (`[TIME]\nDay 2\n[/TIME]`). `/set-state-memo block=TIME Day 2` sets one block's content (merging into existing memo), or `/set-state-memo <full memo>` replaces everything. Block id uses named `block=` argument so quoted content is never misparsed. `/set-state-memo` pushes the same Linear Stone History delta/version entry as a narrative or Direct Prompt update, so `[ LIVE ]` navigation and the delta panel see the change.
+
 ## [2026.8.86] - 2026-09-10
 
 ### Fixed

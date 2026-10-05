@@ -1012,6 +1012,18 @@ describe('Map Evolution', () => {
         expect(evolution).toContain('Never substitute the configured interval for the actual elapsed duration');
         expect(evolution).toContain('pendingWorldReportsForSite');
         expect(evolution).toContain('mapEvolutionWorldReportApplications');
+        expect(evolution).toContain('loadRecentWorldReports(settings, ctx, passChatId)');
+        expect(evolution).toContain('const passChatId = getActiveChatId()');
+        expect(evolution).not.toContain('getEffectiveRouterCampaignPrefix(ctx.chatId || ctx.getCurrentChatId?.() || \'\')');
+        {
+            const loadFn = evolution.slice(
+                evolution.indexOf('async function loadRecentWorldReports'),
+                evolution.indexOf('function pendingWorldReportsForSite'),
+            );
+            expect(loadFn).toContain('chatId || getActiveChatId()');
+            expect(loadFn).toContain('getEffectiveRouterCampaignPrefix(id)');
+            expect(loadFn).not.toContain('getEffectiveRouterCampaignPrefix(ctx.chatId');
+        }
         expect(evolution).toContain('delete transaction.report_outcomes');
         expect(evolution).toContain('siteRoots');
         expect(evolution).toContain('listMappedEvolutionSites');
@@ -1028,7 +1040,8 @@ describe('Map Evolution', () => {
         expect(evolution).toContain('holdExitBookkeeping');
         expect(evolution).toContain("exitResult?.skipped === 'busy'");
         expect(evolution).toContain('buildReportOutcomeStamps');
-        expect(evolution).toContain('try { persistMapEvolutionState(); } catch (_) { /* best-effort */ }');
+        expect(evolution).toContain('try { persistMapEvolutionState(); } catch (_) {');
+        expect(evolution).toContain("if (!ownsProjection()) return { skipped: 'chat_changed' };");
         expect(evolution).toContain('export async function loadMappedEvolutionSite');
         expect(evolution).toContain("from './map-evolution-lib.js'");
         expect(evolution).not.toContain("from './map-updater.js'");
@@ -1038,7 +1051,7 @@ describe('Map Evolution', () => {
         expect(updater).not.toContain('EVOLVED');
         expect(updater).not.toContain('groundMapsAfterWorldProgression');
 
-        expect(hooks).toContain('mapResult = await runMapUpdaterPass');
+        expect(hooks).toContain('mapResult = chatCommitResult(ownsChat, await runMapUpdaterPass');
         expect(hooks.indexOf('mapResult = await runMapUpdaterPass')).toBeLessThan(hooks.indexOf('await maybeRunWorldProgression()'));
         expect(hooks.indexOf('await maybeRunWorldProgression()')).toBeLessThan(hooks.indexOf('await maybeRunMapEvolution()'));
         expect(hooks).not.toContain('groundMapsAfterWorldProgression');
