@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
+import { createChatStateLoader } from '../src/features/chat/chat-state-loader.js';
+import { saveChatState } from '../src/state/chat-persistence.js';
 import {
     cleanupSupersededHistoryFiles,
     countLegacyHistories,
@@ -54,7 +56,107 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
+function projectChat(settings, chatId) {
+    registry.rpg_tracker = settings;
+    const ui = {};
+    for (const method of ['val', 'prop', 'toggle', 'text', 'find', 'show', 'hide', 'css']) ui[method] = () => ui;
+    vi.stubGlobal('$', () => ui);
+    vi.stubGlobal('document', { getElementById: () => null });
+    const noop = () => {};
+    return createChatStateLoader({
+        ...Object.fromEntries([
+            'applyChatNpcRelMaxSettings', 'applyChatTimeFormatSettings', 'disableManagedEntries',
+            'hydrateImmersionSceneArtPath', 'refreshOrderList', 'resetAutoGenerationTracking',
+            'sanitizeRouterState', 'scheduleAgentManifestRefresh', 'scheduleAutoApply', 'scheduleDeferred',
+            'syncLocationImageDependentUi', 'syncMemoView', 'syncNpcPortraitDependentUi',
+        ].map(key => [key, noop])),
+        applyQuestSyncAndStripMemo: memo => memo,
+        extractCurrentTimeStr: () => '',
+        formatInWorldTime: () => '',
+        getSettings: () => settings,
+        isAgentPanelVisible: () => false,
+        loadStockPromptsFromProfile: prompts => prompts,
+        parseInWorldTime: () => null,
+    })(chatId);
+}
+
 describe('file-backed histories', () => {
+    it('keeps immediate native saves compact while projecting and snapshotting a hydrated chat', async () => {
+        const evolution = { forest: [{ cause: 'A flood began.' }] };
+        const settings = { chatLinkEnabled: true, chatSetupLinkEnabled: false, chatStates: {
+            A: { currentMemo: 'latest', memoHistory: ['latest', 'older'], dungeonMapHistory: [{ map: 1 }, null],
+                mapEvolutionThreadsBySite: evolution },
+        } };
+        await persistChatHistories(settings, 'A');
+        const reloaded = JSON.parse(JSON.stringify(settings));
+        await hydrateChatHistories(reloaded, 'A');
+        expect(projectChat(reloaded, 'A')).toBe(true);
+        const projected = JSON.parse(JSON.stringify(reloaded));
+        expect(projected.memoHistory).toBeUndefined();
+        expect(projected.dungeonMapHistory).toBeUndefined();
+        expect(projected.mapEvolutionThreadsBySite).toBeUndefined();
+        expect(reloaded.memoHistory).toEqual(['latest', 'older']);
+        expect(reloaded.mapEvolutionThreadsBySite).toEqual(evolution);
+
+        saveChatState('A', { skipDiskWrite: true });
+        const snapshotted = JSON.parse(JSON.stringify(reloaded));
+        expect(snapshotted.chatStates.A.memoHistory).toBeUndefined();
+        expect(snapshotted.chatStates.A.dungeonMapHistory).toBeUndefined();
+        expect(snapshotted.chatStates.A.mapEvolutionThreadsBySite).toBeUndefined();
+
+        const previousUrl = reloaded.chatStates.A.historyStorage.url;
+        reloaded.currentMemo = 'newest';
+        reloaded.memoHistory.unshift('newest');
+        reloaded.dungeonMapHistory.unshift(null);
+        saveChatState('A', { skipDiskWrite: true });
+        expect(await persistChatHistories(reloaded, 'A')).toBe(true);
+        expect(reloaded.chatStates.A.historyStorage.url).not.toBe(previousUrl);
+        const saved = JSON.parse(JSON.stringify(reloaded));
+        expect(await hydrateChatHistories(saved, 'A')).toBe(true);
+        expect(saved.chatStates.A.memoHistory).toEqual(['newest', 'latest', 'older']);
+        expect(saved.chatStates.A.mapEvolutionThreadsBySite).toEqual(evolution);
+    });
+
+    it('keeps unmigrated histories visible when switching from a file-backed chat to a legacy chat', async () => {
+        const settings = { chatLinkEnabled: true, chatSetupLinkEnabled: false, chatStates: {
+            A: { currentMemo: 'file memo', memoHistory: ['file memo'], dungeonMapHistory: [null],
+                mapEvolutionThreadsBySite: { forest: [{ cause: 'Filed.' }] } },
+            B: { currentMemo: 'legacy memo', memoHistory: ['legacy memo'], dungeonMapHistory: [{ map: 2 }],
+                mapEvolutionThreadsBySite: { harbor: [{ cause: 'Not yet uploaded.' }] } },
+        } };
+        await persistChatHistories(settings, 'A');
+        const reloaded = JSON.parse(JSON.stringify(settings));
+        await hydrateChatHistories(reloaded, 'A');
+        projectChat(reloaded, 'A');
+        projectChat(reloaded, 'B');
+        saveChatState('B', { skipDiskWrite: true });
+        const saved = JSON.parse(JSON.stringify(reloaded));
+        expect(saved.memoHistory).toEqual(['legacy memo']);
+        expect(saved.mapEvolutionThreadsBySite.harbor[0].cause).toBe('Not yet uploaded.');
+        expect(saved.chatStates.B.memoHistory).toEqual(['legacy memo']);
+    });
+
+    it('exposes changed histories as a fallback if a file-backed snapshot upload fails', async () => {
+        const settings = { chatLinkEnabled: true, chatSetupLinkEnabled: false, chatStates: {
+            A: { currentMemo: 'file memo', memoHistory: ['file memo'], dungeonMapHistory: [null] },
+        } };
+        await persistChatHistories(settings, 'A');
+        const reloaded = JSON.parse(JSON.stringify(settings));
+        await hydrateChatHistories(reloaded, 'A');
+        projectChat(reloaded, 'A');
+        reloaded.currentMemo = 'unsaved';
+        reloaded.memoHistory.unshift('unsaved');
+        reloaded.dungeonMapHistory.unshift(null);
+        saveChatState('A', { skipDiskWrite: true });
+        failUpload = true;
+        const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+        expect(await persistChatHistories(reloaded, 'A')).toBe(false);
+        const saved = JSON.parse(JSON.stringify(reloaded));
+        expect(saved.memoHistory).toEqual(['unsaved', 'file memo']);
+        expect(saved.chatStates.A.memoHistory).toEqual(['unsaved', 'file memo']);
+        errorLog.mockRestore();
+    });
+
     it('waits for explicit migration of old histories while new chats use files', async () => {
         const settings = { chatLinkEnabled: true, chatStates: {
             old: { memoHistory: ['old memo'], dungeonMapHistory: [null] },

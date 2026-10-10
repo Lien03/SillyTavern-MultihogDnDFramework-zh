@@ -8,7 +8,7 @@ import { getSettings, stripChatStateGlobalUiPrefs } from './settings.js';
 import { snapshotStockPromptsForProfile } from './profiles.js';
 import { snapshotChatSetup } from './chat-setup.js';
 import { saveSettings as requestSettingsSave } from '../app/runtime-bridge.js';
-import { isHistoryPersistenceBlocked, persistChatHistories } from './history-file-storage.js';
+import { copyHistoryVisibility, isHistoryPersistenceBlocked, persistChatHistories } from './history-file-storage.js';
 
 // Kept only so legacy recovery code can be re-enabled deliberately. Normal tracker
 // operation must not create or consume a browser-local recovery copy.
@@ -617,6 +617,7 @@ export function saveChatState(chatId, opts = {}) {
         })(),
     };
     if (!existing.historyStorage) delete s.chatStates[chatId].historyStorage;
+    else copyHistoryVisibility(s, s.chatStates[chatId]);
 
     // Sync WAL before the async disk write — survives F5 if /api/settings/save is cancelled.
     writeModuleSchemaBackup(chatId);

@@ -2,6 +2,7 @@ import { runtimeState } from '../../app/runtime-state.js';
 import { applyChatSetup, resetChatSetupToStock } from '../../state/chat-setup.js';
 import { ensureDungeonMapHistory, trimMemoAndMapHistory } from '../../state/dungeon-map-history.js';
 import { repairChatLinkMemoHistory } from './chat-link-conflict.js';
+import { copyHistoryVisibility } from '../../state/history-file-storage.js';
 import { summarizeMapEvolutionSchedule } from '../../../map-evolution-lib.js';
 import { isLorebookAgentRuntimeActive } from '../../state/section-enabled.js';
 
@@ -98,6 +99,7 @@ export function createChatStateLoader({
     s.mapEvolutionIntervalHoursBySite = JSON.parse(JSON.stringify(saved.mapEvolutionIntervalHoursBySite || {}));
     s.mapEvolutionWorldReportLookback = saved.mapEvolutionWorldReportLookback ?? 5;
     s.mapEvolutionWorldReportApplications = JSON.parse(JSON.stringify(saved.mapEvolutionWorldReportApplications || {}));
+    copyHistoryVisibility(saved, s);
     s.pcCharacterBlockSeeded = !!saved.pcCharacterBlockSeeded;
     s.routerDirectPrompt = saved.routerDirectPrompt || '';
     s.stateTrackerDirectPrompt = saved.stateTrackerDirectPrompt || '';

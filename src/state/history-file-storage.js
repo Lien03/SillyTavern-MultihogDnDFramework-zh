@@ -121,6 +121,17 @@ function exposeHistories(part) {
     }
 }
 
+/** Copies must not re-embed file-backed histories while native ST saves are queued. */
+export function copyHistoryVisibility(source, target) {
+    for (const key of [...HISTORY_KEYS, ...EVOLUTION_KEYS]) {
+        const descriptor = Object.getOwnPropertyDescriptor(source, key);
+        if (!descriptor || !Object.hasOwn(target, key)) continue;
+        Object.defineProperty(target, key, {
+            value: target[key], writable: true, configurable: true, enumerable: descriptor.enumerable,
+        });
+    }
+}
+
 function attachmentRegistry() {
     const extensionSettings = SillyTavern.getContext().extensionSettings;
     if (!Array.isArray(extensionSettings.attachments)) extensionSettings.attachments = [];
