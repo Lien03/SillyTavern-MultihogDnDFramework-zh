@@ -4,8 +4,8 @@
  * LIVE writes the matching [MAP] section back to the Locations lorebook.
  */
 
-// Preserve the existing campaign history; large arrays are stored in separate files.
-export const MEMO_HISTORY_LIMIT = 1000;
+// Keep a larger rollback window than upstream while storing snapshots in separate files.
+export const MEMO_HISTORY_LIMIT = 500;
 
 /** Keep recent memo/map pairs, retaining an older LIVE pair in the final slot. */
 export function trimMemoAndMapHistory(settings, max = MEMO_HISTORY_LIMIT) {

@@ -18,12 +18,20 @@ function history(length = 234, live = 0) {
 afterEach(() => { delete testExtensionSettings[MODULE_NAME]; });
 
 describe('paired history retention', () => {
-    it('preserves all 724 existing paired snapshots with the deployment limit', () => {
-        const s = history(724, 723);
-        const before = JSON.stringify(s);
-        expect(MEMO_HISTORY_LIMIT).toBe(1000);
+    it.each([0, 914])('retains 500 paired snapshots while preserving LIVE at %s', live => {
+        const s = history(915, live);
+        const liveMap = s.dungeonMapHistory[live];
+        expect(MEMO_HISTORY_LIMIT).toBe(500);
+        expect(trimMemoAndMapHistory(s)).toBe(true);
+        expect(s.memoHistory).toHaveLength(500);
+        expect(s.dungeonMapHistory).toHaveLength(500);
+        expect(s.memoHistory.slice(0, 499)).toEqual(history(499).memoHistory);
+        expect(s.currentMemo).toBe(`memo ${live}`);
+        expect(s.memoHistory[s.historyIndex]).toBe(s.currentMemo);
+        expect(s.dungeonMapHistory[s.historyIndex]).toBe(liveMap);
+        const after = JSON.stringify(s);
         expect(trimMemoAndMapHistory(s)).toBe(false);
-        expect(JSON.stringify(s)).toBe(before);
+        expect(JSON.stringify(s)).toBe(after);
     });
 
     it('trims stored activity and companion histories in their respective time order', () => {
