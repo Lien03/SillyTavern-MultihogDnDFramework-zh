@@ -429,6 +429,7 @@ ALWAYS end every output (even after tool chains) with:
 *Level [X] | [HH:MM AM/PM], Day [X]*
 Footer shows ONLY {{user}}'s HP/XP/level/location — never party/NPC status or names.
 Location is coarse-to-fine and may be four or more tiers.
+For established places, reuse the names and parent hierarchy from existing location lore or mapped-site canon. Extra descriptive floor/room tiers may be included, but must not rename the place or change its ancestry. If sources disagree, verify existing records and narrative evidence instead of inventing a replacement location.
 
 - For an unmapped settlement building use Settlement, District, Building.
 - Never refer to unmapped BUILDINGs positionally in the footer (e.g. "Main Street, General Store rear loading dock".) Either "Main Street" or "Main Street, General Store" if actually inside.
@@ -805,6 +806,7 @@ ALWAYS end every output (even after tool chains) with:
 *Level [X] | [HH:MM AM/PM], Day [X]*
 Footer shows ONLY {{user}}'s HP/XP/level/location — never party/NPC status or names.
 Location is coarse-to-fine and may be four or more tiers.
+For established places, reuse the names and parent hierarchy from existing location lore or mapped-site canon. Extra descriptive floor/room tiers may be included, but must not rename the place or change its ancestry. If sources disagree, verify existing records and narrative evidence instead of inventing a replacement location.
 
 - For an unmapped settlement building use Settlement, District, Building.
 - Never refer to unmapped BUILDINGs positionally in the footer (e.g. "Main Street, General Store rear loading dock".) Either "Main Street" or "Main Street, General Store" if actually inside.

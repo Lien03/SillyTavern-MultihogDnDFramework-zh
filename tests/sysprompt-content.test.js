@@ -4,6 +4,18 @@ import { normalizeGmContent, unwrapManagedSectionContent } from '../src/state/sy
 import { RT_PROMPTS } from '../constants.js';
 
 describe('system-prompt section content normalization', () => {
+    it('keeps the location consistency guidance in both fetched and bundled narrator prompts', () => {
+        for (const name of ['sysprompt.txt', 'sysprompt_legacy.txt']) {
+            const footer = source => source.replaceAll('\r\n', '\n')
+                .match(/<end_of_output_footer>[\s\S]*?<\/end_of_output_footer>/)?.[0];
+            const sourceFooter = footer(readFileSync(new URL(`../${name}`, import.meta.url), 'utf8'));
+            expect(footer(RT_PROMPTS[name])).toBe(sourceFooter);
+            expect(sourceFooter).toContain('reuse the names and parent hierarchy');
+            expect(sourceFooter).toContain('Extra descriptive floor/room tiers may be included');
+            expect(sourceFooter).toContain('verify existing records and narrative evidence');
+        }
+    });
+
     const tag = 'homebrew_and_custom_classes';
     const corrupted = `<homebrew_and_custom_classes>
 <homebrew_and_custom_classes>

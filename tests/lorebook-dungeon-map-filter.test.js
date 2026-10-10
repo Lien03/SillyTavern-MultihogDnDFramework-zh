@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 import { cleanMessageContent } from '../memo-processor.js';
 
 describe('Lorebook Agent dungeon-map filtering', () => {
+    it('adds location consistency guidance to runtime context for existing custom prompts', () => {
+        const source = readFileSync(new URL('../router.js', import.meta.url), 'utf8');
+        const note = source.match(/const LOCATION_FOOTER_LAG_NOTE = `[\s\S]*?`;/)?.[0];
+        const formatter = source.match(/function formatCurrentLocationSection\(hierarchy\) \{[\s\S]*?\n\}/)?.[0];
+        const prompt = runInNewContext(`${note}\n${formatter}\nformatCurrentLocationSection('Home :: Terrace')`);
+        expect(prompt).toContain('## CURRENT LOCATION\nHome :: Terrace');
+        expect(prompt).toContain('Check same-named places against their ancestors');
+        expect(prompt).toContain('do not create a duplicate or rename a place merely to make the paths match');
+        expect(prompt).toContain('leave mapped topology to the Map Updater');
+    });
+
     it('removes private map payloads while preserving visible narration', () => {
         const cleaned = cleanMessageContent({
             mes: `The chamber smells of dust.

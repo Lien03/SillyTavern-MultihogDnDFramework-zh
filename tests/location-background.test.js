@@ -36,6 +36,7 @@ import { buildImmersionSceneState, loadAllLocationPaths, loadLocationEntryByPath
 import { applyLocationImageToChatBackground, triggerBackgroundLocationGeneration } from '../portraits.js';
 import { invalidateChatCommitGuards } from '../src/state/pass-affinity.js';
 import { isWorldInfoBookKnown, scanRecentOutputForPresentNpcs } from '../router.js';
+import { resolveCurrentLocationPath } from '../location-resolver.js';
 
 function deferred() {
     let resolve;
@@ -82,6 +83,67 @@ describe('location background syncing', () => {
     it('applies the current image when opted in', async () => {
         await buildImmersionSceneState();
         expect(applyLocationImageToChatBackground).toHaveBeenCalledExactlyOnceWith('A.png');
+    });
+
+    it('builds the scene when the location footer has an extra floor missing from the lore path', async () => {
+        const terrace = '云杉水榭 :: 临湖观景露台';
+        setLocation('岚桥城, 云杉水榭, 主楼二层, 临湖观景露台');
+        host.prefixFor = () => 'Campaign';
+        host.settings.activeRouterKeys = ['Campaign_Locations::0', 'Campaign_Locations::106'];
+        host.context.loadWorldInfo = vi.fn(async () => ({ entries: {
+            0: { comment: '岚桥城', content: 'City' },
+            106: { comment: '云杉水榭', content: 'Home' },
+            109: { comment: terrace, content: 'Terrace' },
+        } }));
+        isWorldInfoBookKnown.mockResolvedValue(true);
+        host.images = { [terrace]: 'terrace.png' };
+
+        const scene = await buildImmersionSceneState();
+        expect(scene.resolvedPath).toBe(terrace);
+        expect(scene.locationContent).toBe('Terrace');
+        expect(scene.locationImage).toBe('terrace.png');
+    });
+
+    it.each([
+        ['Other, Terrace', ['Home :: Terrace', 'Other :: Terrace'], ['Home :: Terrace'], 'Other :: Terrace'],
+        ['Home, Upper Floor, Terrace', ['Home :: Terrace', 'Home :: Wing :: Terrace'], ['Home :: Terrace'], 'Home :: Terrace'],
+        ['Home, Upper Floor, Terrace', ['Home :: Terrace', 'Home :: Wing :: Terrace'], [], 'Home :: Terrace'],
+        ['Home, Unknown Room', ['Home :: Terrace'], [], null],
+    ])('resolves %s without recursive retries', (raw, paths, activeLocPaths, expected) => {
+        expect(resolveCurrentLocationPath(raw, paths, { activeLocPaths })).toBe(expected);
+    });
+
+    it.each([
+        ['庄园甲, 二层, 露台', ['庄园甲 :: 露台', '城市乙 :: 庄园乙 :: 露台'], ['城市乙 :: 庄园乙 :: 露台'], '庄园甲 :: 露台'],
+        ['Terrace', ['Home :: Terrace', 'Other :: Terrace'], ['Home :: Terrace'], null],
+        ['Home, Upper Floor, Terrace', ['Home :: East Wing :: Terrace', 'Home :: West Wing :: Terrace'], ['Home :: East Wing :: Terrace'], null],
+        ['Home, East Wing, Upper Floor, Terrace', ['Home :: East Wing :: Terrace', 'Home :: West Wing :: Terrace'], ['Home :: West Wing :: Terrace'], 'Home :: East Wing :: Terrace'],
+        ['Home, Upper Floor, Lake Terrace', ['Home :: Lake Terrace', 'Other :: Lake Terrace'], [], 'Home :: Lake Terrace'],
+        ['Lake Terrace', ['Home :: Lake Terrace'], [], 'Home :: Lake Terrace'],
+        ['Other, Upper Floor, Terrace', ['Home :: Terrace'], [], null],
+        ['Wing, Home, Floor, Terrace', ['Home :: Wing :: Terrace'], [], null],
+        ['Home, Upper Floor, Terrace', ['Home :: Terrace', 'Home :: Terrace'], [], 'Home :: Terrace'],
+    ])('checks parent locations before resolving %s', (raw, paths, activeLocPaths, expected) => {
+        expect(resolveCurrentLocationPath(raw, paths, { activeLocPaths })).toBe(expected);
+    });
+
+    it('does not display another location entry or its image when the parent is ambiguous', async () => {
+        setLocation('Terrace');
+        host.prefixFor = () => 'Campaign';
+        host.settings.activeRouterKeys = ['Campaign_Locations::1'];
+        host.context.loadWorldInfo = vi.fn(async () => ({ entries: {
+            1: { comment: 'Home :: Terrace', content: 'Home terrace' },
+            2: { comment: 'Other :: Terrace', content: 'Other terrace' },
+        } }));
+        isWorldInfoBookKnown.mockResolvedValue(true);
+        host.images = { 'Home :: Terrace': 'home.png', 'Other :: Terrace': 'other.png' };
+
+        const scene = await buildImmersionSceneState();
+        expect(scene.rawLocationText).toBe('Terrace');
+        expect(scene.resolvedPath).toBeNull();
+        expect(scene.locationContent).toBe('');
+        expect(scene.locationImage).toBe('');
+        expect(applyLocationImageToChatBackground).not.toHaveBeenCalled();
     });
 
     it.each(['portraitAutoApplyLocationBackground', 'locationImages'])('respects disabled %s', async key => {

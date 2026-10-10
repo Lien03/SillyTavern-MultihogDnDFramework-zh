@@ -1296,7 +1296,8 @@ function stripStaticDungeonAgentGuidance(prompt) {
         .trim();
 }
 
-const LOCATION_FOOTER_LAG_NOTE = 'Parsed from the narrator status footer and may lag. If the latest narration clearly entered a named interior (chapel, inn, shop, house, alley) that this line omitted, treat the narration as authoritative — do not wait for the footer.';
+const LOCATION_FOOTER_LAG_NOTE = `Parsed from the narrator status footer and may lag. If the latest narration clearly entered a named interior (chapel, inn, shop, house, alley) that this line omitted, treat the narration as authoritative — do not wait for the footer.
+For established locations, reuse catalog names and parent paths. Check same-named places against their ancestors before recording or renaming. If the footer adds a descriptive floor/room tier, verify the existing entry and narrative evidence; do not create a duplicate or rename a place merely to make the paths match. Correct location lore only when the evidence establishes an error; leave mapped topology to the Map Updater.`;
 
 function formatCurrentLocationSection(hierarchy) {
     return `## CURRENT LOCATION\n${hierarchy || 'Unknown'}\n${LOCATION_FOOTER_LAG_NOTE}`;

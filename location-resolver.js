@@ -66,7 +66,7 @@ function tokensSuffixMatch(inputTokens, pathTokens) {
  * Deepest suffix match wins (e.g. "Monastery Courtyard" → "Monastery :: Courtyard").
  * @param {string} rawText
  * @param {string[]} allPaths Canonical paths using ` :: ` separators
- * @param {{ activeLocPaths?: string[], preferLeafOnly?: boolean }} [opts]
+ * @param {{ activeLocPaths?: string[] }} [opts]
  * @returns {string|null}
  */
 export function resolveCurrentLocationPath(rawText, allPaths, opts = {}) {
@@ -75,9 +75,9 @@ export function resolveCurrentLocationPath(rawText, allPaths, opts = {}) {
     const inputTokens = tokenizeLocationText(rawText);
     if (!inputTokens.length) return null;
 
-    const normalizedPaths = allPaths
+    const normalizedPaths = [...new Set(allPaths
         .map(p => normalizeLocationPath(p))
-        .filter(Boolean);
+        .filter(Boolean))];
 
     const activeSet = new Set((opts.activeLocPaths || []).map(p => normalizeLocationPath(p)));
 
@@ -103,32 +103,28 @@ export function resolveCurrentLocationPath(rawText, allPaths, opts = {}) {
 
     if (bestPath) return bestPath;
 
-    // Leaf-only fallback: "Courtyard" → "... :: Courtyard"
-    const leafToken = inputTokens[inputTokens.length - 1];
+    // Allow extra descriptive tiers, but require the known parents in order.
     const leafCandidates = normalizedPaths.filter((path) => {
         const parts = path.split(' :: ');
-        const leaf = parts[parts.length - 1];
-        return partToTokens(leaf).join(' ') === leafToken
-            || (partToTokens(leaf).length === 1 && partToTokens(leaf)[0] === leafToken);
+        const leafTokens = partToTokens(parts.pop());
+        if (!tokensSuffixMatch(inputTokens, leafTokens)) return false;
+        const parentEnd = inputTokens.length - leafTokens.length;
+        if (parentEnd === 0) return true;
+
+        let cursor = 0;
+        for (const part of parts) {
+            const parentTokens = partToTokens(part);
+            while (cursor + parentTokens.length <= parentEnd
+                && !parentTokens.every((token, i) => inputTokens[cursor + i] === token)) {
+                cursor++;
+            }
+            if (cursor + parentTokens.length > parentEnd) return false;
+            cursor += parentTokens.length;
+        }
+        return true;
     });
 
-    if (leafCandidates.length === 0) return null;
-
-    const activeLeaf = leafCandidates.find(p => activeSet.has(p));
-    if (activeLeaf) return activeLeaf;
-
-    if (inputTokens.length > 1) {
-        const parentTokens = inputTokens.slice(0, -1);
-        const parentHint = parentTokens.join(' ');
-        const hinted = resolveCurrentLocationPath(
-            `${parentHint} ${leafCandidates[0].split(' :: ').pop()}`,
-            leafCandidates,
-            { activeLocPaths: opts.activeLocPaths },
-        );
-        if (hinted) return hinted;
-    }
-
-    return leafCandidates.sort((a, b) => b.split(' :: ').length - a.split(' :: ').length)[0];
+    return leafCandidates.length === 1 ? leafCandidates[0] : null;
 }
 
 /**
