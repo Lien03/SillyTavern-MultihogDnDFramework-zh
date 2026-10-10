@@ -4550,14 +4550,16 @@ export async function scanAssistantOutputForKeywords(narrativeText, opts = {}) {
     for (const id of pinnedSet) currentActive.add(id);
     settings.activeRouterKeys = [...currentActive];
     settings.keywordActivatedKeys = [...currentKeyword].filter(id => !pinnedSet.has(id));
-    settings.lastKeywordTriggeredKeys = newlyTriggered;
+    // Same-turn injection must respect the cap and expiry decisions above.
+    const retainedTriggered = newlyTriggered.filter(id => currentActive.has(id));
+    settings.lastKeywordTriggeredKeys = retainedTriggered;
     void saveSettings();
 
-    if (settings.debugMode && newlyTriggered.length > 0) {
-        console.log('[RPG Tracker] Keyword scanner activated:', newlyTriggered);
+    if (settings.debugMode && retainedTriggered.length > 0) {
+        console.log('[RPG Tracker] Keyword scanner activated:', retainedTriggered);
     }
 
-    return newlyTriggered;
+    return retainedTriggered;
 }
 
 /** @param {string} bookName */
